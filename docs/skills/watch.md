@@ -16,7 +16,7 @@ Use `grab` at the relevant source timestamps to verify visual claims. `auto` can
 
 ## Inputs and timing
 
-Media tools take a local path or a direct media URL. A page URL is not a media file. Prefer the user's local source; use an available downloader only when the requested workflow calls for it and access is authorized. Do not assume `yt-dlp` is installed or a service permits every download.
+Media tools take a local path or a direct media URL. A page URL is not a media file. Prefer the user's local source. To keep a web image, video, or audio file in the project, use `web_media_download` with its direct link or a page that declares its media; the file lands in `assets/web/` with its source recorded. Streaming platforms such as YouTube, Instagram, and TikTok play through their own players, so ask the user for their own copy. Do not assume `yt-dlp` is installed or a service permits every download.
 
 Keep original-source timestamps distinct from an excerpt's local times and from an edited scene's timeline. A range read from `waveform` is already absolute to its input file even when `start`/`end` were supplied. If an excerpt began at source time `B` and was not retimed, an excerpt-local timestamp `t` maps to `B + t` in the original. Do not add an offset twice.
 

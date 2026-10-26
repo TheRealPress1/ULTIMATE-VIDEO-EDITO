@@ -29,6 +29,7 @@ import type { ReferenceRequest, ReferenceJob, ReferenceResult, ReferenceProgress
 import type { SpeakerAnalysisRequest, SpeakerAnalysisResult, SpeakerAnalysisProgress } from './speaker-types';
 import type { AnalysisCacheRequest, AnalysisCacheResult, AnalysisCachePut } from './analysis-cache-types';
 import type { PlaybackProxyRequest, PlaybackProxyJob, PlaybackProxyResult, PlaybackProxyProgress } from './playback-proxy-types';
+import type { WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest } from './web-media-types';
 
 export const MAIN_WIRE = {
   REQUEST: "main:request",
@@ -87,6 +88,10 @@ export const MAIN_CHANNELS = {
   PLAYBACK_PROXY_PROGRESS: 'playback-proxy:progress',
   AUDIO_FINISH_RUN: 'audio-finish:run',
   AUDIO_FINISH_CANCEL: 'audio-finish:cancel',
+  WEB_MEDIA_DOWNLOAD: 'web-media:download',
+  WEB_MEDIA_CANCEL: 'web-media:cancel',
+  WEB_MEDIA_COMMIT: 'web-media:commit',
+  WEB_MEDIA_DISCARD: 'web-media:discard',
   INSTAGRAM_CONNECT: "instagram:connect",
   INSTAGRAM_SYNC: "instagram:sync",
   INSTAGRAM_DISCONNECT: "instagram:disconnect",
@@ -297,6 +302,11 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.PLAYBACK_PROXY_RELEASE]: { request: {dir:string;sessionId:string}; response:void };
   [MAIN_CHANNELS.AUDIO_FINISH_RUN]: { request:AudioFinishingRequest; response:AudioFinishingResult };
   [MAIN_CHANNELS.AUDIO_FINISH_CANCEL]: { request:{id:string}; response:void };
+  // web_media_download: main fetches into the project, the renderer imports, then commits (ledger + CREDITS.md) or discards.
+  [MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD]: { request: WebMediaDownloadRequest; response: WebMediaDownloaded };
+  [MAIN_CHANNELS.WEB_MEDIA_CANCEL]: { request: { id: string }; response: void };
+  [MAIN_CHANNELS.WEB_MEDIA_COMMIT]: { request: WebMediaCommitRequest; response: WebMediaCommitResult };
+  [MAIN_CHANNELS.WEB_MEDIA_DISCARD]: { request: { id: string }; response: void };
   [MAIN_CHANNELS.REFRAME_CANCEL]: { request: { id: string }; response: void };
   [MAIN_CHANNELS.PROJECTS_COLLECT_PICK]: { request: {dir: string}; response: string | null };
   [MAIN_CHANNELS.PROJECTS_COLLECT]: { request: {dir: string; target: string}; response: CollectProjectResult };

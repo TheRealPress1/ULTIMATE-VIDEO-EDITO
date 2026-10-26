@@ -25,12 +25,14 @@ export type MainContext = {
   logs(): LogEntry[];
   /** The app's version. */
   version: string;
+  /** The project the editor has open (or last had), when the handler needs it; null when none is. */
+  project?(): string | null;
   /** The main window. */
   window: AppWindow;
 };
 
 /** The tools that need the file system, a child process or the window itself, not a renderer. */
-export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style";
+export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "web_media_search";
 
 export type MainHandler<N extends MainToolName> = (args: ToolArgs<N>, ctx: MainContext) => Promise<ToolResult<N>>;
 

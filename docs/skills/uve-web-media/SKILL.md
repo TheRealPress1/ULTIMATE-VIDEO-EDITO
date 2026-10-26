@@ -1,0 +1,24 @@
+---
+name: uve-web-media
+description: Find, download and place openly licensed web images, video and audio for a script-driven timeline or B-roll, or download a link the user supplies, with licenses and credits recorded.
+metadata:
+  version: "1.0.0"
+---
+
+# Web images and media
+
+Use `web_media_search` to find openly licensed images, video and audio on Openverse and Wikimedia Commons, and `web_media_download` to save a chosen result or a link the user supplies into the project. Both run automatically. Prefer them to `curl`, `wget` or scripts: a shell download gets no license record, credit or library entry. Hosted `generate` models fail immediately unless the user has configured that service, so don't try them for photos or footage; build titles and graphics as native layers with [motion graphics](../uve-motion-graphics/SKILL.md).
+
+For a script-driven timeline, plan before searching. Split the text into beats of one idea, place, person, object or number each. Without a recording, estimate about 2.5 spoken words per second (150 wpm). Hold each visual for 2-5 s; give a long beat several shots rather than one long still. Write each beat's text, start, end and visual idea into the edit plan.
+
+Write concrete queries naming the physical subject, place, era and shot type ("1990s Formula 1 pit stop", "stratosphere balloon capsule", "desert highway at dusk"). Abstract words such as "success" return weak stock. Try two or three phrasings when a beat comes back thin. Set `orientation` to the delivery format (`portrait` for 9:16, `landscape` for 16:9) and `kind` for video or audio. The default `license: "editable"` leaves out no-derivatives works; use `"commercial"` when the video is monetized or posted for a brand. The first `preview` results (4 by default) arrive with thumbnails, so look at them. Choose by fit to the exact sentence, then resolution (at least the output height), composition, and the absence of watermarks, burned-in text and borders. Never present a photo as showing something it doesn't, or a person or logo as endorsing the video.
+
+Call `web_media_download` with a result's `url`, which keeps its search provenance, or with the user's link, plus a short `name` for a readable file name. A web page resolves to the image it declares for sharing, or to its video with `prefer: "video"`. The file is saved under the project's `assets/web/` folder, checked to be a real image, video or audio file, imported into the asset library, and credited in `CREDITS.md` at the project root. Use the returned `src` (such as `web/apollo-launch-3f2a9c1d.jpg`) in JSX; downloading the same file again reuses it. YouTube, Instagram, TikTok and similar platforms only stream through their players: ask the user to export or import their own copy rather than work around the platform.
+
+Put each visual on its own `<image>` or `<video>` layer with explicit `start` and `end` covering its beat; a still without `end` lasts 16 s. Fill the frame (`objectFit="cover"`) and crop deliberately. Give stills gentle motion over the hold, such as a `scale` keyframe from 1 to 1.08 or a small pan, varying direction between neighbors. Cut on beat boundaries and crossfade only where the script itself turns. When nothing suitable exists, leave a text placeholder naming the missing shot instead of an unrelated image. Keep titles and captions clear of faces and key detail. See [image](../../reference/jsx/image.md) and [keyframes](../../reference/jsx/keyframes.md).
+
+When the user records the script, place the recording on an audio track and get word times with `transcribe` on its library path. Move each beat to start at the timeline time of its sentence's first word (audio clip `start` + word time - `sourceIn`), keep the visuals in order, and run the last one to the end of the voice. Mention any visual that now lasts less than about 1.5 s, and run `captions` afterward if the video needs captions.
+
+Prefer CC0, public-domain and CC BY results. CC BY-SA requires attribution and share-alike, NC licenses exclude commercial use, and ND licenses forbid cropping and overlays. Each result's `license` states these terms; use a work only when the user's use fits. A user's own link has an unverified license (`verified: false`), so say so and leave the rights to the user. `CREDITS.md` holds the attribution text to paste into the post caption or description.
+
+Capture frames at several beat boundaries to check placement and cropping, and use [final review](../uve-final-review/SKILL.md) for substantial edits. Report beats that still need better visuals and any license that limits how the video can be used.

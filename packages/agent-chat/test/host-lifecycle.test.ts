@@ -4,7 +4,7 @@
 
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { AgentHost } from "../src/host/host";
 import { ChatStore } from "../src/host/store";
@@ -154,4 +154,11 @@ it("recovers a project's checkpoint once using its latest folder, with a visible
   const snapshot = await host.handle(connection, "chats.open", { chatId: second.chatId });
   const notices = snapshot.items.filter((item) => item.kind === "notice" && item.text.includes("source was changed externally"));
   expect(notices).toHaveLength(1);
+});
+
+it("hands every session the chat store, so harnesses can keep it from the agent", async () => {
+  const fake = await setup();
+  const { chatId } = await host.handle(connection, "turn.send", input);
+  await idle(chatId);
+  expect(fake.sessions.at(-1)!.opened.dataDir).toBe(resolve(dir));
 });

@@ -16,7 +16,7 @@ Open a folder as a project in the running app, creating the project files if the
 
 ## What opening writes
 
-The folder may live anywhere on disk, and does not have to be a project yet. Opening is what makes it one, writing as little as that takes:
+The folder does not have to be a project yet; opening is what makes it one. Because an open project is where tools may write freely, `open` accepts only: an existing Cutroom project anywhere on disk (its `package.json` has a `projectId`), the current project or a folder inside it, a folder inside a temporary directory, or a new or empty folder where a new file could be created (the project, temporary folders, Desktop, Documents, Downloads, Movies, Music, Pictures). An existing folder that isn't a Cutroom project — a folder of footage, your home folder, Desktop itself — is refused; open it from the app's dashboard, which makes it a project, or copy its files into a new folder and open that. These rules hold for every client, the CLI included. Opening writes as little as it takes:
 
 - a missing folder is created;
 - a folder with no entry file (package.json `main`, or `index.tsx` and friends) gains an `index.tsx` holding an empty stage;
@@ -24,7 +24,7 @@ The folder may live anywhere on disk, and does not have to be a project yet. Ope
 
 Nothing else is written — no tsconfig, README, or .gitignore. Those come with a project created from the app's dashboard; a folder opened from anywhere on disk stays the user's. A folder that is already a project is opened untouched, wherever it lives. A JavaScript project (an entry ending in `.js` or `.jsx`) is left entirely alone, record included.
 
-The app remembers the folder, so the project reopens across app relaunches and stays addressable by folder name or project id.
+The app remembers the folder, so the project reopens across app relaunches and stays addressable by folder name or project id. Tools write into the folder that was opened: if it is later moved, renamed, or replaced by a link, they stop treating it as the project (`The open project's folder changed on disk; reopen the project.`) until it is opened again.
 
 Keep the folder out of cloud-synced locations: iCloud Drive (including a synced Desktop or Documents), Dropbox, OneDrive, and Google Drive. Sync clients evict media to placeholders, upload half-written renders, and leave conflict copies. Open a local folder outside the synced tree instead.
 
@@ -49,5 +49,6 @@ The opened project:
 ## Errors
 
 - The path is not absolute (`The project folder must be an absolute path`).
+- The folder is not one `open` may make the project: an existing folder that isn't a Cutroom project, or a new folder outside the places listed above (see [What opening writes](#what-opening-writes)).
 - The path exists but is not a folder.
 - From a shell on Linux, or from a `cutroom` that is not the one the app ships (a workspace build on Windows), the app cannot be launched; the command then requires it to already be running.

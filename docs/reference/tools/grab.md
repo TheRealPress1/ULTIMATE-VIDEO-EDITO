@@ -36,7 +36,7 @@ Three ways to say which frames, mutually exclusive:
 
 `quality` is a pixel budget rather than a box: a frame is scaled down, aspect ratio kept, until it holds no more pixels than the preset's square (`small` is 384², so a 16:9 frame becomes 512x288; `medium` 768² gives 1024x576; `large` 1536² gives 2048x1152), and never enlarged, so `large` on 1080p footage is the native 1920x1080.
 
-With `separate`, frames keep their own resolution and alpha, and each file is named after its timecode (e.g. `01s12f.png`). Without an `output` directory the images land in a fresh `dapi-grab-*` directory under the system temp directory, so runs never overwrite each other. Writing into the same directory twice overwrites images whose name matches; with `separate`, requested times that land on the same frame share one file.
+With `separate`, frames keep their own resolution and alpha, and each file is named after its timecode (e.g. `01s12f.png`). Without an `output` directory the images land in a fresh `dapi-grab-*` directory under the system temp directory, so runs never overwrite each other. Writing into the same directory twice overwrites images whose name matches; a link at an image's name is replaced by the image, never written through. An `output` outside the project and temporary folders must be a new or existing folder in Desktop, Documents, Downloads, Movies, Music or Pictures, and existing files there are never replaced; with `separate`, requested times that land on the same frame share one file.
 
 ## Timecodes
 

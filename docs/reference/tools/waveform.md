@@ -20,7 +20,7 @@ Render the audio track of a video or audio file as a waveform PNG (local render,
 
 Loudness over time is drawn from decoded audio peaks. An `end` past the asset's duration is clamped to it; a `start` at or past the end is an error, since the window would be empty. Tick labels use `HH:MM:SS:FF` timecode (hours, minutes, seconds, frame within the second) at every zoom level, so labels stay comparable regardless of the window's span. For a video, frames count against the video's frame rate; for a standalone audio asset, the ruler counts against a nominal 30 fps.
 
-The overall canvas size stays fixed, so a smaller `scale` (clamped to `0.25`–`4`) fits **more rows and columns** — a denser time axis — and a larger one fits fewer but taller rows. Without `output` the PNG lands in a fresh file under the system temp directory; an `output` naming an existing directory gets that fresh file inside it.
+The overall canvas size stays fixed, so a smaller `scale` (clamped to `0.25`–`4`) fits **more rows and columns** — a denser time axis — and a larger one fits fewer but taller rows. Without `output` the PNG lands in a fresh file under the system temp directory; an `output` naming an existing directory gets that fresh file inside it. An existing file at `output` is replaced (a link there is replaced, never written through) inside the project and temporary folders; elsewhere `output` must be a new file or an existing folder in Desktop, Documents, Downloads, Movies, Music or Pictures.
 
 ## Output
 

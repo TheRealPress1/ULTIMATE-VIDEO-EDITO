@@ -28,6 +28,7 @@ import { filmstrip } from "./tools/filmstrip";
 import { waveform } from "./tools/waveform";
 import { listen } from "./tools/listen";
 import { generate, job } from "./tools/generate";
+import { webMediaSearch, webMediaDownload } from "./tools/web-media";
 import { fonts } from "./tools/fonts";
 import { report } from "./tools/report";
 import { appWindow } from "./tools/window";
@@ -36,7 +37,7 @@ import { instagramAccounts, instagramPosts, instagramPostAnalytics, instagramAcc
 /**
  * Every tool, in the order a listing shows them: the project loop first
  * (open, look, capture, check, export), then media inspection, then
- * generation, then the app and machine utilities.
+ * generation and web media, then the app and machine utilities.
  */
 export const catalog = [
   skills,
@@ -68,6 +69,8 @@ export const catalog = [
   listen,
   generate,
   job,
+  webMediaSearch,
+  webMediaDownload,
   logs,
   screenshot,
   appWindow,

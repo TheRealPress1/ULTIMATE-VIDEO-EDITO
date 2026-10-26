@@ -20,8 +20,9 @@ vi.mock("electron", () => ({
   ipcMain: { on: () => { } },
 }));
 
-const { createProject, draftsRoot, duplicateProject, moveProject, readManifest, saveProject, writeManifest } =
+const { createProject, draftsRoot, duplicateProject, moveProject, readManifest, saveProject, startWrite, writeManifest } =
   await import("./projects");
+const { WebMediaService } = await import("./web-media");
 
 let root: string;
 
@@ -73,6 +74,32 @@ describe("drafts", () => {
     await writing;
     expect(await readManifest(target)).toEqual(manifest);
     expect(await readdir(draftsRoot())).toEqual([]);
+  });
+
+  it("duplicates without waiting for a web download's network, or copying its partial file", async () => {
+    const source = await createProject();
+    let finish = () => {};
+    const media = new WebMediaService({
+      startWrite,
+      resolve: async () => [{ address: "93.184.216.34", family: 4 }],
+      // Its first bytes, then nothing until the test says so: a download minutes from done.
+      fetch: async () => new Response(new ReadableStream({
+        start(stream) {
+          stream.enqueue(new Uint8Array(5000).fill(1).fill(0xff, 0, 2).fill(0xd8, 1, 2).fill(0xff, 2, 3));
+          finish = () => { stream.enqueue(new Uint8Array(100).fill(2)); stream.close(); };
+        },
+      })),
+    });
+    const web = join(source.dir, "assets", "web");
+    const pending = media.download({ id: "d1", dir: source.dir, url: "https://e.example/big.jpg", prefer: "image" }, new AbortController().signal);
+    await vi.waitFor(async () => expect((await readdir(web).catch(() => [])).some((name) => name.startsWith(".dstmp-"))).toBe(true));
+
+    const copy = await duplicateProject(source.dir);
+    expect(await readdir(join(copy.dir, "assets", "web"))).toEqual([]);
+
+    finish();
+    const downloaded = await pending;
+    expect(await readdir(web)).toEqual([downloaded.source.split("/").pop()]);
   });
 
   it("refuses a folder that exists, and a project that is not a draft", async () => {

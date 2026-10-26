@@ -5,6 +5,7 @@
 import { randomUUID } from "node:crypto";
 import { ipcMain } from "electron";
 import { DAPI_WIRE, DapiError } from "@diffusionstudio/dapi";
+import { stillPinned } from "./output-policy";
 
 import type { BrowserWindow } from "electron";
 import type { DapiCall, DapiCancel, DapiReply } from "@diffusionstudio/dapi";
@@ -20,6 +21,8 @@ export type RendererHost = {
   acquire(): { window: BrowserWindow; fresh: boolean };
   /** The project the editor last had open, to reopen in a window created for a call. */
   lastProject(): string | null;
+  /** Where `lastProject` really was when the editor opened it (see `pinProject`); null when that could not be told. */
+  projectRoot(): string | null;
 };
 
 /**
@@ -65,7 +68,9 @@ export class RendererCalls {
   // The window to answer on. One created here is tracked, and gets the last
   // project reopened — unless the call is itself an `open` — since the calls
   // that follow assume the project the agent opened is still open. A project
-  // that no longer opens is left to the call to report.
+  // that no longer opens is left to the call to report. One whose folder has
+  // changed on disk since it was opened is not reopened at all: the reopen
+  // skips `open`'s checks, and the path may now lead anywhere.
   private window(tool: string): Promise<BrowserWindow> {
     const { window, fresh } = this.host.acquire();
     // Loaded before, but it may have reloaded since.
@@ -75,8 +80,11 @@ export class RendererCalls {
 
     this.track(window);
     const dir = fresh && tool !== "open" ? this.host.lastProject() : null;
+    const pinned = dir ? this.host.projectRoot() : null;
     const ready = loaded(window).then(async (loadedWindow) => {
-      if (dir) {
+      if (dir && !(await stillPinned(dir, pinned))) {
+        console.warn(`[dapi] not reopening ${dir}: its folder changed on disk since it was opened`);
+      } else if (dir) {
         await this.send(loadedWindow, "open", { dir }, new AbortController().signal).catch((error: Error) =>
           console.warn(`[dapi] could not reopen ${dir}: ${error.message}`),
         );

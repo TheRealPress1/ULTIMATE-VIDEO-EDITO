@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { DETAIL_MAX, IMAGES_MAX, IMAGE_MAX, collectResult } from "../src/host/harness";
+import { DETAIL_MAX, IMAGES_MAX, IMAGE_MAX, chatInstructions, collectResult } from "../src/host/harness";
 
 const png = (data = "iVBORw0KGgo=") => ({ type: "image", source: { type: "base64", media_type: "image/png", data } });
 
@@ -39,5 +39,30 @@ describe("collectResult", () => {
   it("drops empty output", () => {
     expect(collectResult([])).toEqual({});
     expect(collectResult([{ type: "text", text: "  " }])).toEqual({});
+  });
+});
+
+describe("chatInstructions", () => {
+  it("describes each provider's own command sandbox", () => {
+    const claude = chatInstructions("/projects/demo", undefined, "claude");
+    expect(claude).toContain("sandboxed commands (including network downloads) run automatically");
+    const codex = chatInstructions("/projects/demo", undefined, "codex");
+    expect(codex).toContain("sandboxed commands have no network access");
+    expect(codex).not.toContain("network downloads");
+    // Codex's sandbox cannot protect these inside the project; the instructions must.
+    expect(codex).toContain("Never delete files");
+    expect(codex).toContain("no Delete File hunks in patches");
+    expect(codex).toContain("Never create, change or delete anything in `.cutroom`, `.git`");
+    expect(claude).not.toContain("Delete File hunks");
+    // Only Claude's hooks refuse shell deletes and credential reads; Codex is told what its sandbox declines.
+    expect(claude).toContain("refused automatically with a reason — deleting files or running system commands from the shell");
+    expect(codex).not.toContain("refused automatically");
+    expect(codex).not.toContain("reading credential stores");
+    expect(codex).toContain("Writes outside the project and temporary folders, network access from commands and requests for extra permissions are declined automatically");
+    for (const text of [claude, codex]) {
+      expect(text).toContain("`/projects/demo`");
+      expect(text).toContain("`web_media_search` and `web_media_download`");
+    }
+    expect(chatInstructions("/projects/demo", "Prefer captions.", "codex").endsWith("\n\nPrefer captions.")).toBe(true);
   });
 });

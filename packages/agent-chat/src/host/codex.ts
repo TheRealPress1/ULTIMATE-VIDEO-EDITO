@@ -5,17 +5,21 @@
 // Codex through `codex app-server`: JSON-RPC over the child's stdio. The
 // protocol is hand-typed here for the dozen methods and notifications we
 // use; anything else is ignored. The MCP server is injected with a `-c`
-// override so nothing is written to the user's config.
+// override so nothing is written to the user's config. Approvals never reach
+// the user: the policy is "never", and any approval request that still
+// arrives is decided automatically. Codex declines carry no message, so the
+// guidance lives in the chat instructions and the cutroom tools' errors.
+// The workspace-write sandbox can read the whole disk, credential stores
+// included, and has no way to hide them, so its commands get no network:
+// web media comes through the cutroom tools instead.
 
 import { spawn } from "node:child_process";
-import { isDeepStrictEqual } from 'node:util';
 
 import { HARNESS_LABELS } from "../protocol";
 import { compareVersions, killTree, needsShell, parseVersion, quoteArg, resolveBinary } from "./env";
 import { JsonRpcPeer, RpcError } from "./jsonrpc";
 import { QuestionBox, newItemId, summarizeInput, truncateDetail } from "./harness";
-import { auditAutomaticApproval, requestApproval } from "./approval";
-import { canAutoApproveFile, canAutoApproveMcp } from './local-permissions';
+import { auditAutomaticApproval, decideWrite } from "./automatic-policy";
 
 import type { ChildProcess } from "node:child_process";
 import type { HarnessInfo, Item, Question, RequestResponse } from "../protocol";
@@ -91,6 +95,9 @@ function spawnAppServer(binary: string, cwd: string, env: Record<string, string>
       "-c", `mcp_servers.${mcp.name}.required=true`,
       // Long local interviews checkpoint between sections and remain cancelable.
       "-c", `mcp_servers.${mcp.name}.tool_timeout_sec=14400`,
+      // Under approval policy "never", a tool call that needs approval is
+      // refused. Cutroom's tools enforce their own safety, so approve them.
+      "-c", `mcp_servers.${mcp.name}.default_tools_approval_mode=${JSON.stringify("approve")}`,
     );
   }
   const shell = needsShell(binary);
@@ -188,7 +195,7 @@ class CodexSession implements HarnessSession {
     return {
       cwd: options.cwd,
       model,
-      approvalPolicy: "on-request",
+      approvalPolicy: "never",
       sandbox: "workspace-write",
       developerInstructions: options.instructions,
       config,
@@ -225,7 +232,7 @@ class CodexSession implements HarnessSession {
           threadId: this.threadId,
           input: [{ type: "text", text }],
           model,
-          approvalPolicy: "on-request",
+          approvalPolicy: "never",
           sandboxPolicy: {
             type: "workspaceWrite", writableRoots: [], networkAccess: false,
             excludeTmpdirEnvVar: false, excludeSlashTmp: false,
@@ -361,7 +368,7 @@ class CodexSession implements HarnessSession {
         const raw = ((params ?? {}) as ItemNotification).item ?? {};
         const item = turn && this.toItem(raw, false);
         if (!turn || !item) return;
-        if (raw.id && (raw.type === "fileChange" || raw.type === "commandExecution" || raw.type === "mcpToolCall")) turn.approvalItems.set(raw.id, raw);
+        if (raw.id && raw.type === "fileChange") turn.approvalItems.set(raw.id, raw);
         turn.items.set(item.id, item);
         turn.emit({ type: "item.started", item });
         return;
@@ -433,105 +440,84 @@ class CodexSession implements HarnessSession {
 
   private async handleRequest(method: string, params: unknown, signal: AbortSignal): Promise<unknown> {
     const request = (params ?? {}) as Record<string, unknown>;
-    // Never display a grant for a different thread or an already completed turn.
+    // Never answer for a different thread or an already completed turn.
     const stale = !this.turn ||
       (request.threadId !== undefined && request.threadId !== this.threadId) ||
       (request.turnId !== undefined && !(method === "mcpServer/elicitation/request" && request.turnId === null) &&
         this.turn.id !== null && request.turnId !== this.turn.id);
     switch (method) {
       case "item/commandExecution/requestApproval":
-      case "item/fileChange/requestApproval":
-      case "item/fileRead/requestApproval": {
+        // Escalation out of the workspace-write sandbox is never granted.
         if (stale || signal.aborted) return { decision: "cancel" };
-        const available = request.availableDecisions;
-        if (Array.isArray(available) && !available.includes("accept")) return { decision: "decline" };
-        const action = method.includes("commandExecution") ? "Run this command with the requested access?" : "Allow this file operation?";
-        const turn = this.turn!;
-        const item = typeof request.itemId === "string" ? turn.approvalItems.get(request.itemId) : undefined;
-        // Command callbacks request escalated access. Routine commands already
-        // run in Codex's workspace-write sandbox; never silently lift it here.
-        if (method === 'item/fileChange/requestApproval' && item?.type === 'fileChange' && item.changes?.length &&
-          item.changes.every((change) => {
-            const kind = typeof change.kind === 'string' ? change.kind : change.kind?.type;
-            const moved = typeof change.kind === 'object' && (change.kind?.move_path || change.kind?.movePath);
-            return (kind === 'add' || kind === 'update') && !moved;
-          }) && (await Promise.all(item.changes.map((change) => canAutoApproveFile({
-            cwd: this.options.cwd, path: change.path, kind: 'write', grantRoot: request.grantRoot,
-          })))).every(Boolean)) {
-          if (signal.aborted || this.turn !== turn || turn.approvalItems.get(item.id!) !== item) return { decision: 'cancel' };
-          auditAutomaticApproval('codex', 'fileChange', 'project-file');
-          return { decision: 'accept' };
-        }
-        if (signal.aborted || this.turn !== turn) return { decision: 'cancel' };
-        return { decision: await requestApproval(this.questions, action, { ...request, ...(item ? { item } : {}) }, signal) };
-      }
-      case "item/permissions/requestApproval": {
-        if (stale || !request.permissions || typeof request.permissions !== "object") return { permissions: {}, scope: "turn" };
-        const requested = request.permissions as Record<string, unknown>;
-        const decision = await requestApproval(this.questions, "Allow this access for the current turn?", request, signal);
-        const permissions = decision === "accept" ? {
-          ...(requested.network ? { network: requested.network } : {}),
-          ...(requested.fileSystem ? { fileSystem: requested.fileSystem } : {}),
-        } : {};
-        return { permissions, scope: "turn" };
-      }
+        auditAutomaticApproval("codex", "commandExecution", "deny", "project-sandbox");
+        return { decision: "decline" };
+      case "item/fileChange/requestApproval":
+        return this.decideFileChange(request, stale, signal);
+      case "item/permissions/requestApproval":
+        // No network (the sandbox can read credential stores) and no file system beyond the sandbox roots.
+        if (!stale) auditAutomaticApproval("codex", "permissions", "deny", "turn-permissions");
+        return { permissions: {}, scope: "turn" };
+      case "execCommandApproval":
+      case "applyPatchApproval":
+        // Legacy v1 callbacks: this client never opens v1 conversations.
+        auditAutomaticApproval("codex", method, "deny", method === "execCommandApproval" ? "project-sandbox" : "project-file");
+        return { decision: { denied: { rejection: "Cutroom runs commands and edits only inside the project sandbox and doesn't grant extra access." } } };
       case "item/tool/requestUserInput":
         return stale ? { answers: {} } : this.askUser((params ?? {}) as UserInputRequest, signal);
       case "mcpServer/elicitation/request":
-        return stale ? { action: "cancel", content: null, _meta: null } : this.askMcpApproval(request, signal);
+        return stale ? { action: "cancel", content: null, _meta: null } : this.decideElicitation(request, signal);
       default:
         throw new RpcError({ code: -32601, message: `Unsupported request ${method}` });
     }
   }
 
-  private async askMcpApproval(request: Record<string, unknown>, signal: AbortSignal): Promise<unknown> {
-    const turn = this.turn;
-    if (!turn || signal.aborted) return { action: 'cancel', content: null, _meta: null };
+  /** Accepts only additions and updates the shared write decision allows. */
+  private async decideFileChange(request: Record<string, unknown>, stale: boolean, signal: AbortSignal): Promise<unknown> {
+    if (stale || signal.aborted) return { decision: "cancel" };
+    const turn = this.turn!;
+    const item = typeof request.itemId === "string" ? turn.approvalItems.get(request.itemId) : undefined;
+    const changes = item?.type === "fileChange" ? (item.changes ?? []) : [];
+    const editable = changes.length > 0 && changes.every((change) => {
+      const kind = typeof change.kind === "string" ? change.kind : change.kind?.type;
+      const moved = typeof change.kind === "object" && (change.kind?.move_path || change.kind?.movePath);
+      return (kind === "add" || kind === "update") && !moved;
+    });
+    const allowed = editable && (await Promise.all(changes.map((change) => decideWrite({
+      cwd: this.options.cwd, path: change.path, grantRoot: request.grantRoot,
+    })))).every((decision) => decision.allow);
+    if (signal.aborted || this.turn !== turn || (item && turn.approvalItems.get(item.id!) !== item)) return { decision: "cancel" };
+    auditAutomaticApproval("codex", "fileChange", allowed ? "allow" : "deny", "project-file");
+    return { decision: allowed ? "accept" : "decline" };
+  }
+
+  /**
+   * Native MCP tool-call confirmations for our server are accepted: the
+   * cutroom tools enforce their own safety. Every other elicitation is
+   * declined; ones that need input this chat cannot collect say so.
+   */
+  private async decideElicitation(request: Record<string, unknown>, signal: AbortSignal): Promise<unknown> {
+    if (!this.turn || signal.aborted) return { action: "cancel", content: null, _meta: null };
     const schema = request.requestedSchema as { type?: unknown; properties?: unknown; required?: unknown } | undefined;
-    // Native MCP tool confirmations use an object form without required
-    // input fields. An Allow once response can truthfully supply {} for it.
-    // Other forms and URL authorization need dedicated UI; never invent their
-    // values or silently treat an unsupported request as user rejection.
-    const supported = request.mode === "form" && schema?.type === "object" &&
+    const metadata = request._meta as { codex_approval_kind?: unknown } | null | undefined;
+    const confirmation = request.mode === "form" && schema?.type === "object" &&
       schema.properties !== null && typeof schema.properties === "object" && !Array.isArray(schema.properties) &&
       (schema.required === undefined || (Array.isArray(schema.required) && schema.required.length === 0));
-    if (!supported) {
+    const toolCall = metadata?.codex_approval_kind === "mcp_tool_call";
+    const ours = Boolean(this.options.mcp) && request.serverName === this.options.mcp?.name;
+    if (ours && (confirmation || toolCall)) {
+      auditAutomaticApproval("codex", "mcpServer/elicitation", "allow", "local-editor-tool");
+      return { action: "accept", content: {}, _meta: null };
+    }
+    auditAutomaticApproval("codex", "mcpServer/elicitation", "deny", ours ? "local-editor-tool" : "other-mcp");
+    if (!confirmation && !toolCall) {
       const server = typeof request.serverName === "string" ? request.serverName : "An MCP server";
       const reason = request.mode === "url" ? "URL authorization" : "a form with unsupported required input";
-      this.turn?.emit({ type: "item.completed", item: {
+      this.turn.emit({ type: "item.completed", item: {
         id: newItemId("n"), kind: "notice", level: "error",
         text: `${server} requested ${reason}. This chat cannot complete that request; the action was declined.`,
       } });
-      return { action: "decline", content: null, _meta: null };
     }
-    const pendingCalls = [...(this.turn?.approvalItems.values() ?? [])]
-      .filter((item) => item.type === "mcpToolCall" && item.server === request.serverName);
-    const metadata = request._meta as { tool_params?: unknown } | null | undefined;
-    const parameters = metadata?.tool_params;
-    // Elicitation carries no item id in the native protocol. Only the sole
-    // pending call in this exact turn can be correlated, and its arguments
-    // must agree with native confirmation metadata. Never pick among calls.
-    const call = pendingCalls.length === 1 ? pendingCalls[0] : undefined;
-    if (call?.id && call.tool && request.threadId === this.threadId && request.turnId === turn.id && turn.id !== null &&
-      parameters !== undefined && isDeepStrictEqual(call.arguments, parameters) &&
-      Object.keys(schema.properties as object).length === 0 && await canAutoApproveMcp({
-        cwd: this.options.cwd, serverName: request.serverName, expectedServerName: this.options.mcp?.name ?? '',
-        toolName: call.tool, arguments: call.arguments,
-      })) {
-      if (signal.aborted || this.turn !== turn || turn.approvalItems.get(call.id) !== call) return { action: 'cancel', content: null, _meta: null };
-      auditAutomaticApproval('codex', call.tool, 'local-editor-tool');
-      return { action: 'accept', content: {}, _meta: null };
-    }
-    if (signal.aborted || this.turn !== turn) return { action: 'cancel', content: null, _meta: null };
-    const parametersShown = pendingCalls.some((item) => safeStringify(item.arguments) === safeStringify(parameters));
-    const decision = await requestApproval(this.questions, "Allow this connected tool request?", {
-      server: request.serverName,
-      message: request.message,
-      ...(pendingCalls.length ? { tools: pendingCalls.map((item) => ({ name: item.tool, arguments: item.arguments })) } : {}),
-      ...(parameters !== undefined && !parametersShown ? { arguments: parameters } : {}),
-      ...(Object.keys(schema.properties as object).length ? { fields: schema.properties } : {}),
-    }, signal);
-    return { action: decision, content: decision === "accept" ? {} : null, _meta: null };
+    return { action: "decline", content: null, _meta: null };
   }
 
   private async askUser(request: UserInputRequest, signal: AbortSignal): Promise<unknown> {

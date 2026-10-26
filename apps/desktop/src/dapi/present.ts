@@ -2,19 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { existsSync, realpathSync } from "node:fs";
-import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
+import { realpathSync } from "node:fs";
+import { lstat, mkdir, mkdtemp, realpath, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { generatedPath } from "@diffusionstudio/dapi";
+import { DapiError, generatedPath } from "@diffusionstudio/dapi";
+import { tempPathFor } from "../atomic";
+import { assertWritable, outputKind } from "./output-policy";
 
 import type { GenerationResult, TimecodedImage, ToolArgs, ToolName, ToolOutput, ToolResult } from "@diffusionstudio/dapi";
+import type { OutputKind, WritePolicy } from "./output-policy";
 
-/** A file the tool wrote, kept in memory only long enough to decide whether to inline it. */
-export type WrittenImage = { path: string; png: Uint8Array };
+/** A file the tool wrote, kept in memory only long enough to decide whether to inline it; a PNG unless `mimeType` says otherwise. */
+export type WrittenImage = { path: string; bytes: Uint8Array; mimeType?: string };
 
 export type Presented = { output: unknown; images: WrittenImage[] };
 
@@ -36,89 +39,210 @@ function tempDir(): string {
   }
 }
 
-export async function present(name: ToolName, args: unknown, result: unknown): Promise<Presented> {
+/**
+ * Writes what the tool made where the caller asked and says where. With a
+ * `policy` (the call's, see output-policy), each folder and file is judged by
+ * it again right before it is written, where it then really is.
+ */
+export async function present(name: ToolName, args: unknown, result: unknown, policy?: WritePolicy): Promise<Presented> {
+  const judge: Judge = policy ? (path, kind) => assertWritable(path, kind, policy) : async () => {};
   switch (name) {
     case "capture":
-      return presentImages(result as ToolResult<"capture">, (args as ToolArgs<"capture">).output, "capture");
+      return presentImages(result as ToolResult<"capture">, (args as ToolArgs<"capture">).output, "capture", judge);
     case "grab":
-      return presentImages(result as ToolResult<"grab">, (args as ToolArgs<"grab">).output, "grab");
+      return presentImages(result as ToolResult<"grab">, (args as ToolArgs<"grab">).output, "grab", judge);
     case "filmstrip":
-      return presentPreview(result as ToolResult<"filmstrip">, (args as ToolArgs<"filmstrip">).output, "filmstrip");
+      return presentPreview(result as ToolResult<"filmstrip">, (args as ToolArgs<"filmstrip">).output, "filmstrip", judge);
     case "waveform":
-      return presentPreview(result as ToolResult<"waveform">, (args as ToolArgs<"waveform">).output, "waveform");
+      return presentPreview(result as ToolResult<"waveform">, (args as ToolArgs<"waveform">).output, "waveform", judge);
     case "screenshot":
-      return presentScreenshot(result as ToolResult<"screenshot">, (args as ToolArgs<"screenshot">).output);
+      return presentScreenshot(result as ToolResult<"screenshot">, (args as ToolArgs<"screenshot">).output, judge);
     case "transcribe":
-      return presentTranscript(result as ToolResult<"transcribe">, (args as ToolArgs<"transcribe">).output);
+      return presentTranscript(result as ToolResult<"transcribe">, (args as ToolArgs<"transcribe">).output, judge);
     case "generate":
       if ((args as ToolArgs<"generate">).estimate) return { output: result, images: [] };
-      return presentJob(result as GenerationResult);
+      return presentJob(result as GenerationResult, judge);
     case "job":
-      return presentJob(result as GenerationResult);
+      return presentJob(result as GenerationResult, judge);
+    case "web_media_search":
+      return presentWebMedia(result as ToolResult<"web_media_search">, judge);
     default:
       return { output: result, images: [] };
+  }
+}
+
+/** Throws when the call may not write `path` (as `kind`) right now; see `present`. */
+type Judge = (path: string, kind: OutputKind) => Promise<void>;
+
+export const OUTPUT_MOVED = "The output folder changed on disk while the tool ran, so nothing more was written to it. Run the tool again.";
+
+// Every file here is written so that no link decides where it lands. An
+// agent's shell may write in the project and temp folders, links included,
+// so a link planted at a frame's name, in place of the output folder, or at
+// a parent of a folder still to be made would otherwise carry the write to
+// any file the app can reach. So folders are made, and files written, by the
+// real path judged a moment before; a file replaced is written beside its
+// name and renamed over it, which replaces a link rather than following it;
+// and a fresh file is created only where nothing, not even a link, is.
+
+/**
+ * Where `dir` really is, made when it is missing and judged right before
+ * anything is written into it. Missing folders are made one at a time below
+ * the real path of the nearest existing one, never through `dir`'s spelling,
+ * so a link planted at a parent since the call was checked is judged where it
+ * leads instead of being followed; files then go in by that real path, so
+ * swapping `dir` for a link afterwards changes nothing.
+ */
+async function realFolder(dir: string, judge: Judge, kind: OutputKind): Promise<string> {
+  const given = resolve(dir);
+  await judge(given, kind);
+  const missing: string[] = [];
+  let existing = given;
+  while (!(await lstat(existing).catch(() => null))) {
+    if (dirname(existing) === existing) throw new Error(`${dir} is on no disk this machine has`);
+    missing.unshift(basename(existing));
+    existing = dirname(existing);
+  }
+  let real = await realpath(existing).catch(() => {
+    throw new DapiError("invalid-input", OUTPUT_MOVED);
+  });
+  await judge(join(real, ...missing), kind);
+  for (const part of missing) {
+    real = join(real, part);
+    await mkdir(real).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "EEXIST") throw error;
+    });
+  }
+  await unmoved(real);
+  return real;
+}
+
+/** Throws unless the real folder `dir` is still a folder there: nothing along its path has become a link. */
+async function unmoved(dir: string): Promise<void> {
+  const [real, entry] = await Promise.all([realpath(dir).catch(() => null), lstat(dir).catch(() => null)]);
+  if (real !== dir) throw new DapiError("invalid-input", OUTPUT_MOVED);
+  if (!entry?.isDirectory()) throw new Error(`${dir} is not a folder`);
+}
+
+/** Writes `name` in the real folder `dir`, over whatever is there: a temp file beside it, renamed into place. */
+async function replaceFile(dir: string, name: string, data: Uint8Array | string): Promise<void> {
+  await unmoved(dir);
+  const path = join(dir, name);
+  const temp = tempPathFor(path);
+  try {
+    await writeFile(temp, data, { flag: "wx" });
+    await rename(temp, path);
+  } catch (error) {
+    await unlink(temp).catch(() => {});
+    throw error;
+  }
+}
+
+/** Writes `name` in the real folder `dir` only where nothing is, not even a link; false when something is. */
+async function createFile(dir: string, name: string, data: Uint8Array | string): Promise<boolean> {
+  await unmoved(dir);
+  try {
+    await writeFile(join(dir, name), data, { flag: "wx" });
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") return false;
+    throw error;
   }
 }
 
 // Frames and contact sheets arrive in the same shape: each image is stamped
 // with its timecode (`08s10f`, or `0f-08s10f` for a sheet), which is the
 // filename too.
-async function presentImages(images: TimecodedImage[], output: string | undefined, kind: string): Promise<Presented> {
+async function presentImages(images: TimecodedImage[], output: string | undefined, kind: string, judge: Judge): Promise<Presented> {
   const dir = output ?? (await mkdtemp(join(tempDir(), `dapi-${kind}-`)));
-  await mkdir(dir, { recursive: true });
+  const real = await realFolder(dir, judge, outputKind(kind));
   const written: WrittenImage[] = [];
   const refs: ToolOutput<"capture">["images"] = [];
   for (const { timecode, png } of images) {
-    const path = join(dir, `${timecode}.png`);
-    await writeFile(path, png);
-    written.push({ path, png });
+    const name = `${timecode}.png`;
+    await replaceFile(real, name, png);
+    const path = join(dir, name);
+    written.push({ path, bytes: png });
     refs.push({ timecode, path });
   }
   return { output: { images: refs }, images: written };
 }
 
 /**
- * Where a single-file tool writes: `output` when given, a fresh name under
- * the temp dir otherwise. An `output` that names an existing directory gets
- * the fresh name inside it rather than an EISDIR from writeFile.
+ * Writes a single-file tool's file and says where: at `output` when given,
+ * over what is there; under the fresh `name` in the temp dir otherwise, or
+ * inside `output` when it names an existing folder rather than an EISDIR.
  */
-async function singleFilePath(output: string | undefined, name: string): Promise<string> {
-  if (output === undefined) return join(tempDir(), name);
-  const existing = await stat(output).catch(() => null);
-  if (existing?.isDirectory()) return join(output, name);
-  await mkdir(dirname(output), { recursive: true });
-  return output;
+async function writeSingle(output: string | undefined, name: string, data: Uint8Array | string, kind: OutputKind, judge: Judge): Promise<string> {
+  const folder = output === undefined ? tempDir() : (await stat(output).catch(() => null))?.isDirectory() ? output : null;
+  if (folder !== null) {
+    const real = await realFolder(folder, judge, kind);
+    if (!(await createFile(real, name, data))) throw new Error(`${join(folder, name)} already exists`);
+    return join(folder, name);
+  }
+  const file = output!;
+  await judge(resolve(file), kind);
+  const real = await realFolder(dirname(file), judge, "fresh");
+  await judge(join(real, basename(file)), kind);
+  await replaceFile(real, basename(file), data);
+  return file;
 }
 
 async function presentPreview(
   result: { png: Uint8Array } & Record<string, unknown>,
   output: string | undefined,
-  kind: string,
+  kind: "filmstrip" | "waveform",
+  judge: Judge,
 ): Promise<Presented> {
   const { png, ...rest } = result;
-  const path = await singleFilePath(output, `dapi-${kind}-${randomUUID()}.png`);
-  await writeFile(path, png);
-  return { output: { path, ...rest }, images: [{ path, png }] };
+  const path = await writeSingle(output, `dapi-${kind}-${randomUUID()}.png`, png, outputKind(kind), judge);
+  return { output: { path, ...rest }, images: [{ path, bytes: png }] };
 }
 
-async function presentScreenshot(result: ToolResult<"screenshot">, output: string | undefined): Promise<Presented> {
+async function presentScreenshot(result: ToolResult<"screenshot">, output: string | undefined, judge: Judge): Promise<Presented> {
   const dir = output ?? tempDir();
-  await mkdir(dir, { recursive: true });
+  const real = await realFolder(dir, judge, outputKind("screenshot"));
   const taken = new Date();
   let attempt = 1;
-  let path = join(dir, screenshotFilename(taken, attempt));
-  while (existsSync(path)) path = join(dir, screenshotFilename(taken, ++attempt));
-  await writeFile(path, result.png);
+  while (!(await createFile(real, screenshotFilename(taken, attempt), result.png))) attempt++;
+  const path = join(dir, screenshotFilename(taken, attempt));
   const presented: ToolOutput<"screenshot"> = { path, width: result.width, height: result.height };
-  return { output: presented, images: [{ path, png: result.png }] };
+  return { output: presented, images: [{ path, bytes: result.png }] };
 }
 
-async function presentTranscript(transcript: ToolResult<"transcribe">, output: string | undefined): Promise<Presented> {
-  const path = await singleFilePath(output, `dapi-transcript-${randomUUID()}.json`);
-  await writeFile(path, JSON.stringify(transcript, null, 2));
+async function presentTranscript(transcript: ToolResult<"transcribe">, output: string | undefined, judge: Judge): Promise<Presented> {
+  const text = JSON.stringify(transcript, null, 2);
+  const path = await writeSingle(output, `dapi-transcript-${randomUUID()}.json`, text, outputKind("transcribe"), judge);
   const words = transcript.segments.reduce((sum, segment) => sum + segment.words.length, 0);
   const presented: ToolOutput<"transcribe"> = { path, segments: transcript.segments.length, words };
   return { output: presented, images: [] };
+}
+
+const PREVIEW_EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+
+/**
+ * Search thumbnails go to a fresh directory under the temp dir, named by
+ * result index, and each result whose thumbnail came gets its path. They
+ * are inlined in their own format, in result order.
+ */
+async function presentWebMedia({ results, warnings, previews }: ToolResult<"web_media_search">, judge: Judge): Promise<Presented> {
+  if (!previews.length) return { output: { results, warnings }, images: [] };
+  const dir = await mkdtemp(join(tempDir(), "dapi-web-media-"));
+  const real = await realFolder(dir, judge, "fresh");
+  const images: WrittenImage[] = [];
+  const paths = new Map<number, string>();
+  for (const { index, bytes, mimeType } of [...previews].sort((a, b) => a.index - b.index)) {
+    const name = `${index}.${PREVIEW_EXTENSIONS[mimeType] ?? "img"}`;
+    if (!(await createFile(real, name, bytes))) continue;
+    const path = join(dir, name);
+    images.push({ path, bytes, mimeType });
+    paths.set(index, path);
+  }
+  const shown: ToolOutput<"web_media_search"> = {
+    results: results.map((result) => (paths.has(result.index) ? { ...result, previewPath: paths.get(result.index)! } : result)),
+    warnings,
+  };
+  return { output: shown, images };
 }
 
 /** Files of succeeded jobs saved to disk, by job id: the first poll that sees a job succeed saves them, the rest reuse the paths. */
@@ -136,16 +260,17 @@ const jobImages = new Map<string, string>();
  * `path`. Files the renderer saved into the library arrive with their paths.
  * A local job's picture goes to the temp dir, named in `details.image`.
  */
-async function presentJob({ job, saveTo, image }: GenerationResult): Promise<Presented> {
+async function presentJob({ job, saveTo, image }: GenerationResult, judge: Judge): Promise<Presented> {
   const images: WrittenImage[] = [];
   let shown = job;
   if (image) {
     let path = jobImages.get(job.id);
     if (path === undefined) {
-      path = join(tempDir(), `dapi-${job.id}.png`);
-      await writeFile(path, image);
+      const name = `dapi-${job.id}.png`;
+      await replaceFile(await realFolder(tempDir(), judge, "fresh"), name, image);
+      path = join(tempDir(), name);
       jobImages.set(job.id, path);
-      images.push({ path, png: image });
+      images.push({ path, bytes: image });
     }
     shown = { ...job, details: { ...job.details, image: path } };
   }
@@ -159,7 +284,7 @@ async function presentJob({ job, saveTo, image }: GenerationResult): Promise<Pre
     const targets = job.assets.map((file, i) =>
       saveTo === null ? join(temp, basename(file.filename)) : generatedPath(saveTo, file.filename, i, job.assets.length),
     );
-    paths = saveAll(job.assets, targets);
+    paths = saveAll(job.assets, targets, judge);
     paths.catch(() => jobFiles.delete(job.id));
     jobFiles.set(job.id, paths);
   }
@@ -168,10 +293,13 @@ async function presentJob({ job, saveTo, image }: GenerationResult): Promise<Pre
   return { output: { ...shown, assets }, images };
 }
 
-async function saveAll(files: GenerationResult["job"]["assets"], targets: string[]): Promise<string[]> {
+async function saveAll(files: GenerationResult["job"]["assets"], targets: string[], judge: Judge): Promise<string[]> {
   for (const [i, file] of files.entries()) {
-    await mkdir(dirname(targets[i]!), { recursive: true });
-    await writeFile(targets[i]!, file.bytes ?? (await download(file.url!, file.filename)));
+    const target = targets[i]!;
+    const bytes = file.bytes ?? (await download(file.url!, file.filename));
+    const real = await realFolder(dirname(target), judge, "fresh");
+    await judge(join(real, basename(target)), "file");
+    await replaceFile(real, basename(target), bytes);
   }
   return targets;
 }
@@ -192,10 +320,10 @@ function screenshotFilename(taken: Date, attempt: number): string {
 /** The MCP result: the output as text and structured content, plus the images when they are few and small. */
 export function toCallToolResult({ output, images }: Presented): CallToolResult {
   const content: CallToolResult["content"] = [{ type: "text", text: JSON.stringify(output) }];
-  const inline = images.length <= INLINE_MAX_IMAGES && images.every((image) => image.png.byteLength <= INLINE_MAX_BYTES);
+  const inline = images.length <= INLINE_MAX_IMAGES && images.every((image) => image.bytes.byteLength <= INLINE_MAX_BYTES);
   if (inline) {
-    for (const { png } of images) {
-      content.push({ type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" });
+    for (const { bytes, mimeType } of images) {
+      content.push({ type: "image", data: Buffer.from(bytes).toString("base64"), mimeType: mimeType ?? "image/png" });
     }
   }
   return { content, structuredContent: output as Record<string, unknown> };

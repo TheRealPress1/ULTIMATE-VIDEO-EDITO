@@ -23,7 +23,7 @@ Each frame is **the frame an export of that scene would encode**: the scene is r
 
 Scenes only: a single element renders inside its scene, so capture the scene at the times the element plays. To grab a video asset's own pixels instead of a composited frame, use [`grab`](./grab.md).
 
-With `separate`, each position is rendered at 720p height and named after its timecode (e.g. `01s12f.png`). Without an `output` directory the images land in a fresh `dapi-capture-*` directory under the system temp directory, so runs never overwrite each other. Writing into the same directory twice overwrites images whose name matches; with `separate`, requested times that land on the same frame share one file.
+With `separate`, each position is rendered at 720p height and named after its timecode (e.g. `01s12f.png`). Without an `output` directory the images land in a fresh `dapi-capture-*` directory under the system temp directory, so runs never overwrite each other. Writing into the same directory twice overwrites images whose name matches; a link at an image's name is replaced by the image, never written through. An `output` outside the project and temporary folders must be a new or existing folder in Desktop, Documents, Downloads, Movies, Music or Pictures, and existing files there are never replaced; with `separate`, requested times that land on the same frame share one file.
 
 ## Timecodes
 

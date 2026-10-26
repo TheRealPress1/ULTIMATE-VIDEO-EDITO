@@ -890,7 +890,10 @@ export async function duplicateProject(dir: string): Promise<ProjectInfo> {
   const root = dirname(dir);
   const target = source.draft ? join(root, id) : join(root, await freeFolder(root, `${source.name}-copy`));
 
-  await cp(dir, target, { recursive: true, errorOnExist: true, force: false });
+  // Not the temp files of writes still under way: a web download streams
+  // into one for minutes without holding up a duplicate (see web-media.ts),
+  // and half a file is no part of the copy.
+  await cp(dir, target, { recursive: true, errorOnExist: true, force: false, filter: (path) => !isTempPath(path) });
   // The record came along with everything else, id included, and two folders
   // answering to one id is the thing the id exists to prevent.
   const pkg = await readPackage(target);
@@ -1136,7 +1139,7 @@ export async function writeProject(dir: string, edits: SourceEdit[], operationId
 const writes = new Map<string, Set<Promise<void>>>();
 
 /** Marks a write into `dir` as running; call what it returns when the write is done. */
-function startWrite(dir: string): () => void {
+export function startWrite(dir: string): () => void {
   let release!: () => void;
   const done = new Promise<void>((resolve) => (release = resolve));
   const running = writes.get(dir) ?? new Set<Promise<void>>();

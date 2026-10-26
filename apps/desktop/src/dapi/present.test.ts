@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import { pinProject, REPLACE_OUTSIDE, WRITABLE_PLACES } from "./output-policy";
 import { present, toCallToolResult } from "./present";
+
+import type { WritePolicy } from "./output-policy";
 
 const dir = mkdtempSync(join(tmpdir(), "dapi-present-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
@@ -74,19 +77,157 @@ describe("present", () => {
   });
 });
 
+describe("present writes through no link", () => {
+  // A project and a user's file outside it, which links planted by an
+  // agent's shell (it may write in the project and temp folders) point at.
+  const base = join(dir, "links");
+  const project = join(base, "project");
+  const outside = join(base, "outside");
+  const thesis = join(outside, "thesis.docx");
+  mkdirSync(project, { recursive: true });
+  mkdirSync(outside, { recursive: true });
+  const policy: WritePolicy = { project, pinned: pinProject(project), home: join(base, "home"), temp: [join(base, "tmp")] };
+  const precious = () => {
+    writeFileSync(thesis, "PRECIOUS");
+    return () => expect(readFileSync(thesis, "utf8")).toBe("PRECIOUS");
+  };
+  const frames = [{ timecode: "0f", png: png(1) }, { timecode: "1s", png: png(2) }];
+
+  it.each([undefined, policy])("replaces links planted at a frame's name rather than writing through them (policy: %#)", async (writes) => {
+    const intact = precious();
+    const out = join(project, writes ? "frames-judged" : "frames");
+    mkdirSync(out, { recursive: true });
+    symlinkSync(thesis, join(out, "0f.png"));
+    symlinkSync(join(outside, "created.png"), join(out, "1s.png"));
+    await present("capture", { id: "intro", output: out }, frames, writes);
+    intact();
+    expect(existsSync(join(outside, "created.png"))).toBe(false);
+    expect(lstatSync(join(out, "0f.png")).isFile()).toBe(true);
+    expect(readFileSync(join(out, "1s.png"))).toEqual(Buffer.from(png(2)));
+  });
+
+  it("judges the output folder where it really is right before writing into it", async () => {
+    const link = join(project, "frames-elsewhere");
+    symlinkSync(outside, link);
+    await expect(present("grab", { path: "/c.mp4", output: link }, frames, policy)).rejects.toThrow(WRITABLE_PLACES);
+    expect(existsSync(join(outside, "0f.png"))).toBe(false);
+  });
+
+  it("makes no folder through a link planted at a parent", async () => {
+    symlinkSync(outside, join(project, "parent-link"));
+    const out = join(project, "parent-link", "new", "frames");
+    await expect(present("capture", { id: "intro", output: out }, frames, policy)).rejects.toThrow(WRITABLE_PLACES);
+    expect(existsSync(join(outside, "new"))).toBe(false);
+  });
+
+  it("makes missing folders in the project, one at a time", async () => {
+    const out = join(project, "a", "b", "frames");
+    await present("capture", { id: "intro", output: out }, frames, policy);
+    expect(readFileSync(join(out, "0f.png"))).toEqual(Buffer.from(png(1)));
+  });
+
+  it("refuses a single file's output that became a link to a file outside, and never follows one", async () => {
+    const intact = precious();
+    const talk = join(project, "talk.json");
+    symlinkSync(thesis, talk);
+    await expect(present("transcribe", { path: "/c.mp4", output: talk }, { segments: [] }, policy)).rejects.toThrow(REPLACE_OUTSIDE);
+    await present("waveform", { path: "/c.mp4", output: talk }, { png: png(3), silences: [] });
+    intact();
+    expect(lstatSync(talk).isFile()).toBe(true);
+  });
+
+  it("takes the next screenshot name when a link sits at this one", async () => {
+    vi.useFakeTimers({ toFake: ["Date"], now: new Date(2026, 0, 2, 3, 4, 5) });
+    try {
+      const shots = join(project, "shots");
+      mkdirSync(shots);
+      symlinkSync(join(outside, "shot.png"), join(shots, "cutroom_2026-01-02_03-04-05.png"));
+      const shot = await present("screenshot", { output: shots }, { png: png(4), width: 1, height: 1 }, policy);
+      expect((shot.output as { path: string }).path).toBe(join(shots, "cutroom_2026-01-02_03-04-05-2.png"));
+      expect(existsSync(join(outside, "shot.png"))).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("saves a job's files and picture over links rather than through them", async () => {
+    const intact = precious();
+    const gen = join(project, "gen");
+    mkdirSync(gen);
+    symlinkSync(thesis, join(gen, "fox.png"));
+    const picture = join(realpathSync(tmpdir()), "dapi-linked-job.png");
+    rmSync(picture, { force: true });
+    symlinkSync(thesis, picture);
+    try {
+      const done = {
+        job: { id: "linked-job", status: "succeeded", credits: 0, etaSeconds: 0, etaRemainingSeconds: null, error: null, assets: [{ filename: "fox.png", mimeType: "image/png", size: 4, bytes: png(5, 4) }] },
+        saveTo: join(gen, "fox.png"),
+        image: png(6),
+      };
+      // The picture goes to the system's temp folder, which only the defaults count.
+      await present("job", { id: "linked-job" }, done, { ...policy, temp: undefined });
+      intact();
+      expect(readFileSync(join(gen, "fox.png"))).toEqual(Buffer.from(png(5, 4)));
+      expect(lstatSync(picture).isFile()).toBe(true);
+    } finally {
+      rmSync(picture, { force: true });
+    }
+  });
+});
+
 describe("toCallToolResult", () => {
   it("inlines a few small images and always carries the output as text and structure", () => {
-    const result = toCallToolResult({ output: { images: [] }, images: [{ path: "/a.png", png: png(1) }] });
+    const result = toCallToolResult({ output: { images: [] }, images: [{ path: "/a.png", bytes: png(1) }] });
     expect(result.structuredContent).toEqual({ images: [] });
     expect(result.content[0]).toEqual({ type: "text", text: '{"images":[]}' });
     expect(result.content[1]).toMatchObject({ type: "image", mimeType: "image/png" });
   });
 
   it("sends paths only when there are many images or a large one", () => {
-    const many = Array.from({ length: 5 }, (_, i) => ({ path: `/${i}.png`, png: png(i) }));
+    const many = Array.from({ length: 5 }, (_, i) => ({ path: `/${i}.png`, bytes: png(i) }));
     expect(toCallToolResult({ output: {}, images: many }).content).toHaveLength(1);
-    const large = [{ path: "/big.png", png: png(0, (1 << 20) + 1) }];
+    const large = [{ path: "/big.png", bytes: png(0, (1 << 20) + 1) }];
     expect(toCallToolResult({ output: {}, images: large }).content).toHaveLength(1);
+  });
+
+  it("inlines an image in its own format", () => {
+    const result = toCallToolResult({ output: {}, images: [{ path: "/a.jpg", bytes: png(1), mimeType: "image/jpeg" }, { path: "/b.webp", bytes: png(2), mimeType: "image/webp" }] });
+    expect(result.content.slice(1).map((block) => (block as { mimeType: string }).mimeType)).toEqual(["image/jpeg", "image/webp"]);
+  });
+});
+
+describe("present a web media search", () => {
+  const license = { code: "cc0", name: "CC0 1.0", attributionRequired: false, shareAlike: false, commercialUse: true, modificationsAllowed: true, verified: true };
+  const result = (index: number) => ({
+    index, id: `openverse:${index}`, kind: "image", title: `Launch ${index}`, provider: "openverse",
+    url: `https://e.test/${index}.jpg`, thumbnailUrl: `https://e.test/${index}-thumb.jpg`, pageUrl: `https://e.test/${index}`, license, attribution: `"Launch ${index}"`,
+  });
+
+  it("writes thumbnails by result index, inlines them with their type, and names each result's copy", async () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 1]);
+    const webp = new Uint8Array([0x52, 0x49, 0x46, 0x46, 2]);
+    const presented = await present("web_media_search", { query: "launch" }, {
+      results: [result(1), result(2), result(3)],
+      warnings: ["Openverse: rate limited"],
+      previews: [{ index: 2, bytes: webp, mimeType: "image/webp" }, { index: 1, bytes: jpeg, mimeType: "image/jpeg" }],
+    });
+    const output = presented.output as { results: Array<{ index: number; previewPath?: string }>; warnings: string[] };
+    expect(output.warnings).toEqual(["Openverse: rate limited"]);
+    expect(output.results[0]!.previewPath).toMatch(/dapi-web-media-.*[\\/]1\.jpg$/);
+    expect(output.results[1]!.previewPath).toMatch(/[\\/]2\.webp$/);
+    expect(output.results[2]).not.toHaveProperty("previewPath");
+    expect(output).not.toHaveProperty("previews");
+    expect(readFileSync(output.results[1]!.previewPath!)).toEqual(Buffer.from(webp));
+    expect(presented.images.map((image) => image.mimeType)).toEqual(["image/jpeg", "image/webp"]);
+    const call = toCallToolResult(presented);
+    expect(call.content.map((block) => block.type)).toEqual(["text", "image", "image"]);
+    expect(call.content[1]).toMatchObject({ mimeType: "image/jpeg", data: Buffer.from(jpeg).toString("base64") });
+    rmSync(dirname(output.results[0]!.previewPath!), { recursive: true, force: true });
+  });
+
+  it("returns results alone when no thumbnail came", async () => {
+    const presented = await present("web_media_search", { query: "launch" }, { results: [result(1)], warnings: [], previews: [] });
+    expect(presented).toEqual({ output: { results: [result(1)], warnings: [] }, images: [] });
   });
 });
 
@@ -170,7 +311,7 @@ describe("present a generation job", () => {
     const image = (first.output as { details: { image: string } }).details.image;
     expect(image).toMatch(/dapi-local-preview\.png$/);
     expect(first.output).toEqual({ ...preview.job, details: { ...details, image } });
-    expect(first.images).toEqual([{ path: image, png: png(8) }]);
+    expect(first.images).toEqual([{ path: image, bytes: png(8) }]);
     expect(readFileSync(image)).toEqual(Buffer.from(png(8)));
 
     const again = await present("job", { id: "local-preview" }, preview);

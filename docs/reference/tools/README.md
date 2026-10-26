@@ -3,9 +3,9 @@
 Cutroom exposes one set of tools, reachable two ways:
 
 - **MCP.** The running app serves an MCP server at `http://127.0.0.1:43127/mcp` (Streamable HTTP). A connected agent gets every tool in `tools/list`, with the descriptions on these pages and its input and output as JSON Schema 2020-12, and instructions that give the path of these docs in the installed app. A client that can only spawn a stdio server can bridge to the URL with a generic proxy such as `mcp-remote`.
-- **CLI.** `cutroom`, the command-line client shipped with the app, wraps every tool as a command for shells, scripts and CI. `cutroom <command> --help` prints the same description and the same field help.
+- **CLI.** `cutroom`, the command-line client shipped with the app, wraps most tools as commands for shells, scripts and CI; `skills` and `editing_style` are MCP-only. `cutroom <command> --help` prints the same description and the same field help.
 
-Both validate against the same schemas and return the same result, so each tool is documented once, on its own page. The catalog behind all three (server, CLI, these pages) lives in `packages/dapi`.
+Both validate against the same schemas and return the same result, so each tool is documented once, on its own page. The same write rules hold for every client — in-app chats, other MCP clients and the CLI alike: tools write anywhere in the open project and temporary folders, elsewhere only new files in Desktop, Documents, Downloads, Movies, Music or Pictures, and `open` makes a folder the project only where that is allowed (see [`open`](./open.md)). The catalog behind all three (server, CLI, these pages) lives in `packages/dapi`.
 
 The JSX code syntax specified in [jsx/](../jsx/README.md) is **pseudo-SVG**, mirroring SVG's shape-and-paint model with the editor's own tags and props rather than the SVG spec. A project is a folder of that JSX, and **the source is the document**: the app compiles the entry file and renders every element into an editable node, and edits made on the canvas are written back to the element that authored them. So the loop is [`open`](./open.md) once, then edit the files — there is no tool that pushes content into the app. What the tools do is read the running app ([`context`](./context.md), [`capture`](./capture.md), [`logs`](./logs.md)), inspect media, and list what a declaration may name.
 
@@ -20,7 +20,7 @@ A tool is named as MCP lists it, and the CLI spelling follows from the name:
 
 ## Results
 
-Every tool returns one JSON object, its *structured content*. Over MCP that is the result's `structuredContent`, repeated as a text block for clients that ignore structured content; the CLI prints it to stdout, unchanged. Tools that render images (`capture`, `grab`, `filmstrip`, `waveform`, `screenshot`) write PNGs to disk and return their paths; over MCP a result of at most four images, none over a megabyte, also carries them inline as image content, so a contact sheet arrives in context without opening anything.
+Every tool returns one JSON object, its *structured content*. Over MCP that is the result's `structuredContent`, repeated as a text block for clients that ignore structured content; the CLI prints it to stdout, unchanged. Tools that render images (`capture`, `grab`, `filmstrip`, `waveform`, `screenshot`) write PNGs to disk and return their paths; over MCP a result of at most four images, none over a megabyte, also carries them inline as image content, so a contact sheet arrives in context without opening anything. [`web_media_search`](./web-media.md) inlines its leading results' thumbnails the same way, in their own format (JPEG, PNG, WebP or GIF), and names each local copy in the result's `previewPath`.
 
 ## Errors
 
@@ -44,14 +44,16 @@ Every tool runs inside the app, so the app has to be running. Over MCP that is a
 | [`grab`](./grab.md) | `cutroom grab` | Grab frames |
 | [`transcribe`](./transcribe.md) | `cutroom transcribe` | Transcribe speech |
 | [`captions`](./captions.md) | `cutroom captions` | Caption the edited scene locally |
-| [`skills`](./skills.md) | `cutroom skills` | List and read shared editing workflows |
-| [`editing_style`](./skills.md) | `cutroom editing_style` | Read or save approved style preferences |
+| [`skills`](./skills.md) | — | List and read shared editing workflows |
+| [`editing_style`](./skills.md) | — | Read or save approved style preferences |
 | [`audio_finish`](./audio-finish.md) | `cutroom audio_finish` | Measure loudness and true peak; finish dialogue and duck music |
 | [`filmstrip`](./filmstrip.md) | `cutroom filmstrip` | Filmstrip preview |
 | [`waveform`](./waveform.md) | `cutroom waveform` | Waveform preview |
 | [`listen`](./listen.md) | `cutroom listen` | Inspect local speech evidence |
 | [`generate`](./generate.md) | `cutroom generate` | Generate media |
 | [`job`](./job.md) | `cutroom job` | Generation job |
+| [`web_media_search`](./web-media.md) | `cutroom web_media_search` | Search openly licensed web images, video and audio |
+| [`web_media_download`](./web-media.md) | `cutroom web_media_download` | Download web media into the project, with credits |
 | [`logs`](./logs.md) | `cutroom logs` | App logs |
 | [`screenshot`](./screenshot.md) | `cutroom screenshot` | Window screenshot |
 | [`window`](./window.md) | `cutroom window` | App window |
@@ -66,14 +68,15 @@ How the surface is divided:
 
 - **The project loop.** [`open`](./open.md) a folder, edit its JSX, [`context`](./context.md) for what the source cannot say, [`capture`](./capture.md) and [`check`](./check.md) to verify, [`export`](./export.md) when asked.
 - **Media inspection** ([`probe`](./probe.md), [`grab`](./grab.md), [`transcribe`](./transcribe.md), [`filmstrip`](./filmstrip.md), [`waveform`](./waveform.md), [`listen`](./listen.md)): a file by path, without adding it to the project. Absolute paths work with or without an open project; library paths (`b-roll/clip.mp4`) need one. `listen` accepts local media only; other inspection tools may also accept URLs.
-- **Generation.** [`generate`](./generate.md) runs a model of the Cutroom API (images, video, music, speech, and tools such as upscaling) on the account's credits, or a model on this machine for free (with `estimate`, it only prices the request) — [`sam-2.1`](./segment.md) segments and tracks an object in footage, making the mask file a `<mask src>` names; poll [`job`](./job.md) until it has ended, and its files are saved into the library or a directory. The models and their fields are in [models.md](../models.md).
+- **Generation.** [`generate`](./generate.md) runs a model on this machine for free — [`sam-2.1`](./segment.md) segments and tracks an object in footage, making the mask file a `<mask src>` names — or, only where hosted generation is configured, a model of the Cutroom API (images, video, music, speech, and tools such as upscaling) on the account's credits; without that service hosted models fail at once. With `estimate`, it only prices the request. Poll [`job`](./job.md) until it has ended, and its files are saved into the library or a directory. The models and their fields are in [models.md](../models.md).
+- **Web media.** [`web_media_search`](./web-media.md) finds openly licensed images, video and audio on Openverse and Wikimedia Commons, with license terms and thumbnails; [`web_media_download`](./web-media.md) saves a result or a user's link into the project's `assets/web/`, imports it, and credits it in `CREDITS.md`. This is how to get photos, B-roll, music and sound from the web.
 - **What a declaration may name.** [`fonts`](./fonts.md).
 - **The app and the machine.** [`logs`](./logs.md), [`screenshot`](./screenshot.md), [`window`](./window.md), [`report`](./report.md).
 - **Instagram analytics.** [Four read-only tools](./instagram.md) inspect saved account and post metrics without an open project. Connect an account in **Settings → Instagram** and sync in the app first.
 
-## Downloading footage
+## Downloading media
 
-There is no download tool, and none is needed: run **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** from a shell. It handles YouTube, TikTok, Instagram, Vimeo, X, direct media links and most other sites, and a download that lands under the project's `assets/` folder is a library asset (see [jsx/media.md](../jsx/media.md)).
+Use [`web_media_download`](./web-media.md) for images, video and audio from the web: a [`web_media_search`](./web-media.md) result, a direct file link, or a web page that shares an image or video. The app downloads it (the agent's sandbox needs no network for this), checks it is real media, puts it under the project's `assets/web/` as a library asset, and records its license and credit in `CREDITS.md`. Video platforms such as YouTube, Instagram and TikTok only stream through their players; for those, ask the user to export or import their own copy. Any file placed under the project's `assets/` folder is also a library asset (see [jsx/media.md](../jsx/media.md)).
 
 ## Shared types
 

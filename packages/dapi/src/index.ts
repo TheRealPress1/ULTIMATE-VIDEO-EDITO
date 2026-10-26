@@ -31,6 +31,7 @@ export { ISSUE_LOG_TAIL } from "./tools/report";
 export { LOG_TAIL, LOG_MESSAGE_MAX } from "./tools/logs";
 export { FONT_LIMIT } from "./tools/fonts";
 export { generatedPath } from "./tools/generate";
+export { WEB_MEDIA_LIMIT, WEB_MEDIA_PREVIEWS } from "./tools/web-media";
 export {
   LOCAL_JOB_PREFIX,
   LOCAL_MODELS,
@@ -52,6 +53,7 @@ import type { ExportFormat as ExportFormatSchema, ExportSettings as ExportSettin
 import type { FrameQuality as FrameQualitySchema } from "./tools/grab";
 import type { TranscriptSegment as TranscriptSegmentSchema, TranscriptWord as TranscriptWordSchema } from "./tools/transcribe";
 import type { FontFamily as FontFamilySchema } from "./tools/fonts";
+import type { WebMediaKind as WebMediaKindSchema, WebMediaLicense as WebMediaLicenseSchema, WebMediaProvider as WebMediaProviderSchema, WebMediaResult as WebMediaResultSchema } from "./tools/web-media";
 import type { ToolArgs, ToolOutput, ToolResult } from "./catalog";
 
 export type LogLevel = z.output<typeof LogLevelSchema>;
@@ -66,6 +68,10 @@ export type FrameQuality = z.output<typeof FrameQualitySchema>;
 export type TranscriptWord = z.output<typeof TranscriptWordSchema>;
 export type TranscriptSegment = z.output<typeof TranscriptSegmentSchema>;
 export type FontFamily = z.output<typeof FontFamilySchema>;
+export type WebMediaKind = z.output<typeof WebMediaKindSchema>;
+export type WebMediaProvider = z.output<typeof WebMediaProviderSchema>;
+export type WebMediaLicense = z.output<typeof WebMediaLicenseSchema>;
+export type WebMediaResult = z.output<typeof WebMediaResultSchema>;
 
 export type OpenRequest = ToolArgs<"open">;
 export type OpenResult = ToolResult<"open">;

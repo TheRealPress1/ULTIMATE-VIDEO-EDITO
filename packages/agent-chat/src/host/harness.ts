@@ -4,6 +4,8 @@
 
 // What the host asks of a harness, and what every adapter has in common:
 // the question flow, the item ids, and the truncation of tool output.
+// Questions are the model asking the user; tool permissions never become
+// cards (see automatic-policy.ts).
 
 import { randomUUID } from "node:crypto";
 
@@ -37,6 +39,11 @@ export type OpenOptions = {
   emit: Emit;
   /** Await after the provider confirms a resumable session, before advancing its stream. */
   onResume?: (cursor: ResumeCursor) => Promise<void>;
+  /**
+   * The host's chat store (every project's transcripts and checkpoints).
+   * Kept from the session's file tools and shell, wherever the app keeps it.
+   */
+  dataDir?: string;
 };
 
 /** How a turn ended. The host turns it into `turn.completed`. */
@@ -215,15 +222,31 @@ export class QuestionBox {
 }
 
 /** The instructions every chat appends, with the project folder filled in. */
-export function chatInstructions(cwd: string, custom?: string): string {
+export function chatInstructions(cwd: string, custom?: string, harness?: HarnessId): string {
+  // Codex's command sandbox has no network (it cannot hide credential stores); Claude's can reach public hosts.
+  // Codex's workspace-write sandbox cannot exclude subpaths or forbid
+  // commands (app-server 0.162 offers no stable way), so inside the project
+  // its delete and protected-name rules rest on these instructions alone:
+  // Codex is declined only what its sandbox enforces, while Claude's hooks
+  // also refuse shell deletes and credential reads.
+  const automatic = harness === "codex"
+    ? "Cutroom never shows permission prompts: project edits, cutroom tools and sandboxed commands run automatically; sandboxed commands have no network access. " +
+      "Never delete files: no `rm`, `find -delete`, `unlink` or scripted deletes in commands, and no Delete File hunks in patches. " +
+      "Never create, change or delete anything in `.cutroom`, `.git`, `.claude`, `.codex` or `.mcp.json`: `.cutroom` holds the project's version history and web-media ledger. " +
+      "Leave unused files in place; media in `assets/` and `exports/` may be the only copy. " +
+      "Writes outside the project and temporary folders, network access from commands and requests for extra permissions are declined automatically. "
+    : "Cutroom never shows permission prompts: project edits, cutroom tools, web search/fetch and sandboxed commands (including network downloads) run automatically. " +
+      "Actions outside that boundary are refused automatically with a reason — deleting files or running system commands from the shell, replacing files outside the project, reading credential stores. ";
   const base =
     `You are running in Cutroom's chat panel. The open project is at \`${cwd}\`. ` +
     "The `cutroom` MCP tools act on it live — use `capture`/`check` to verify edits. " +
     "For substantial editing, call `skills` to select and read the relevant UVE workflows; load only the guides needed. " +
     "Read `editing_style` for user-approved preferences; the current brief takes precedence. " +
     "Skills are guidance, not proof a service is configured or permission for paid/external actions. " +
-    "Routine local project edits, verification and temporary backups are authorized; carry them out without asking for each operation. " +
-    "Before deleting or overwriting original source media, publishing externally, or changing unrelated files, obtain approval unless the user has already authorized that action.";
+    automatic +
+    "Adapt (new file name, work inside the project) instead of retrying or asking for permission. " +
+    "For images, video or audio from the web use `web_media_search` and `web_media_download`. " +
+    "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Cutroom's own approval queue, which agents cannot use.";
   return custom ? `${base}\n\n${custom}` : base;
 }
 

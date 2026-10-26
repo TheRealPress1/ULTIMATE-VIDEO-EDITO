@@ -14,7 +14,7 @@ Transcribe speech in a video or audio file locally and write a JSON transcript w
 | `path` | `string`, required | `<path>` | absolute file path or URL (works with or without an open project), or a library path like `b-roll/clip.mp4` (needs an open project) |
 | `output` | `string` | `-o, --output <path>` | absolute path to write the transcript JSON to (default: a fresh file under the system temp dir) |
 
-Times are in **seconds** of source/content time. An `output` naming an existing directory gets a fresh `dapi-transcript-*.json` inside it. The whole asset is transcribed, up to a limit of two hours per recording. This uses the source file's timing; to caption an edited scene's audible mix, use **Generate captions** in the editor.
+Times are in **seconds** of source/content time. An `output` naming an existing directory gets a fresh `dapi-transcript-*.json` inside it. An existing file at `output` is replaced (a link there is replaced, never written through) inside the project and temporary folders; elsewhere `output` must be a new file or an existing folder in Desktop, Documents, Downloads, Movies, Music or Pictures. The whole asset is transcribed, up to a limit of two hours per recording. This uses the source file's timing; to caption an edited scene's audible mix, use **Generate captions** in the editor.
 
 Recognition runs on the Mac with the multilingual Whisper base model. No audio or video is uploaded for transcription. The first use downloads 147,951,465 bytes (about 148 MB) of model weights; the model stays cached for offline use. No speech-service sign-in or API key is required. Development checkouts require the native engine: with Xcode Command Line Tools and CMake installed, run `npm run setup:speech` from the repository root.
 
