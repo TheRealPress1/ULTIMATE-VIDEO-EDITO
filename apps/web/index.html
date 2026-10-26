@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/mark.svg" />
+    <script>
+      (function () {
+        try {
+          var apply = function (mode) {
+            var resolved =
+              mode === "system"
+                ? window.matchMedia("(prefers-color-scheme: dark)").matches
+                  ? "dark"
+                  : "light"
+                : mode;
+            var root = document.documentElement;
+            root.style.colorScheme = resolved;
+            root.dataset.kbTheme = resolved;
+            return mode;
+          };
+          var stored = localStorage.getItem("kb-color-mode");
+          if (stored) apply(stored);
+          else localStorage.setItem("kb-color-mode", apply("dark"));
+        } catch (e) {}
+
+        if (window.desktop) {
+          document.documentElement.dataset.platform = window.desktop.platform;
+          if (window.desktop.platform === "darwin") {
+            document.documentElement.dataset.boot = "1";
+          }
+        }
+      })();
+    </script>
+    <style>
+      #boot-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      html[data-boot="1"] #boot-splash {
+        display: flex;
+      }
+
+      #boot-splash svg {
+        width: 48px;
+        height: 48px;
+      }
+    </style>
+    <link href="/src/index.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cutroom</title>
+    <meta name="description" content="Make videos with your own models. A local workspace with an AI conversation, visual editor, multitrack timeline, and video export." />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Cutroom — A local video editor for your ideas and your models." />
+    <meta property="og:description" content="Make videos with your own models. A local workspace with an AI conversation, visual editor, multitrack timeline, and video export." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cutroom — A local video editor for your ideas and your models." />
+    <meta name="twitter:description" content="Make videos with your own models. A local workspace with an AI conversation, visual editor, multitrack timeline, and video export." />
+  </head>
+  <body>
+    <div id="boot-splash" aria-hidden="true">
+      <svg viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 4h10a3 3 0 0 1 3 3v1H9a4 4 0 0 0-4 4v9a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3Z" fill="currentColor" opacity=".48"/><path d="M11 10h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="2"/><path d="m13 13 6 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>

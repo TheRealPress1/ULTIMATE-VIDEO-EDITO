@@ -1,0 +1,9 @@
+# Smoother playback for long footage
+
+UVE prepares lightweight 720p H.264 playback copies automatically for video above 1080p, and for recordings at least two minutes long above 720p. Preparation runs locally, one video at a time, while the editor remains usable. A compact status above the canvas shows progress and offers **Use originals** or **Retry**.
+
+Only interactive video decoding uses these copies. The timeline keeps the source's dimensions, duration and timing; audio always uses the original. Captures, rendered review and exports decode original video. Project covers can use the current preview. Preparation pauses during export.
+
+The cache lives in the application's `playback-cache` directory. It is rebuildable, bounded to 10 GB, and reserves 2 GB of free disk space. Full source fingerprints verify cache reuse; source changes and relinks invalidate preview bindings. Recently used entries are retained and entries in use by open projects are pinned. Closing a project cancels its work and releases only its cache pins, including when the same project is quickly reopened.
+
+The native encoder preserves frame presentation timestamps, variable frame rate, and display orientation. HDR inputs currently keep original playback to avoid incorrect tone mapping. Unsupported sources, full disks and decoder errors also fall back to originals. No source file is modified or uploaded. Footage at or below 720p, short 1080p clips, and recordings longer than eight hours currently keep original playback.

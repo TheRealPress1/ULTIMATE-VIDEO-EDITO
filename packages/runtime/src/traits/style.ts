@@ -1,0 +1,111 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+import { DEFAULT_MASK_SMOOTHING } from '@diffusionstudio/assets';
+import { trait } from 'koota';
+
+import type { PathGeometry } from '../math/path';
+
+import { BlendModeType, EffectType, ScaleModeType, StrokeJoin, StrokeCap, LINEAR_GRADIENT_DEFAULTS, ELLIPTICAL_GRADIENT_DEFAULTS } from '../constants';
+
+// Opacity of whatever the entity is: a node, a paint, a stroke, a shadow, a
+// gradient stop's color. Absent means opaque.
+export const Opacity = trait({ value: 1 });
+
+// How the entity composites over what is below it. Absent means source-over.
+export const BlendMode = trait({ value: BlendModeType.SOURCE_OVER as BlendModeType });
+
+// Solid color (0xRRGGBB). Its translucency, when any, is the entity's Opacity.
+export const Color = trait({ value: 0 });
+
+export const CornerRadius = trait({ value: 0 });
+
+// Per-corner radii (CSS order: TL, TR, BR, BL).
+export const MixedCornerRadius = trait({
+	topLeft: 0,
+	topRight: 0,
+	bottomRight: 0,
+	bottomLeft: 0,
+});
+
+// A polygon's corner count, at least 3 (see `clampPointCount`). Absent means 3.
+export const PointCount = trait({ value: 3 });
+
+// A path's outline: its `d`, parsed (see `parsePath`), in the coordinates
+// of its ViewBox. Absent or null draws nothing; a `d` keyframe track
+// overrides it through Computed.path.
+export const VectorPath = trait({ geometry: () => null as PathGeometry | null });
+
+// A path filled by the even-odd rule rather than nonzero (`fillRule`).
+export const EvenOdd = trait();
+
+// Where a path's `d` is drawn from, stretched onto its box on each axis.
+// Absent means the box's own coordinates ("0 0 width height").
+export const ViewBox = trait({ x: 0, y: 0, width: 0, height: 0 });
+
+// A path trimmed to part of its length, as fractions of each subpath's
+// length (see `trimPath`). Absent means the whole path.
+export const PathTrim = trait({ start: 0, end: 1, offset: 0 });
+
+export const Blur = trait({ value: 0 });
+
+// Scale mode for image fills and any other scaled asset display.
+export const ScaleMode = trait({ value: ScaleModeType.COVER as ScaleModeType });
+
+// Effect sub-entity: one per applied effect, ChildOf its target.
+export const Effect = trait({
+	type: EffectType.DROP_SHADOW as EffectType,
+	value: 0,
+});
+
+// A `<mask>`: limits the node or the effect holding it to where its picture
+// is, ChildOf that holder. The picture is a mask file (its AssetId) or the
+// nodes under it, which sit in the holder's space and time (see
+// `getMaskContainers`).
+export const Mask = trait({
+	offset: 0,
+	inverted: false,
+	// How much a mask file's edge is smoothed, 0 to 1 (see `traceMask`).
+	smoothing: DEFAULT_MASK_SMOOTHING,
+});
+
+// Single gradient stop: its position along the gradient (0-1). Its color and
+// opacity are the entity's Color and Opacity. Each stop is its own entity, ChildOf the
+// gradient fill. Stop count is fixed for the lifetime of the fill: to animate
+// between gradients with different stop counts use a separate fill and
+// cross-fade.
+export const ColorStop = trait({ offset: 0 });
+
+// Where a linear gradient paint draws its line, SVG's x1/y1/x2/y2 in its
+// holder's box as fractions of it (objectBoundingBox): stop 0 at (x1, y1),
+// stop 1 at (x2, y2). Absent means LINEAR_GRADIENT_DEFAULTS.
+export const LinearGradient = trait({ ...LINEAR_GRADIENT_DEFAULTS });
+
+// Where a radial or angular gradient paint draws its ellipse, SVG's cx/cy
+// plus the rx/ry of <ellipse>, in its holder's box as fractions of it: a
+// radial one goes from stop 0 at the center to stop 1 on the ellipse, an
+// angular one sweeps around the center. The entity's Rotation turns the radii.
+// Absent means ELLIPTICAL_GRADIENT_DEFAULTS.
+export const EllipticalGradient = trait({ ...ELLIPTICAL_GRADIENT_DEFAULTS });
+
+// How a stroke sub-entity is drawn: line width, joins, caps. Lives on the
+// stroke itself (next to its Paint/Color/Opacity), so each stroke of a node
+// has its own width. Absent means a 1px miter/butt line.
+export const StrokeStyle = trait({
+	width: 1,
+	join: StrokeJoin.MITER as StrokeJoin,
+	cap: StrokeCap.BUTT as StrokeCap,
+	miterLimit: 10,
+});
+
+// A dashed stroke sub-entity: `dash` px of line then `gap` px of gap,
+// repeated from `offset` px along the line. A gap of 0 is a solid line.
+// Absent means solid.
+export const StrokeDash = trait({ dash: 0, gap: 0, offset: 0 });
+
+// Shader paint source (document data; the compiled host lives in ShaderHost).
+export const Shader = trait({
+	code: '',
+	uniforms: () => null as Record<string, number | number[] | string> | null,
+});

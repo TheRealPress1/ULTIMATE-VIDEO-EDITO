@@ -1,0 +1,40 @@
+{
+  "name": "cutroom",
+  "version": "0.216.1",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "MPL-2.0",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "setup:speech": "npm run setup:speech --workspace=@diffusionstudio/desktop",
+    "dev": "npm run dev:desktop",
+    "dev:desktop": "node scripts/dev-desktop.mjs",
+    "build": "npm run build --workspace=@diffusionstudio/web",
+    "build:desktop": "npm run build --workspace=@diffusionstudio/desktop",
+    "make": "npm run make --workspace=@diffusionstudio/desktop",
+    "release": "node scripts/release.mjs",
+    "postinstall": "patch-package",
+    "lint": "npm run lint --workspaces --if-present",
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && node --test scripts/*.test.mjs && npm --prefix services/instagram-auth test",
+    "dev:web": "npm run dev --workspace=@diffusionstudio/web",
+    "verify:release": "node scripts/verify-macos-release.mjs",
+    "verify:bundle": "node scripts/verify-standalone-bundle.mjs"
+  },
+  "devDependencies": {
+    "extract-zip": "2.0.1",
+    "patch-package": "^8.0.1"
+  },
+  "overrides": {
+    "extract-zip": {
+      "yauzl": "3.3.1"
+    }
+  },
+  "description": "A local video editor with Claude Code, Codex, and MCP."
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-25",
+  "notes": [
+    "OpenAI skill directories were imported using the Codex skill-installer helper at the recorded commit.",
+    "Upstream files are unmodified, including per-skill licenses. UVE wrappers and run.py are maintained separately.",
+    "No Remotion source files or runtime are redistributed.",
+    "Live API calls, credential configuration, and Python dependency installation are not performed by installation."
+  ],
+  "imports": [
+    {
+      "id": "openai-transcribe",
+      "mode": "vendored",
+      "repository": "https://github.com/openai/skills",
+      "revision": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourcePath": "skills/.curated/transcribe",
+      "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/transcribe",
+      "path": "openai/transcribe",
+      "license": "Apache-2.0",
+      "licensePath": "openai/transcribe/LICENSE.txt",
+      "modified": false,
+      "files": {
+        "openai/transcribe/LICENSE.txt": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+        "openai/transcribe/SKILL.md": "f530021da9f377362ee4214e0bc689cbb5404640d2eb88ee272d51d61f530a09",
+        "openai/transcribe/agents/openai.yaml": "fe7a20b9c03ce027e2f3023a4fd363c2d958ceeae1b7daaef77d1f6d055d97a4",
+        "openai/transcribe/assets/transcribe-small.svg": "7d67890abf0f145a77f5fb87752bb6337b394fd4e26f5969c57d82d40e369a14",
+        "openai/transcribe/assets/transcribe.png": "0860df58af6b9e58f4445a81baca7bfd94029a447742ae9b9e896e7c5b748688",
+        "openai/transcribe/references/api.md": "a2bf7e59d69aa127b176255c5c01afbafda4e3029b12b4413e75074233ffb36d",
+        "openai/transcribe/scripts/transcribe_diarize.py": "d623b1fed1491b7ca4b7b5b393089165e3581a83d90d5a57868241f1b2a5d951"
+      }
+    },
+    {
+      "id": "openai-speech",
+      "mode": "vendored",
+      "repository": "https://github.com/openai/skills",
+      "revision": "49f948faa9258a0c61caceaf225e179651397431",
+      "sourcePath": "skills/.curated/speech",
+      "sourceUrl": "https://github.com/openai/skills/tree/49f948faa9258a0c61caceaf225e179651397431/skills/.curated/speech",
+      "path": "openai/speech",
+      "license": "Apache-2.0",
+      "licensePath": "openai/speech/LICENSE.txt",
+      "modified": false,
+      "files": {
+        "openai/speech/LICENSE.txt": "4dd13869245e356246a5b770723247bbb80a8f07a181d1d3d873a1734297cdb9",
+        "openai/speech/SKILL.md": "d6120efc03ea0e80204f687801cfaec8efc4519a3430b68e13e4ebd8e1c69b52",
+        "openai/speech/agents/openai.yaml": "1a152d9e7e66b86100db33b8e6ff3327955bf107bb9e77044a1ad6dfb10d6e18",
+        "openai/speech/assets/speech-small.svg": "b879fe9fc476f183e1c9bfd0e2883b8b2c28c708ca3d90f409bed051fe6a173e",
+        "openai/speech/assets/speech.png": "b5abb383bba63a309f73a4da1060b50b6c92b1b5f974f44b8f609b3da10112f9",
+        "openai/speech/references/accessibility.md": "34cd91bc6a3ef65c8da8997e312d163babcdfc3241f9e359418b3f5a76f15b76",
+        "openai/speech/references/audio-api.md": "dba58cfc0d5e125cf1ac13875193950233aa948639b268ed7799ca17bca66bfe",
+        "openai/speech/references/cli.md": "77e6a0c01036ac0092cf37c3d5c88dc6800b223524c5b9c8920d10fc4f68e0cc",
+        "openai/speech/references/codex-network.md": "c956a51d3e67246cfb43982aa8c82065350fcce4ef7b94bd89e599c575c94d9c",
+        "openai/speech/references/ivr.md": "2aaf225b7cea9277fe5413eb0360a845de035c00ea0d6f30348b5ce7138803fc",
+        "openai/speech/references/narration.md": "3e68829fe4a5a47c3d37cbe9a1ed95ff3cedf1b303ff02a10501e56ad5e7c74a",
+        "openai/speech/references/prompting.md": "2adcb001813be04e56918eb0d34d9a45f9326aa0fb240526ae74a926522b6554",
+        "openai/speech/references/sample-prompts.md": "c14e1b1c526f2fe555ab2dc86c0e8aead33d38238d2bfcfbf9de0c18d28bde03",
+        "openai/speech/references/voice-directions.md": "5da0a4c59bdadb47d1795f51a9708b515fbf2901f0ca808cc5c66d83a336986d",
+        "openai/speech/references/voiceover.md": "a4bb96c31c8be6a62d35a103f9d7fc700b8004df2efd10595d00b63f0c096486",
+        "openai/speech/scripts/text_to_speech.py": "0000014efdf1194512c017ffa0d0574ae65881f6a1340b7ed822053b6e3d3c44"
+      }
+    },
+    {
+      "id": "remotion-reference",
+      "mode": "reference-only",
+      "repository": "https://github.com/remotion-dev/skills",
+      "revision": "6c67adcd9cdbe6eb84d76342da89b225f9161cb2",
+      "sourceUrl": "https://github.com/remotion-dev/skills/tree/6c67adcd9cdbe6eb84d76342da89b225f9161cb2",
+      "license": "not-declared-at-reviewed-revision",
+      "redistributedFiles": []
+    }
+  ]
+}

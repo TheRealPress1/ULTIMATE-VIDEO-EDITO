@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+
+# Local env files (copy .env.example to .env)
+.env
+.env.*
+!.env.example
+build
+dist-ssr
+dist-contract
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.claude
+.claire
+
+# Electron
+out/
+
+# Vercel
+.vercel
+
+# AI
+skills-lock.json
+.agents
+.claude
+# Conductor reference images and local investigation
+.context/
+apps/desktop/.speech-build/
+apps/desktop/speech/
+apps/desktop/cli/
+apps/desktop/runtime/
+apps/desktop/docs/
+apps/desktop/web/

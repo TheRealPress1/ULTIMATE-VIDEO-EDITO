@@ -1,0 +1,174 @@
+.cutroom-analytics-scroll { min-height: 0; flex: 1; overflow: auto; padding: 48px 36px; }
+.cutroom-analytics { max-width: 1120px; margin: 0 auto; color: var(--foreground); }
+.cutroom-analytics-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 30px; }
+.cutroom-analytics-eyebrow { margin-bottom: 8px; font-size: 10px; font-weight: 550; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
+.cutroom-analytics-header h1 { font-size: 29px; font-weight: 500; line-height: 1.2; letter-spacing: -.04em; }
+.cutroom-analytics-header h1 + p { margin-top: 8px; font-size: 12px; color: var(--muted-foreground); }
+.cutroom-analytics-header-actions { display: flex; align-items: center; flex-shrink: 0; gap: 8px; }
+.cutroom-analytics-error { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 18px; margin-bottom: 20px; border: 1px solid color-mix(in srgb, #dd9d53 30%, transparent); background: color-mix(in srgb, #dd9d53 6%, transparent); border-radius: 10px; }
+.cutroom-analytics-error strong { font-size: 12px; font-weight: 500; }
+.cutroom-analytics-error p, .cutroom-analytics-inline-error { margin-top: 4px; color: #d9ab75; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.cutroom-analytics-empty { display: flex; align-items: center; flex-direction: column; text-align: center; min-height: 470px; justify-content: center; border: 1px solid var(--border); border-radius: 16px; background: linear-gradient(155deg, color-mix(in srgb, var(--foreground) 2.5%, transparent), transparent 65%); padding: 42px 28px 0; }
+.cutroom-analytics-empty-icon { display: grid; place-items: center; width: 60px; height: 60px; margin-bottom: 20px; border: 1px solid var(--border); background: color-mix(in srgb, var(--foreground) 4%, transparent); border-radius: 17px; color: #bdc7c1; }
+.cutroom-analytics-empty-icon > svg { width: 28px; height: 28px; }
+.cutroom-analytics-badge { color: var(--muted-foreground); font-size: 11px; margin-bottom: 10px; }
+.cutroom-analytics-empty h2 { font-weight: 450; font-size: 24px; letter-spacing: -.025em; }
+.cutroom-analytics-empty > p { max-width: 410px; margin: 12px 0 24px; color: var(--muted-foreground); font-size: 12px; line-height: 1.8; }
+.cutroom-analytics-empty-footnote { max-width: 360px; margin-top: 14px; color: var(--muted-foreground); font-size: 10px; line-height: 1.6; }
+.cutroom-analytics-feature-list { display: flex; justify-content: center; flex-wrap: wrap; gap: 26px; width: 100%; border-top: 1px solid var(--border); margin-top: 40px; padding: 20px 0; color: var(--muted-foreground); font-size: 11px; }
+.cutroom-analytics-feature-list span::before { content: "✓"; color: #91b5a2; margin-right: 8px; }
+.cutroom-analytics-loading { min-height: 320px; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--muted-foreground); font-size: 12px; }
+.cutroom-analytics-account { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.cutroom-analytics-account-icon { display: grid; place-items: center; height: 40px; width: 40px; border: 1px solid var(--border); border-radius: 11px; background: color-mix(in srgb, var(--foreground) 3%, transparent); }
+.cutroom-analytics-account > div:nth-child(2) { display: flex; flex-direction: column; gap: 4px; }
+.cutroom-analytics-account strong { font-size: 13px; font-weight: 500; }
+.cutroom-analytics-account span { color: var(--muted-foreground); font-size: 10px; }
+.cutroom-analytics-last-sync { margin-left: auto; text-align: right; }
+.cutroom-analytics-audience { display: grid; grid-template-columns: 210px 1fr; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 34px; background: color-mix(in srgb, var(--foreground) 1%, transparent); }
+.cutroom-analytics-audience-number { padding: 28px; display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--border); }
+.cutroom-analytics-audience-number > span { font-size: 12px; color: var(--muted-foreground); }
+.cutroom-analytics-audience-number > strong { font-size: 36px; letter-spacing: -.04em; font-weight: 450; margin: 9px 0 5px; font-variant-numeric: tabular-nums; }
+.cutroom-analytics-audience-number > p { color: var(--muted-foreground); font-size: 10px; }
+.cutroom-analytics-audience-chart { min-width: 0; padding: 22px 26px 16px; }
+.cutroom-analytics-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.cutroom-analytics-section-heading h2, .cutroom-analytics-detail-chart h3 { font-size: 13px; font-weight: 500; }
+.cutroom-analytics-section-heading > span { font-size: 10px; color: var(--muted-foreground); }
+.cutroom-analytics-section-heading p { margin-top: 6px; font-size: 11px; color: var(--muted-foreground); }
+.cutroom-analytics-note { color: var(--muted-foreground); font-size: 10px; line-height: 1.7; }
+.cutroom-analytics-trend { display: flex; gap: 12px; padding: 2px 0 13px; }
+.cutroom-analytics-chart-scale { display: flex; flex-direction: column; justify-content: space-between; padding: 10px 0 36px; font-size: 9px; color: var(--muted-foreground); text-align: right; font-variant-numeric: tabular-nums; }
+.cutroom-analytics-chart-plot { flex: 1; min-width: 0; }
+.cutroom-analytics-chart-plot > svg { display: block; height: 116px; width: 100%; color: #a6bcb0; overflow: visible; }
+.cutroom-analytics-chart-guide { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 5; vector-effect: non-scaling-stroke; }
+.cutroom-analytics-chart-dates { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; font-size: 9px; color: var(--muted-foreground); }
+.cutroom-analytics-chart-empty { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 7px; min-height: 132px; color: var(--muted-foreground); }
+.cutroom-analytics-chart-empty > svg { margin-bottom: 2px; opacity: .6; }
+.cutroom-analytics-chart-empty p { font-size: 11px; line-height: 1.5; }
+.cutroom-analytics-chart-empty span { font-size: 10px; opacity: .7; line-height: 1.5; }
+.cutroom-analytics-filter { display: flex; align-items: center; gap: 9px; font-size: 10px; color: var(--muted-foreground); }
+.cutroom-analytics-filter select { border: 1px solid var(--border); border-radius: 7px; padding: 7px 26px 7px 10px; background-color: var(--background); color: var(--foreground); font-size: 11px; cursor: pointer; }
+.cutroom-analytics-filter select:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.cutroom-analytics-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 18px; }
+.cutroom-analytics-metric { min-width: 0; display: flex; flex-direction: column; padding: 17px 18px; border: 1px solid var(--border); border-radius: 10px; }
+.cutroom-analytics-metric > span { font-size: 11px; color: var(--muted-foreground); }
+.cutroom-analytics-metric > strong { font-size: 26px; font-weight: 450; margin: 9px 0 7px; letter-spacing: -.035em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.cutroom-analytics-metric > small { font-size: 9px; color: var(--muted-foreground); }
+.cutroom-analytics-coverage { font-size: 10px; line-height: 1.7; color: var(--muted-foreground); margin: 14px 0 19px; }
+.cutroom-analytics-table-wrap { border: 1px solid var(--border); border-radius: 11px; overflow-x: auto; }
+.cutroom-analytics-table { width: 100%; border-collapse: collapse; font-size: 11px; white-space: nowrap; }
+.cutroom-analytics-table thead { background: color-mix(in srgb, var(--foreground) 2%, transparent); color: var(--muted-foreground); }
+.cutroom-analytics-table th, .cutroom-analytics-table td { padding: 15px 13px; text-align: right; font-weight: 400; font-variant-numeric: tabular-nums; }
+.cutroom-analytics-table thead th { font-size: 10px; }
+.cutroom-analytics-table th:first-child { text-align: left; padding-left: 18px; }
+.cutroom-analytics-table tbody > tr { border-top: 1px solid var(--border); }
+.cutroom-analytics-table thead button { text-align: right; transition: color .15s; }
+.cutroom-analytics-table thead button:hover { color: var(--foreground); }
+.cutroom-analytics-table thead button span { opacity: .5; }
+.cutroom-analytics-table th[aria-sort="descending"], .cutroom-analytics-table th[aria-sort="ascending"] { color: var(--foreground); }
+.cutroom-analytics-post { display: flex; align-items: center; gap: 11px; text-align: left; width: 100%; }
+.cutroom-analytics-thumbnail { display: grid; place-items: center; flex-shrink: 0; position: relative; width: 38px; height: 48px; background: color-mix(in srgb, var(--foreground) 6%, transparent); border-radius: 5px; overflow: hidden; color: var(--muted-foreground); }
+.cutroom-analytics-thumbnail img { position: absolute; width: 100%; height: 100%; object-fit: cover; }
+.cutroom-analytics-thumbnail img[hidden] { display: none; }
+.cutroom-analytics-post > div:last-child { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cutroom-analytics-post strong { font-weight: 450; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+.cutroom-analytics-post span { font-size: 9px; color: var(--muted-foreground); }
+.cutroom-analytics-table tbody > tr:hover, .cutroom-analytics-table tr.is-expanded { background: color-mix(in srgb, var(--foreground) 2%, transparent); }
+.cutroom-analytics-published { font-size: 10px; color: var(--muted-foreground); }
+.cutroom-analytics-table .cutroom-analytics-detail-row > td { padding: 0; text-align: left; white-space: normal; }
+.cutroom-analytics-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 24px; background: color-mix(in srgb, var(--foreground) 1.5%, transparent); }
+.cutroom-analytics-detail-copy, .cutroom-analytics-detail-chart { min-width: 0; }
+.cutroom-analytics-caption { font-size: 11px; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+.cutroom-analytics-detail-metrics { display: flex; gap: 26px; margin: 18px 0 12px; }
+.cutroom-analytics-detail-metrics dt { font-size: 10px; color: var(--muted-foreground); margin-bottom: 5px; }
+.cutroom-analytics-detail-metrics dd { font-size: 18px; font-weight: 450; }
+.cutroom-analytics-detail-copy > button { margin-top: 14px; }
+.cutroom-analytics-detail-chart h3 { margin-bottom: 10px; }
+.cutroom-analytics-no-posts { text-align: center; padding: 48px 20px; border: 1px solid var(--border); border-radius: 11px; }
+.cutroom-analytics-no-posts h3 { font-size: 13px; }
+.cutroom-analytics-no-posts p { margin-top: 9px; font-size: 11px; color: var(--muted-foreground); }
+.cutroom-analytics-table-note { margin-top: 12px; }
+@media (max-width: 1050px) {
+  .cutroom-analytics-scroll { padding: 36px 24px; }
+  .cutroom-analytics-header { align-items: flex-start; flex-direction: column; }
+  .cutroom-analytics-audience { grid-template-columns: 155px 1fr; }
+  .cutroom-analytics-audience-number { padding: 20px; }
+  .cutroom-analytics-metric { padding: 15px 12px; }
+  .cutroom-analytics-metric > strong { font-size: 23px; }
+}
+@media (max-width: 760px) {
+  .cutroom-analytics-scroll { padding: 28px 18px; }
+  .cutroom-analytics-audience { grid-template-columns: 1fr; }
+  .cutroom-analytics-audience-number { border-right: 0; border-bottom: 1px solid var(--border); }
+  .cutroom-analytics-metrics { grid-template-columns: repeat(2, 1fr); }
+  .cutroom-analytics-filter-heading { align-items: flex-start; flex-direction: column; }
+  .cutroom-analytics-last-sync { max-width: 140px; line-height: 1.7; }
+  .cutroom-analytics-detail { grid-template-columns: 1fr; }
+  .cutroom-analytics-error { align-items: flex-start; flex-direction: column; }
+}
+
+/* Performance lines and publishing calendar share one quiet green accent. */
+.cutroom-analytics { --analytics-green: #43c98b; }
+.cutroom-analytics-scroll { padding-top: 34px; }
+.cutroom-analytics-header { margin-bottom: 24px; }
+.cutroom-analytics-account { margin-bottom: 26px; }
+.cutroom-analytics-metrics { margin-top: 16px; gap: 12px; }
+.cutroom-analytics-metric { background: linear-gradient(160deg, color-mix(in srgb, var(--analytics-green) 2.5%, transparent), transparent 65%); padding: 17px 17px 15px; overflow: hidden; transition: border-color .18s; }
+.cutroom-analytics-metric:hover { border-color: color-mix(in srgb, var(--analytics-green) 32%, var(--border)); }
+.cutroom-analytics-metric > span { display: flex; justify-content: space-between; align-items: center; }
+.cutroom-analytics-metric > span > svg { color: var(--analytics-green); opacity: .65; }
+.cutroom-analytics-metric > strong { font-size: clamp(24px, 2.7vw, 33px); margin: 10px 0 2px; }
+.cutroom-analytics-metric > small { margin-top: 10px; }
+.cutroom-analytics-metric .cutroom-analytics-change { margin-top: 9px; }
+.cutroom-analytics-coverage { margin: 12px 0 24px; }
+.cutroom-analytics-live-dot, .cutroom-activity-period > span { display: inline-block; height: 6px; width: 6px; border-radius: 50%; background: var(--analytics-green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--analytics-green) 8%, transparent); }
+.cutroom-analytics-live-dot { margin: 0 8px 1px 0; }
+.cutroom-analytics-audience { margin: 22px 0 28px; grid-template-columns: 210px 1fr; }
+.cutroom-analytics-audience-number > strong { margin: 7px 0; }
+.cutroom-analytics-audience-chart { padding: 20px 24px 15px; }
+.cutroom-analytics-posts-heading { margin-bottom: 14px; }
+.cutroom-analytics-view-value { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.cutroom-analytics-view-bar { display: block; height: 3px; width: 62px; background: color-mix(in srgb, var(--foreground) 5%, transparent); border-radius: 4px; overflow: hidden; }
+.cutroom-analytics-view-bar > i { display: block; height: 100%; border-radius: inherit; background: var(--analytics-green); opacity: .8; }
+.cutroom-activity { border: 1px solid var(--border); border-radius: 12px; padding: 21px 24px 17px; background: color-mix(in srgb, var(--foreground) .6%, transparent); overflow: hidden; }
+.cutroom-activity-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 15px; margin-bottom: 19px; }
+.cutroom-activity-header h2 { font-size: 13px; font-weight: 500; }
+.cutroom-activity-header p { font-size: 11px; color: var(--muted-foreground); margin-top: 7px; }
+.cutroom-activity-header p strong { color: var(--foreground); font-weight: 500; }
+.cutroom-activity-header p span { opacity: .8; }
+.cutroom-activity-period { display: flex; gap: 8px; align-items: center; border: 1px solid var(--border); padding: 5px 9px; border-radius: 6px; color: var(--muted-foreground); font-size: 10px; white-space: nowrap; }
+.cutroom-activity-calendar { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 4px; }
+.cutroom-activity-weekdays { display: grid; grid-template-rows: repeat(7, 1fr); align-items: center; gap: 4px; padding-top: 20px; width: 24px; flex-shrink: 0; color: var(--muted-foreground); font-size: 8px; }
+.cutroom-activity-weekdays span:nth-child(1) { grid-row: 2; }
+.cutroom-activity-weekdays span:nth-child(2) { grid-row: 4; }
+.cutroom-activity-weekdays span:nth-child(3) { grid-row: 6; }
+.cutroom-activity-body { flex: 1; min-width: 600px; }
+.cutroom-activity-months { height: 20px; display: grid; grid-template-columns: repeat(53, minmax(0, 1fr)); column-gap: 4px; color: var(--muted-foreground); font-size: 9px; }
+.cutroom-activity-months > span { grid-row: 1; white-space: nowrap; }
+.cutroom-activity-dots { display: grid; grid-template-rows: repeat(7, minmax(0, 1fr)); grid-auto-flow: column; grid-template-columns: repeat(53, minmax(0, 1fr)); gap: 4px; }
+.cutroom-activity-dot { display: block; width: 100%; aspect-ratio: 1; border-radius: 3px; cursor: pointer; border: 1px solid color-mix(in srgb, var(--foreground) 3%, transparent); transition: filter .12s, box-shadow .12s; }
+.cutroom-activity [data-level="0"] { background: color-mix(in srgb, var(--foreground) 5%, transparent); }
+.cutroom-activity [data-level="1"] { background: #155c40; }
+.cutroom-activity [data-level="2"] { background: #218756; }
+.cutroom-activity [data-level="3"] { background: #32b677; }
+.cutroom-activity [data-level="4"] { background: #57e09a; }
+.cutroom-activity-dot.is-future { visibility: hidden; cursor: default; }
+.cutroom-activity-dot.is-today { border-color: color-mix(in srgb, var(--analytics-green) 65%, transparent); }
+.cutroom-activity-dot:hover, .cutroom-activity-dot:focus-visible { filter: brightness(1.4); outline: 2px solid var(--analytics-green); outline-offset: 1px; }
+.cutroom-activity-footer { display: flex; justify-content: space-between; gap: 16px; margin-top: 13px; color: var(--muted-foreground); font-size: 9px; line-height: 1.6; min-height: 16px; }
+.cutroom-activity-legend { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.cutroom-activity-legend > i { display: inline-block; height: 9px; width: 9px; border-radius: 2px; }
+.cutroom-activity-legend > span:first-child { margin-right: 3px; }
+.cutroom-activity-legend > span:last-child { margin-left: 3px; }
+@media (max-width: 1050px) {
+  .cutroom-analytics-metrics { gap: 8px; }
+  .cutroom-analytics-metric { padding: 14px 12px; }
+  .cutroom-analytics-audience { grid-template-columns: 165px 1fr; }
+  .cutroom-activity { padding: 19px 18px 16px; }
+}
+@media (max-width: 760px) {
+  .cutroom-analytics-audience { grid-template-columns: 1fr; }
+  .cutroom-analytics-metric > strong { font-size: 29px; }
+  .cutroom-activity-footer { flex-direction: column; gap: 8px; }
+  .cutroom-activity-header p span { display: block; margin-top: 4px; }
+  .cutroom-analytics-posts-heading { align-items: flex-start; flex-direction: column; }
+}

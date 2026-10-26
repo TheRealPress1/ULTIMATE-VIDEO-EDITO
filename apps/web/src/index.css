@@ -1,0 +1,462 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is([data-kb-theme="dark"] *));
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: normal;
+  font-style: normal;
+  font-optical-sizing: auto;
+}
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./assets/fonts/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: normal;
+  font-style: italic;
+  font-optical-sizing: auto;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./assets/fonts/JetBrainsMono-VariableFont.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: normal;
+  font-style: normal;
+  font-feature-settings: 'zero' 1;
+}
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --font-weight-strong: 450;
+  --radius-xs: calc(var(--radius) - 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: 12px;
+  --radius-xxl: 16px;
+  --text-xxs: 10px;
+  --text-xs: 11px;
+  --text-lg: 18px;
+  --color-canvas: var(--canvas);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary-hover: var(--secondary-hover);
+  --color-secondary-pressing: var(--secondary-pressing);
+  --color-tertiary: var(--tertiary);
+  --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-tertiary-hover: var(--tertiary-hover);
+  --color-tertiary-pressing: var(--tertiary-pressing);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-disabled-foreground: var(--disabled-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-pressing: var(--primary-pressing);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --color-destructive-pressing: var(--destructive-pressing);
+  --color-destructive-accent: var(--destructive-accent);
+  --color-destructive-accent-foreground: var(--destructive-accent-foreground);
+  --color-success-accent: var(--success-accent);
+  --color-success-accent-foreground: var(--success-accent-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-code: var(--code);
+  --color-code-foreground: var(--code-foreground);
+  --color-code-highlight: var(--code-highlight);
+  --color-code-number: var(--code-number);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --color-inset: var(--inset);
+  --color-overlay: var(--overlay);
+  --color-overlay-soft: var(--overlay-soft);
+  --color-overlay-strong: var(--overlay-strong);
+  --color-meter-green: var(--meter-green);
+  --color-meter-yellow: var(--meter-yellow);
+  --color-meter-red: var(--meter-red);
+  --color-meter-clip: var(--meter-clip);
+
+  /** Timeline colors, mirroring COLORS.clip in engine/timeline/constants.ts */
+  --color-audio-background: #004732;
+  --color-audio-primary: #0DBF8A;
+  --color-caption-background: #7B1E5A;
+  --color-caption-accent: #AA317B;
+}
+
+:root {
+  --radius: 6px;
+
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 11px;
+  --text-lg: 12px;
+  --text-xl: 14px;
+  --text-2xl: 16px;
+  --text-3xl: 18px;
+  --text-4xl: 20px;
+  --text-5xl: 24px;
+  --text-6xl: 32px;
+
+  --canvas: hsla(0, 0%, 91%, 1);
+  --background: hsla(0, 0%, 100%, 1);
+  --sidebar: hsla(0, 0%, 97%, 1);
+  --foreground: hsla(240, 5%, 9%, 1);
+  --card: hsla(0, 0%, 100%, 1);
+  --card-foreground: hsla(240, 5%, 9%, 1);
+  --popover: hsla(0, 0%, 95%, 1);
+  --popover-foreground: hsla(240, 5%, 9%, 1);
+  --primary: hsla(207, 100%, 50%, 1);
+  --primary-foreground: hsla(0, 0%, 95%, 1);
+  --primary-hover: hsla(207, 98%, 40%, 1);
+  --primary-pressing: hsla(207, 99%, 35%, 1);
+  --secondary: hsla(0, 0%, 95%, 1);
+  --secondary-foreground: hsla(207, 100%, 90%, 1);
+  --secondary-hover: hsla(0, 0%, 88%, 1);
+  --secondary-pressing: hsla(0, 0%, 40%, 1);
+  --tertiary: hsla(207, 100%, 50%, 1);
+  --tertiary-foreground: hsla(207, 100%, 90%, 1);
+  --tertiary-hover: hsla(207, 80%, 40%, 1);
+  --tertiary-pressing: hsla(207, 80%, 35%, 1);
+  --muted: hsla(0, 0%, 91%, 1);
+  --muted-foreground: hsla(0, 0%, 45%, 1);
+  --disabled-foreground: hsla(0, 0%, 40%, 1);
+  --accent: hsla(0, 0%, 95%, 1);
+  --accent-foreground: hsla(0, 0%, 45%, 1);
+  --destructive: hsla(0, 79%, 54%, 1);
+  --destructive-foreground: hsla(0, 0%, 100%, 1);
+  --destructive-hover: hsla(0, 60%, 40%, 1);
+  --destructive-pressing: hsla(0, 53%, 27%, 1);
+  --destructive-accent: hsla(0, 79%, 54%, 0.24);
+  --destructive-accent-foreground: hsla(0, 78%, 95%, 1);
+  --success-accent: hsla(162, 66%, 29%, 0.24);
+  --success-accent-foreground: hsla(162, 84%, 89%, 1);
+  --border: hsla(0, 0%, 91%, 1);
+  --border-strong: hsla(0, 0%, 100%, 0.06);
+  --border-input: hsla(0, 0%, 88%, 1);
+  --border-darker: hsla(0, 0%, 95%, 1);
+  --input: hsla(0, 0%, 95%, 1);
+  --ring: hsla(207, 100%, 50%, 1);
+  --canvas: hsla(0, 0%, 91%, 1);
+  --overlay: hsla(0, 0%, 4%, 0.8);
+  --overlay-soft: hsla(0, 0%, 4%, 0.4);
+  --overlay-strong: hsla(0, 0%, 4%, 0.93);
+  --selection: hsla(207, 100%, 50%, 1);
+  --selection-foreground: hsla(207, 100%, 90%, 1);
+  --selection-muted-foreground: hsla(0, 0%, 45%, 1);
+  --inset: hsla(0, 0%, 85%, 1);
+  --meter-green: hsla(125, 85%, 57%, 1);
+  --meter-yellow: hsla(46, 90%, 62%, 1);
+  --meter-red: hsla(1, 90%, 62%, 1);
+  --meter-clip: hsla(60, 100%, 50%, 1);
+}
+
+[data-kb-theme="dark"] {
+  --canvas: hsla(0, 0%, 9%, 1);
+  --background: hsla(0, 0%, 7%, 1);
+  --sidebar: var(--background);
+  --foreground: hsla(0, 0%, 95%, 1);
+  --card: hsla(0, 0%, 7%, 1);
+  --card-foreground: hsla(0, 0%, 95%, 1);
+  --popover: hsla(0, 0%, 9%, 1);
+  --popover-foreground: hsla(0, 0%, 95%, 1);
+  --primary: hsla(207, 100%, 50%, 1);
+  --primary-foreground: hsla(0, 0%, 95%, 1);
+  --primary-hover: hsla(207, 98%, 29%, 1);
+  --primary-pressing: hsla(207, 99%, 22%, 1);
+  --secondary: hsla(0, 0%, 100%, 0.06);
+  --secondary-foreground: hsla(0, 0%, 95%, 1);
+  --secondary-hover: hsla(0, 0%, 100%, 0.09);
+  --secondary-pressing: hsla(0, 0%, 40%, 1);
+  --tertiary: hsla(207, 99%, 22%, 1);
+  --tertiary-foreground: hsla(207, 100%, 90%, 1);
+  --tertiary-hover: hsla(207, 80%, 17%, 1);
+  --tertiary-pressing: hsla(207, 80%, 14%, 1);
+  --muted: hsla(0, 0%, 100%, 0.09);
+  --muted-foreground: hsla(0, 0%, 95%, 0.64);
+  --disabled-foreground: hsla(0, 0%, 40%, 1);
+  --accent: hsla(0, 0%, 100%, 0.06);
+  --accent-foreground: hsla(0, 0%, 95%, 0.64);
+  --destructive: hsla(0, 79%, 54%, 1);
+  --destructive-foreground: hsla(0, 0%, 100%, 1);
+  --destructive-hover: hsla(0, 60%, 40%, 1);
+  --destructive-pressing: hsla(0, 53%, 27%, 1);
+  --destructive-accent: hsla(0, 79%, 54%, 0.24);
+  --destructive-accent-foreground: hsla(0, 78%, 95%, 1);
+  --success-accent: hsla(162, 66%, 29%, 0.24);
+  --success-accent-foreground: hsla(162, 84%, 89%, 1);
+  --border: hsla(0, 0%, 100%, 0.03);
+  --border-strong: hsla(0, 0%, 100%, 0.06);
+  --border-input: hsla(0, 0%, 100%, 0.09);
+  --border-darker: hsla(0, 0%, 7%, 1);
+  --input: hsla(0, 0%, 100%, 0.06);
+  --ring: hsla(207, 100%, 50%, 1);
+  --canvas: hsla(0, 0%, 9%, 1);
+  --overlay: hsla(0, 0%, 4%, 0.8);
+  --overlay-soft: hsla(0, 0%, 4%, 0.4);
+  --overlay-strong: hsla(0, 0%, 4%, 0.95);
+  --selection: hsla(207, 99%, 22%, 1);
+  --selection-foreground: hsla(207, 100%, 90%, 1);
+  --selection-muted-foreground: hsla(0, 0%, 100%, 0.06);
+  --inset: hsla(0, 0%, 100%, 0.09);
+  --meter-green: hsla(125, 85%, 57%, 1);
+  --meter-yellow: hsla(46, 90%, 62%, 1);
+  --meter-red: hsla(1, 90%, 62%, 1);
+  --meter-clip: hsla(60, 100%, 50%, 1);
+}
+
+/* Windows desktop: the native minimize/maximize/close buttons overlay the
+   top-right corner. Chromium reports the free part of the title bar through
+   the titlebar-area variables, so this is the width the controls take at any
+   DPI, and 0 wherever there is no overlay (web, macOS, fullscreen). */
+:root {
+  --titlebar-controls-width: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw));
+  --titlebar-height: 0px;
+}
+
+/* Windows desktop: the editor draws its own title bar (`WindowsTitleBar`) as a
+   fixed row under the native controls, and pads its root by this height. It matches `WINDOWS_OVERLAY_HEIGHT` in the main process. */
+[data-platform="win32"] {
+  --titlebar-height: 40px;
+}
+
+/* macOS desktop: the BrowserWindow uses native vibrancy, so the page keeps a
+   transparent background and the sidebars go translucent to let the blur show. */
+[data-platform="darwin"],
+[data-platform="darwin"] body {
+  background: transparent;
+}
+
+[data-platform="darwin"]:not([data-fullscreen="true"]) {
+  --sidebar: hsla(0, 0%, 0%, 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50 select-none;
+
+    /* Hide scrollbars (keep scroll behavior) until we add custom styling. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    /* disables things like pull-to-refresh and overscroll effects */
+    /* overscroll-behavior: none; */
+  }
+
+  /* Focus rings only on text inputs; everything else stays quiet. */
+  :focus-visible:not(input, textarea, [contenteditable]) {
+    outline: none;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  ::selection {
+    background-color: var(--color-selection);
+    color: var(--color-selection-foreground);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  button {
+    @apply cursor-default;
+  }
+}
+
+@layer utilities {
+  .focus-ring:focus-visible,
+  .focus-ring[data-dragging='true'] {
+    border-color: var(--ring);
+    box-shadow: inset 0 0 0 1px var(--ring);
+    outline: none;
+    transition:
+      box-shadow 0.2s,
+      outline 0.2s,
+      border 0.2s;
+  }
+}
+
+@media (max-width: 719px), (max-height: 479px) {
+  .screen-too-small {
+    display: flex;
+  }
+}
+
+/**
+ * The soundboard is as tall as the timeline the user drags, not as tall as the
+ * viewport, so its scale thins itself out against its own box. Both columns are
+ * laid out with justify-between, so hiding an element re-spreads the rest —
+ * dropping a label and its major tick together keeps the two lined up.
+ *
+ * Heights below are the soundboard's content box; the meters themselves sit
+ * 32px shorter than that (row gap + the layer picker underneath).
+ */
+.soundboard {
+  container: soundboard / size;
+}
+
+/* Halve the minor ticks — the labels still have room at this height. */
+@container soundboard (max-height: 188px) {
+  .soundboard-tick:nth-child(even) {
+    display: none;
+  }
+}
+
+/**
+ * Halve the scale itself. Majors sit at 4n+1 of the 21 ticks, so keeping
+ * 6n+1 plus the last one leaves major-minor-major-minor-major: three majors for
+ * the three surviving labels, still with a minor between each pair.
+ */
+@container soundboard (max-height: 167px) {
+  .soundboard-tick {
+    display: none;
+  }
+
+  .soundboard-tick:nth-child(6n + 1),
+  .soundboard-tick:nth-last-child(2) {
+    display: block;
+  }
+
+  .soundboard-scale > span:nth-child(even) {
+    display: none;
+  }
+}
+
+/* Cutroom's application shell keeps the editor controls compact while giving
+   conversations and navigation the room of a desktop workspace. */
+[data-kb-theme="dark"] {
+  --background: #191919;
+  --sidebar: #222222;
+  --canvas: #111111;
+  --card: #242424;
+  --popover: #262626;
+  --border: #292929;
+  --border-strong: #333333;
+  --border-input: #444444;
+  --muted-foreground: #a3a3a3;
+  --accent: #303030;
+  --primary: #0097ff;
+  --primary-hover: #178beb;
+  --primary-pressing: #0877d0;
+}
+[data-platform="darwin"]:not([data-fullscreen="true"]) { --sidebar: #222222; }
+.cutroom-app { background: var(--background); }
+.cutroom-sidebar { width: 240px; flex: 0 0 240px; min-height: 0; display: flex; flex-direction: column; background: var(--sidebar); border-right: 1px solid var(--border-strong); padding: 0 10px; font-size: 13px; }
+.cutroom-brand { display: flex; align-items: center; gap: 11px; height: 96px; padding: 18px 8px 4px; flex-shrink: 0; color: var(--foreground); font-size: 22px; font-weight: 600; letter-spacing: -.75px; }
+[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-brand { height: 112px; padding-top: 42px; -webkit-app-region: drag; }
+.cutroom-primary-nav { display: flex; flex-direction: column; gap: 4px; }
+.cutroom-nav-item { display: flex; width: 100%; height: 36px; flex-shrink: 0; align-items: center; gap: 11px; border-radius: 7px; padding: 0 10px; text-align: left; color: var(--muted-foreground); transition: background .15s, color .15s; }
+.cutroom-nav-item > svg { width: 18px; height: 18px; }
+.cutroom-nav-item:hover, .cutroom-chat-row:hover { background: color-mix(in srgb, var(--foreground) 5%, transparent); color: var(--foreground); }
+.cutroom-nav-item.is-active, .cutroom-chat-row.is-active { background: var(--accent); color: var(--foreground); }
+.cutroom-nav-item > span:first-of-type { flex: 1; }
+.cutroom-chats-heading { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; padding: 27px 10px 10px; color: var(--muted-foreground); font-size: 12px; font-weight: 500; }
+.cutroom-chats-heading button { display: grid; width: 23px; height: 23px; place-items: center; border-radius: 5px; }
+.cutroom-chats-heading button:hover { background: var(--accent); color: var(--foreground); }
+.cutroom-chat-history { flex: 1; min-height: 0; overflow-y: auto; }
+.cutroom-chat-row { display: flex; width: 100%; gap: 8px; align-items: center; height: 36px; padding: 0 10px; margin-bottom: 2px; border-radius: 7px; text-align: left; font-size: 12px; color: var(--foreground); }
+.cutroom-chat-row > span:first-child { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cutroom-chat-empty { margin: 6px 10px; max-width: 175px; color: #777; font-size: 12px; line-height: 1.7; }
+.cutroom-unread-dot, .cutroom-connected-dot { display: inline-block; flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: #438df7; }
+.cutroom-connected-dot { background: #48af86; }
+.cutroom-sidebar-footer { padding-top: 12px; flex-shrink: 0; }
+.cutroom-workspace { display: flex; align-items: center; gap: 10px; margin: 16px 3px 0; padding: 14px 5px 19px; border-top: 1px solid var(--border-strong); }
+.cutroom-workspace-avatar { display: grid; width: 32px; height: 32px; flex-shrink: 0; place-items: center; border-radius: 50%; background: var(--accent); color: var(--muted-foreground); }
+.cutroom-workspace > div:last-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.cutroom-workspace strong { font-size: 12px; font-weight: 500; }
+.cutroom-workspace span { font-size: 10px; color: var(--muted-foreground); }
+.cutroom-main { background: var(--background); }
+.cutroom-home { min-height: 0; flex: 1; overflow-y: auto; padding: 0 clamp(28px, 6vw, 90px) 36px; }
+.cutroom-home-hero { width: 100%; max-width: 850px; margin: 0 auto; padding: clamp(72px, 14vh, 156px) 0 62px; }
+.cutroom-home-hero h1 { text-align: center; font-size: 25px; font-weight: 500; line-height: 1.3; letter-spacing: -.7px; margin-bottom: 28px; }
+.cutroom-home-composer { position: relative; display: flex; flex-direction: column; width: 100%; gap: 15px; padding: 16px 16px 12px; border: 1px solid #303030; border-radius: 20px; background: #262626; box-shadow: 0 1px 2px #0000000a; }
+.cutroom-home-composer:focus-within { border-color: #424242; }
+.cutroom-home-input { width: 100%; max-height: 200px; min-height: 59px; resize: none; overflow-y: auto; padding: 0; outline: none; background: transparent; font-size: 15px; line-height: 1.55; color: var(--foreground); user-select: text; }
+.cutroom-home-input::placeholder { color: #a3a3a3; }
+.cutroom-composer-footer { display: flex; gap: 12px; align-items: center; min-height: 30px; }
+.cutroom-composer-footer > button:first-child { font-size: 12px; }
+.cutroom-project-target { display: flex; min-width: 0; align-items: center; gap: 5px; color: var(--muted-foreground); font-size: 11px; }
+.cutroom-project-target span { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cutroom-send { display: grid; width: 31px; height: 31px; flex-shrink: 0; place-items: center; border-radius: 50%; color: white; background: var(--primary); }
+.cutroom-send:hover { background: var(--primary-hover); }
+.cutroom-send:disabled { opacity: .35; }
+.cutroom-suggestions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding-top: 22px; }
+.cutroom-suggestions button { display: flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid #2c2c2c; border-radius: 999px; font-size: 12px; line-height: 18px; color: var(--muted-foreground); transition: border-color .15s, color .15s; }
+.cutroom-suggestions button:hover { color: var(--foreground); border-color: #494949; }
+.cutroom-suggestions svg { width: 16px; height: 16px; }
+.cutroom-connect-hint { display: flex; justify-content: center; align-items: center; gap: 9px; margin-top: 25px; font-size: 11px; color: #777; }
+.cutroom-connect-hint button { color: #b0b0b0; }
+.cutroom-connect-hint button:hover { color: var(--foreground); }
+.cutroom-recents { max-width: 1040px; margin: 0 auto; }
+.cutroom-section-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cutroom-section-heading h2 { font-size: 13px; font-weight: 500; color: var(--muted-foreground); }
+.cutroom-section-heading > button { display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 6px; font-size: 11px; color: var(--muted-foreground); }
+.cutroom-section-heading > button:hover { background: var(--accent); color: var(--foreground); }
+.cutroom-project-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 176px; gap: 9px; border: 1px solid #2a2a2a; border-radius: 13px; color: #737373; background: #1c1c1c; }
+.cutroom-project-empty > svg { width: 25px; height: 25px; opacity: .7; margin-bottom: 4px; }
+.cutroom-project-empty p { color: #aaa; font-size: 13px; }
+.cutroom-project-empty span { font-size: 11px; }
+.cutroom-conversation { display: flex; min-height: 0; flex-direction: column; flex-shrink: 0; background: var(--background); }
+.cutroom-conversation > div { min-height: 0; }
+.cutroom-conversation [data-chat-composer] { font-size: 13px; line-height: 1.65; min-height: 44px; }
+.cutroom-conversation > div > div:has(> [data-chat-composer]) { border-radius: 17px; padding: 13px; background: #262626; margin: 12px; }
+.cutroom-conversation [data-chat-composer]::placeholder { color: #999; }
+.cutroom-column-resizer { position: relative; width: 1px; flex: 0 0 1px; background: var(--border); cursor: col-resize; z-index: 25; }
+.cutroom-column-resizer::after { content: ""; position: absolute; inset: 0 -3px; }
+.cutroom-column-resizer:hover, .cutroom-column-resizer.is-resizing { background: var(--primary); }
+.cutroom-editor-workspace { display: flex; flex: 1; min-width: 0; min-height: 0; flex-direction: column; background: var(--background); container: editor-workspace / inline-size; }
+.cutroom-editor-header { min-height: 52px; flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; border-bottom: 1px solid var(--border); padding: 6px 12px; }
+.cutroom-editor-header > .cutroom-editor-project { flex: 1 1 130px; min-width: 110px; height: 36px; padding: 0; }
+.cutroom-editor-actions { display: flex; flex: 0 1 auto; min-width: 0; max-width: 100%; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; }
+.cutroom-editor-actions > button, .cutroom-editor-actions > div { flex-shrink: 0; white-space: nowrap; }
+.cutroom-editor-tools { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; gap: 5px; height: 29px; border: 1px solid var(--border); border-radius: 6px; padding: 0 9px; font-size: 12px; color: var(--foreground); white-space: nowrap; }
+.cutroom-editor-tools:hover, .cutroom-editor-tools[data-expanded] { background: var(--accent); }
+@container editor-workspace (max-width: 540px) {
+  .cutroom-editor-header > .cutroom-editor-project { flex-basis: 100%; }
+  .cutroom-editor-actions { width: 100%; }
+}
+.cutroom-editor-header input { font-size: 12px; color: var(--foreground); }
+.cutroom-editor-export { height: 29px; padding: 0 12px; border-radius: 6px; background: #f1f1f1; color: #222; font-size: 12px; font-weight: 500; }
+.cutroom-editor-export:disabled { opacity: .4; }
+.cutroom-editor-inspector { min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid var(--border); }
+.cutroom-editor-grid { display: grid; min-height: 0; flex: 1; }
+.cutroom-editor-canvas { position: relative; min-width: 0; min-height: 0; grid-column: 1 / 4; }
+@media (max-width: 1100px) {
+  .cutroom-sidebar { width: 210px; flex-basis: 210px; }
+  .cutroom-home { padding-inline: 30px; }
+  .cutroom-conversation { max-width: 34vw; }
+  .cutroom-home-hero { padding-top: 90px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cutroom-app *, .cutroom-app *::after { transition: none !important; }
+}
+.cutroom-app button:focus-visible, .cutroom-column-resizer:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

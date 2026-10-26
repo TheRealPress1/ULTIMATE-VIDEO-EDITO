@@ -1,0 +1,10 @@
+<svg viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="7" y="7" width="11" height="11" fill="url(#fill-gradient)"/>
+<rect x="6.5" y="6.5" width="12" height="12" rx="0.5" stroke="currentColor"/>
+<defs>
+<linearGradient id="fill-gradient" x1="18.5" y1="6.5" x2="6.5" y2="18.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="currentColor"/>
+<stop offset="1" stop-color="currentColor" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>

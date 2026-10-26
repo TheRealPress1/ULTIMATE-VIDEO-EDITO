@@ -1,0 +1,37 @@
+name: Build Windows
+
+# An unsigned Windows installer on demand, for testing the Windows build
+# before it is part of the release (see apps/desktop/WINDOWS.md). Signing
+# and publishing join the Release workflow in a later stage.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  make-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Provide client env for web build
+        shell: bash
+        run: cp apps/web/.env.example apps/web/.env
+
+      - name: Build and make the installer
+        shell: bash
+        env:
+          SKIP_SIGN: "1"
+        run: npm run make --workspace=@diffusionstudio/desktop
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cutroom-windows-${{ runner.arch }}
+          path: apps/desktop/out/make/squirrel.windows/**
+          if-no-files-found: error
