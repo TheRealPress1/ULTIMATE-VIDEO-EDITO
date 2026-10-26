@@ -1,0 +1,179 @@
+{
+  "engine": "light-asd-coreml-ava-v2",
+  "upstream": "https://github.com/Junhua-Liao/Light-ASD/tree/ed38c232de5efe0261dbd68627c0ade7cdfe14eb",
+  "checkpoint": "https://raw.githubusercontent.com/Junhua-Liao/Light-ASD/ed38c232de5efe0261dbd68627c0ade7cdfe14eb/weight/pretrain_AVA_CVPR.model",
+  "checkpointSHA256": "d44bc3ea7baa8e0946fa3921311714a630ed8b90a1928fab0dbe30d918909317",
+  "license": "MIT",
+  "input": {
+    "audio": [
+      1,
+      200,
+      13
+    ],
+    "video": [
+      1,
+      50,
+      112,
+      112
+    ]
+  },
+  "fps": 25,
+  "audioRate": 16000,
+  "parityMaxError": 1.430511474609375e-06,
+  "files": {
+    "Data/com.apple.CoreML/model.mlmodel": "743380a001b9902f3016ce80091efa9c5f50f1f217fa78c0ac017ab30fcd095b",
+    "Data/com.apple.CoreML/weights/weight.bin": "a19e3257de22cb48f7ae19601c729e905d2251b03839a4e7e239ebc2c7521af3",
+    "Manifest.json": "b7b560c54a96a09e9630fc78e2f0aa971f79eea7e3724f0c54d489771a6c9d06"
+  },
+  "variants": {
+    "1": {
+      "package": "LightASD-1s.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          100,
+          13
+        ],
+        "video": [
+          1,
+          25,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 9.5367431640625e-07,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "81a9601095ed17f31c13a039e033c5327f1a1dee63f98019d016aeb1890095f6",
+        "Data/com.apple.CoreML/weights/weight.bin": "30c8d5ef4a6231c2e3ac5446e01723f59effa9f1e1f104e1b0cef4887c044620",
+        "Manifest.json": "fe9dc284a30159236359d01425b20805a84edc17807e100c7f777aecbfa9eba3"
+      }
+    },
+    "2": {
+      "package": "LightASD.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          200,
+          13
+        ],
+        "video": [
+          1,
+          50,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 9.536743e-07,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "743380a001b9902f3016ce80091efa9c5f50f1f217fa78c0ac017ab30fcd095b",
+        "Data/com.apple.CoreML/weights/weight.bin": "a19e3257de22cb48f7ae19601c729e905d2251b03839a4e7e239ebc2c7521af3",
+        "Manifest.json": "b7b560c54a96a09e9630fc78e2f0aa971f79eea7e3724f0c54d489771a6c9d06"
+      }
+    },
+    "3": {
+      "package": "LightASD-3s.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          300,
+          13
+        ],
+        "video": [
+          1,
+          75,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 1.430511474609375e-06,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "07d966427a2da4dc7a1d23bd2565cb953e52366da06a4967272073f48ab6bdcf",
+        "Data/com.apple.CoreML/weights/weight.bin": "394d00743bc085634cdc597ef8db4da345e6857f98e4ce7920c1049d5adfa5e6",
+        "Manifest.json": "1755adf87d08a4f4f015ba6307705bf51a00c9787e695bb4849668775f0d3093"
+      }
+    },
+    "4": {
+      "package": "LightASD-4s.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          400,
+          13
+        ],
+        "video": [
+          1,
+          100,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 1.1920928955078125e-06,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "8287c2ba566121d208fce922d5e15d6685e873e8037b5c3779ed5378790a7753",
+        "Data/com.apple.CoreML/weights/weight.bin": "dfb84413e8efd1b16093d147f99d28ab0edca47b85e1ac8aaabb9e50cccfa358",
+        "Manifest.json": "aba46a69c523248be4805e784022375c5632685a80aee503ef0f8b1c058cfc30"
+      }
+    },
+    "5": {
+      "package": "LightASD-5s.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          500,
+          13
+        ],
+        "video": [
+          1,
+          125,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 9.5367431640625e-07,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "9b46146c3f9c2d778ce5a3887efda6c78215d1abd19c39cab0230820c329318c",
+        "Data/com.apple.CoreML/weights/weight.bin": "15534b6e2fe4f583197b2c3e5ece1e72a50e12faf9f3eecc93204f2bd3a1c947",
+        "Manifest.json": "732e9ae5591448bd0d2b2a463341f2a5c733dc1b64f46544fed87cc9fc47ec9d"
+      }
+    },
+    "6": {
+      "package": "LightASD-6s.mlpackage",
+      "input": {
+        "audio": [
+          1,
+          600,
+          13
+        ],
+        "video": [
+          1,
+          150,
+          112,
+          112
+        ]
+      },
+      "parityMaxError": 1.430511474609375e-06,
+      "files": {
+        "Data/com.apple.CoreML/model.mlmodel": "eb31105df2663c161d985f193a325d04e1a232006c4fd98f8b36462df932c413",
+        "Data/com.apple.CoreML/weights/weight.bin": "b1276ef4c46d9d4874e5ea3e421b6d6268606f6627c5a6f6c073063de9b40051",
+        "Manifest.json": "f47a601c221dd582502cac309760e5d0563f56668d831e28068d751a69521b27"
+      }
+    }
+  },
+  "inference": {
+    "durations": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "cropMedianFrames": 13,
+    "maxDetectionGapFrames": 10,
+    "chunkContextSeconds": 6,
+    "speakingLogitThreshold": 0.5,
+    "winnerMargin": 0.75,
+    "windowStrideRatio": 0.5,
+    "windowWeighting": "triangular-center"
+  }
+}

@@ -1,0 +1,33 @@
+# Follow the speaker
+
+Open **Reframe**, select the output formats, keep **Follow the speaker**, and choose **Create formats**. UVE creates editable scenes with crop and scale keyframes. Words, source timing, and audio stay intact. Review the resulting scene and adjust framing when needed; one Undo removes the generated formats together.
+
+The mode compares original audio with visible face motion using the bundled Light-ASD model. It does not choose the biggest face as the speaker. It waits for consistent evidence before switching, holds a reliable view briefly through uncertain speech, and then shows the full picture. Overlap or a shot change returns to a wide view. A tall format may therefore include empty space while the full source is visible. The result shows evidence coverage, speaker switches, conservative framing time and any time covered by your explicit corrections. Automatic acquisition needs two consistent samples over at least half a second of playback; switching between people needs one second of sustained evidence. A continuous visible track can bridge up to two seconds of uncertain scores, or one second of silence. Lost tracks, overlap and cuts return to the full picture. These timing budgets follow playback speed.
+
+## Quick corrections
+
+Choose a default in **Speaker framing**, or expand **Correct a time range** for a specific section. Follow left/right keeps the anonymous person selected by screen position within a shot. Stay wide shows the complete source image. Hold previous framing freezes the camera entering that range and resets wide at a cut. Corrections use the scene timeline after trims, speed changes and sequence placement; they create ordinary editable keys in the new copy. Explicit choices never increase model evidence coverage. See [the tool reference](reframe.md#correct-the-framing) for examples and reported durations.
+
+## Evidence and limits
+
+Analysis produces anonymous tracks, normalized face boxes, and samples every half second. Times are relative to the original video's first actual presentation timestamp, including footage with nonzero start timestamps or rotation metadata. Track association across overlapping sections preserves continuity where the same face remains visible; it is not identity recognition.
+
+`speakingScore` is the model's raw audible-speaking class logit, not a probability or calibrated confidence. Face `confidence` describes face detection alone. UVE currently requires a speaking logit above 0.5 and a clear margin over other visible faces. The upstream demonstration uses a zero logit threshold; UVE deliberately makes fewer selections. `speaker`, `uncertain`, `no-visible-speaker`, `overlap`, and `silence` distinguish evidence from fallback. Off-camera dialogue has no reliable visible speaker to follow.
+
+Small faces, profiles, occlusion, laughter, simultaneous voices, applause, dubbing, and poor audio can reduce reliability. Inference averages one- through six-second model contexts after interpolating face tracks and median-smoothing crop geometry. It resets contexts at detected shot cuts. Window boundaries and missed cuts can still change scores. Shifted or shuffled speech may still produce a positive score, so this feature is not a lip-sync verifier or an audio diarization system. Review coverage and the generated framing; do not describe anonymous tracks as named people or claim that every turn was found.
+
+A local 30-second two-person/four-person news sample produced clear evidence at 18 of 60 sampled moments with this version, compared with 10 of 60 in the previous two-second model. The evidence threshold was unchanged. The selected person agreed with visible speaking motion in inspected close-up spans; the early other-person turn and much of the wide group shot remained uncertain. Muting the same video produced silence throughout all 60 samples. Shifted and shuffled speech still produced positive decisions, confirming the sync-verification limitation. A separate 20-second group-conversation demonstration remained mostly uncertain (1 of 40 supported samples). These checks demonstrate local model behavior, not benchmark accuracy across all footage.
+
+## Long footage and privacy
+
+Each clip can span up to two hours. Analysis runs in 30-second sections with up to six seconds of overlapping context on each side and saves completed sections under `.cutroom/speaker-analysis`. Canceling stops the native job and retains complete sections; repeating the same request after a restart resumes from them. Cached evidence binds the full source SHA-256, model/checkpoint version, source clock, requested range, and sampling settings. Changed footage invalidates the result. Analysis never writes into source media.
+
+All decoding, face tracking, audio features, and inference run on the Mac using Apple frameworks and the packaged CoreML model. No footage upload, Python installation, Homebrew runtime, model account, or per-edit permission prompt is required. The first analysis reads the full source to verify its fingerprint. Internal gaps in the video edit list are rejected when a safe source-clock alignment cannot be established.
+
+## Model provenance and verification
+
+The bundled model is [Light-ASD by Junhua Liao and collaborators](https://github.com/Junhua-Liao/Light-ASD), from commit `ed38c232de5efe0261dbd68627c0ade7cdfe14eb`, distributed under its MIT license. The [CVPR 2023 paper](https://arxiv.org/abs/2303.04439) describes the audio-visual active-speaker architecture. Original checkpoint SHA-256: `d44bc3ea7baa8e0946fa3921311714a630ed8b90a1928fab0dbe30d918909317`.
+
+`apps/desktop/scripts/convert-speaker-model.py` reproduces the build-time conversion. Normal application builds use the six checked-in context variants, verify their hashes, and compile them with Apple's CoreML compiler; they need no Python or network download. The native helper uses 25 fps grayscale face sequences and 16 kHz audio MFCC features. Conversion was checked against original PyTorch across all six fixed context lengths: maximum logit difference `1.43e-6` on conversion fixtures and `2.03e-6` on actual extracted six-second inputs. Native MFCC maximum difference from `python_speech_features` was `6.57e-5`.
+
+After `build:native`, run `UVE_SPEAKER_NATIVE_TESTS=1 npm test --workspace=@diffusionstudio/desktop -- src/speaker-analysis.test.ts src/speaker-native.test.ts`. Native fixtures are generated with Apple frameworks and cover VFR, nonzero first PTS, rotated display dimensions, cuts between sample timestamps, and clock mismatch rejection. Service tests cover cancellation, restart reuse, overlap association, source mutation, malformed evidence, and unsafe cache links.

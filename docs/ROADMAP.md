@@ -1,0 +1,37 @@
+# UVE roadmap
+
+Updated 2026-10-25. The remaining approved milestones are implemented locally. External service activation is tracked separately below.
+
+## Editing workflows
+
+| Improvement | Implemented behavior | Review notes |
+| --- | --- | --- |
+| Uninterrupted local editing | Routine project commands, file edits and known local editor tools run automatically within provider permissions. Edited caption files refresh their live layers. | Broader access and external actions still require review. Caption refresh preserves the mounted layer and undo history. |
+| Reference video editing | Local cut/caption/frame/palette measurements, editable layout copy, and agent handoff for a reference-guided edit. | Original scene preserved; measured evidence is distinguished from unknown fonts/motion. [Details](reference/tools/reference-style.md). |
+| Long footage playback | Automatic local 720p preview copies, bounded cache, source verification, original-quality export and audio. | HDR and unsupported footage fall back to originals. [Details](playback-performance.md). |
+| Automatic social formats | Editable vertical, square and landscape variants, local audio/video speaker framing with smoothed tracks and longer context, steadier camera decisions, scene-time framing corrections, face following and caption insets. | Original scene preserved; uncertain speaker evidence holds briefly or fits the full image. No real identities or off-camera diarization. [Details](reference/tools/reframe.md). |
+| Long recording analysis | Two-hour speech indexing, captions, face/speaker analysis, native visual indexing and rendered quality review, using bounded sections and persistent progress. | Completed sections resume for unchanged sources/settings; optional CLIP embeddings remain checkpointed per completed video. Audio finishing retains its separate limit. |
+| Project version history | Named and automatic checkpoints, previews, file/layer comparisons, whole-project and selective restoration. | Restore creates a recovery checkpoint and checks for conflicts. Maximum 50 versions within 100 MB. [Details](project-safety.md). |
+| Visual footage search | Persistent local image labels, visible text and person counts, with timestamped previews and B-roll audition ranges. Optional local CLIP image/text matching ranks descriptions after explicit model download. | Sampled frames can miss short shots; descriptions return candidates, not proof of an action. No media/query upload. [Details](reference/tools/visual.md). |
+| Transcript timeline editing | Remove words or reorder passages in the current scene; preview conservative filler/quiet-pause suggestions; cut supported video/audio/graphics and rebuild captions together. | Saves a named recovery version and one Undo step. Unsupported timing containers fail before editing. [Details](reference/tools/transcript-edit.md). |
+| Audio finishing | Integrated LUFS, true peak and loudness range; dialogue leveling, optional steady-noise reduction, two-pass normalization and editable music ducking. | Creates a separate scene and WAV derivative. Final combined mix is measured separately; listen before export. [Details](reference/tools/audio-finish.md). |
+| Rendered quality review | Clickable observations from actual sampled frames, caption/text layout and the scene audio mix: dark frames, borders, potential overflow, clipping, long pauses and audio joins. | Does not measure lip-sync, speaker identity, narrative quality or HDR mastering. Sampling can miss brief problems. [Details](reference/tools/quality-review.md). |
+| Instagram workflows | Browser authorization client and deployable broker, durable Reel draft/approval queue, scheduled attempts while the app is open, and cached post comparisons. | Agents cannot approve or publish. Changing accounts pauses approvals. Browser login and live publishing require deployment and account acceptance below. [Details](instagram-publishing.md). |
+| Export and distribution | Native AAC finalization with encoder-reported priming/edit lists, atomic file replacement, signed release workflow, manual update UI and deployable feed. | Native timing regressions are tested. SDR metadata is retained by video stream copy; exact color/HDR fidelity is not claimed. Private releases use signed/notarized app and DMG artifacts, verified before GitHub-authenticated downloads. Automatic private updating and a separate clean-Mac acceptance remain. [Details](releasing.md). |
+
+## External activation still required
+
+- Deploy the Instagram authorization broker to an HTTPS domain, supply the Meta app secret on that server, and configure the callback/permissions in Meta. Then test browser authorization with the authorized creator account.
+- Provide public HTTPS hosting for Reel media. The queue does not upload local exports to a media host. Perform a deliberate live publish only after reviewing the exact media, caption and destination.
+- Keep installers in private GitHub releases. Add authenticated in-app update hosting if needed; no embedded GitHub token or anonymous private-asset feed. Complete clean-Mac acceptance on a separate machine. See [release setup](releasing.md).
+- Compare final exports in target players/platforms before promising exact color fidelity or support for HDR mastering.
+
+## Acceptance expectations
+
+- Work on isolated project copies; preserve the user's original scene, captions and media.
+- Keep caption timing and source audio aligned through trimming, rearrangement, reframing and audio processing.
+- Reject stale transcript/search/review results when source media or the composition changes.
+- Save recovery checkpoints before destructive timeline edits and restoration.
+- Report uncertainty in sampled visual evidence and automated review findings.
+- Treat Instagram draft creation, user approval and actual publication as distinct states; never retry an ambiguous publish automatically.
+- Verify standalone binaries and local model assets work without a development server or Homebrew runtime.

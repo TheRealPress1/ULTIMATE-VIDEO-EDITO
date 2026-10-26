@@ -1,0 +1,64 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+import {
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
+import { usePromptInput } from "@/context/prompt-input";
+import { useWorld } from "@diffusionstudio/koota-solid";
+import { Tool, ToolType } from "@diffusionstudio/runtime";
+import { Show } from "solid-js";
+import { LOCAL_MODE } from "@/lib/environment";
+
+export function ToolMenu() {
+  const { setPromptInputOpen } = usePromptInput();
+  const world = useWorld();
+  const setTool = (value: ToolType) => world.set(Tool, { value });
+
+  return (
+    <>
+      <Show when={!LOCAL_MODE}>
+        <DropdownMenuGroup>
+          <DropdownMenuItem onSelect={() => setPromptInputOpen(true)}>
+            Generate with AI...
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+        <DropdownMenuSeparator />
+      </Show>
+
+      <DropdownMenuGroup>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.SCENE)}>
+          Scene
+          <DropdownMenuShortcut>F</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.TEXT)}>
+          Text
+          <DropdownMenuShortcut>T</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.RECT)}>
+          Rectangle
+          <DropdownMenuShortcut>R</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.ELLIPSE)}>
+          Ellipse
+          <DropdownMenuShortcut>O</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.POLYGON)}>
+          Polygon
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.PEN)}>
+          Pen
+          <DropdownMenuShortcut>P</DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setTool(ToolType.OBJECT_MASK)}>
+          Object Mask
+          <DropdownMenuShortcut>M</DropdownMenuShortcut>
+        </DropdownMenuItem>
+      </DropdownMenuGroup>
+    </>
+  );
+}
