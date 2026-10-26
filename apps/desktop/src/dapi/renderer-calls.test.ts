@@ -1,16 +1,20 @@
 import { EventEmitter } from 'node:events';
+import { mkdirSync, mkdtempSync, renameSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BrowserWindow } from 'electron';
 import { DAPI_WIRE } from '@diffusionstudio/dapi';
 const { ipc } = vi.hoisted(() => ({ ipc: { on: vi.fn() } }));
 vi.mock('electron', () => ({ ipcMain: ipc }));
 import { RendererCalls } from './renderer-calls';
+import { pinProject } from './output-policy';
 
-function fixture(loading = false) {
+function fixture(loading = false, host: { fresh?: boolean; lastProject?: string | null; projectRoot?: string | null } = {}) {
   const contents = Object.assign(new EventEmitter(), { isLoading: () => loading, isCrashed: () => false, send: vi.fn() });
   const window = Object.assign(new EventEmitter(), { webContents: contents, isDestroyed: () => false }) as unknown as BrowserWindow;
-  const acquire = vi.fn(() => ({ window, fresh: false }));
-  const calls = new RendererCalls({ acquire, lastProject: () => null }); calls.start();
+  const acquire = vi.fn(() => ({ window, fresh: host.fresh ?? false }));
+  const calls = new RendererCalls({ acquire, lastProject: () => host.lastProject ?? null, projectRoot: () => host.projectRoot ?? null }); calls.start();
   return { calls, contents, acquire, window,
     ready() { loading = false; contents.emit('did-finish-load'); },
     startNavigation(isSameDocument: boolean, isMainFrame = true) {
@@ -102,5 +106,41 @@ describe('renderer navigation lifecycle', () => {
     const rejected = expect(work).rejects.toThrow(event === 'closed' ? 'closed' : 'crashed');
     (event === 'closed' ? f.window : f.contents).emit(event);
     await rejected;
+  });
+});
+
+describe('reopening the last project in a new window', () => {
+  const sent = (contents: { send: { mock: { calls: unknown[][] } } }) =>
+    contents.send.mock.calls.filter((call) => call[0] === DAPI_WIRE.CALL).map((call) => (call[1] as { tool: string; args: unknown }));
+
+  it('reopens the project the agent was working on before the call', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'dapi-reopen-'));
+    try {
+      const f = fixture(false, { fresh: true, lastProject: dir, projectRoot: pinProject(dir) });
+      void f.calls.call('context', {}, new AbortController().signal);
+      await vi.waitFor(() => expect(sent(f.contents)[0]).toMatchObject({ tool: 'open', args: { dir } }));
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('does not reopen a project whose folder was swapped for a link since it was opened', async () => {
+    const parent = mkdtempSync(join(tmpdir(), 'dapi-reopen-'));
+    try {
+      const dir = join(parent, 'show');
+      mkdirSync(dir);
+      const pinned = pinProject(dir);
+      renameSync(dir, join(parent, 'away'));
+      symlinkSync(tmpdir(), dir);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const f = fixture(false, { fresh: true, lastProject: dir, projectRoot: pinned });
+      void f.calls.call('context', {}, new AbortController().signal);
+      await vi.waitFor(() => expect(sent(f.contents).length).toBe(1));
+      expect(sent(f.contents)[0]).toMatchObject({ tool: 'context' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('changed on disk'));
+      warn.mockRestore();
+    } finally {
+      rmSync(parent, { recursive: true, force: true });
+    }
   });
 });

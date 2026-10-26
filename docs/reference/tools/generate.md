@@ -1,6 +1,8 @@
 # generate
 
-Start a job on a generative model — images, video, music, sound effects, speech, and tools such as background removal, upscaling, transcription and analysis on the Cutroom API, and object segmentation and tracking ([`sam-2.1`](./segment.md)) on this machine — and return the job at once, with its estimated run time and the credits it costs. Poll [`job`](./job.md) with its id until it has ended; the files it made are then saved and their paths returned. With [`estimate`](#estimating), nothing starts: the answer is only what the job would cost and how long it would run. API models need a signed-in account and spend its credits; [local models](../models.md#local) run on the GPU, free, and need no account.
+Start a job on a generative model — images, video, music, sound effects, speech, and tools such as background removal, upscaling, transcription and analysis on the Cutroom API, and object segmentation and tracking ([`sam-2.1`](./segment.md)) on this machine — and return the job at once, with its estimated run time and the credits it costs. Poll [`job`](./job.md) with its id until it has ended; the files it made are then saved and their paths returned. With [`estimate`](#estimating), nothing starts: the answer is only what the job would cost and how long it would run. [Local models](../models.md#local) run on the GPU, free, and need no account.
+
+**Hosted models are unavailable unless hosted generation is configured.** Cutroom runs locally by default, and a Claude Code or Codex subscription does not provide the hosted service. Without it, every API model (`flux-2-klein`, `nano-banana-pro`, `veo-3.1-fast`, `elevenlabs-v3`, …) fails at once with `unsupported`, before anything is uploaded or priced, and `job` refuses hosted job ids the same way; only local `sam-2.1` masking runs. For photos, video or audio from the web, use [`web_media_search`](./web-media.md) and then [`web_media_download`](./web-media.md), which put openly licensed files into the project's library with their credits. Build titles and graphics as native JSX layers. Where hosted generation is configured, API models need a signed-in account and spend its credits.
 
 | | |
 | --- | --- |
@@ -16,7 +18,7 @@ The input is the model's request — `model` plus that model's fields — with t
 | --- | --- | --- | --- |
 | `model` | `string`, required | `<model>` | the model to run, one of the ids in [models.md](../models.md) |
 | *the model's fields* | | `[fields]`, `-p, --prompt <text>` | `prompt`, `images`, `aspectRatio`, `duration`, `voice`, … as the model takes them. On the CLI one JSON object; `--prompt` sets `prompt` without JSON quoting |
-| `output` | `string` | `-o, --output <path>` | file the result is saved as: a library path like `b-roll/fox.png` (needs an open project) or an absolute path; its extension is corrected to what the model made, several files are numbered (`fox-1.png`, `fox-2.png`), and a file already there is replaced (default: the library's root under the API's name with a project open, its files under `assets/`; else a fresh directory under the system temp dir). On the CLI a path starting with `.` resolves against the working directory. |
+| `output` | `string` | `-o, --output <path>` | file the result is saved as: a library path like `b-roll/fox.png` (needs an open project) or an absolute path; its extension is corrected to what the model made, several files are numbered (`fox-1.png`, `fox-2.png`), and a file already there is replaced inside the project or a temp folder (elsewhere, see [Where the files go](#where-the-files-go)) (default: the library's root under the API's name with a project open, its files under `assets/`; else a fresh directory under the system temp dir). On the CLI a path starting with `.` resolves against the working directory. |
 | `maxCredits` | `number` | `--max-credits <n>` | refuse to start the job if it costs more credits than this |
 | `estimate` | `boolean` | `--estimate` | don't start the job: answer with only its `credits` and `etaSeconds`, spending nothing (see [Estimating](#estimating)) |
 
@@ -53,7 +55,7 @@ cutroom generate veo-3.1-fast --prompt "The fox turns and runs into the trees" '
 # prints { "credits": …, "etaSeconds": … }
 ```
 
-Files (`{ "path": … }`) are uploaded first, as for a job, since a tool such as `universal-3.5-pro` or `bytedance-upscaler` is priced by the length of its input; starting the job afterwards reuses the upload. `output` and `maxCredits` are ignored. A [local model](../models.md#local) costs `0`, its `etaSeconds` planned from the file as its job would be. An API model still needs a signed-in account.
+Files (`{ "path": … }`) are uploaded first, as for a job, since a tool such as `universal-3.5-pro` or `bytedance-upscaler` is priced by the length of its input; starting the job afterwards reuses the upload. `maxCredits` is ignored; `output` is checked (see [Where the files go](#where-the-files-go)) but nothing is saved. A [local model](../models.md#local) costs `0`, its `etaSeconds` planned from the file as its job would be. An API model still needs hosted generation configured and a signed-in account.
 
 ## Where the files go
 
@@ -62,7 +64,7 @@ Files (`{ "path": … }`) are uploaded first, as for a job, since a tool such as
 - **The extension is the model's.** What a model makes decides the type, so an extension that does not match is replaced and a missing one is added: `fox.jpg` becomes `fox.png` when the model made a PNG, `clips/run` becomes `clips/run.mp4`. Read the returned `path`, not the one you asked for.
 - **Several files are numbered.** A job that makes more than one (an image `count` above 1) saves `fox-1.png`, `fox-2.png`, …; a single file is saved at the path itself.
 - **A library path** (`b-roll/fox.png`, needs an open project) puts the file into the project's library, under `assets/`, named by `src` like any other asset, and notes the job it came from, as the app's own generations do. A file the project made already at that path is replaced, and everything naming it shows the new one; a file linked from elsewhere on disk is never written over, and the result gets a free name next to it instead.
-- **An absolute path** saves the file there, replacing a file already there.
+- **An absolute path** saves the file there. Inside the open project or a temp folder a file already there is replaced. Elsewhere, only a new file in Desktop, Documents, Downloads, Movies, Music or Pictures can be written: a path whose file, or the renamed or numbered file the job could make from it, already exists is refused before the job starts, as are other folders and Cutroom's and the agents' own folders (`.git`, `.cutroom`, `.claude`, …). Pick a new file name, or save inside the project.
 - **Left out**, the file goes into the open project's library at its root under the API's name (`red-fox-at-dawn.png`, numbered if taken), or where a local model files its own (`sam-2.1`: `masks/<video>/Tracking <n>.mask`); with no project open, into a fresh directory of the job's own under the system temp dir, as [`transcribe`](./transcribe.md) and the other inspection tools do.
 
 The files are saved by the first [`job`](./job.md) call that sees the job succeed (a local model's library files as soon as it does); later calls return the same paths. A file an API model made that went into the library records the job in `assets.yml` (its `job` field), so what made it can be looked up later.
@@ -91,8 +93,9 @@ With `estimate`, `{ credits, etaSeconds }` and nothing else. Otherwise, the API'
 
 ## Errors
 
-- `sign-in-required` — an API model, and the app is not signed in to a Cutroom account.
-- `invalid-input` — the API (or, for a local model, the app) rejected the request; the message names the field and what it takes.
+- `unsupported` — an API model, and hosted generation is not configured in Cutroom (the default). The message points to `web_media_search` and `web_media_download`.
+- `sign-in-required` — an API model, hosted generation is configured, and the app is not signed in to a Cutroom account.
+- `invalid-input` — the API (or, for a local model, the app) rejected the request; the message names the field and what it takes. Also an `output` that may not be written (see [Where the files go](#where-the-files-go)).
 - `no-project` — `output` or a file is a library path and no project is open.
 - `not-found` — a `{ path }` names no file.
 - Not enough credits for the job (or more than `maxCredits`): the message says so.

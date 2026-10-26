@@ -2,13 +2,20 @@
 
 Self-contained compositions demonstrating the JSX API (see [reference/jsx](../reference/jsx/README.md)).
 Each one is a whole project entry file: it default-exports a component rendering a
-`<stage>` with one `<scene>` in it. To run one, copy it into a project folder as the
-entry and [`open`](../reference/tools/open.md) that folder — from a shell:
+`<stage>` with one `<scene>` in it. To run one, make it the entry of a project. Either
+copy it into a folder of its own somewhere such as `~/Movies` and open that folder from
+the app's dashboard, which makes it a project, or let [`open`](../reference/tools/open.md)
+make a new project and put the example in as its entry — from a shell:
 
 ```sh
-cp examples/01-basics.tsx ~/Projects/basics/index.tsx
-cutroom open ~/Projects/basics
+cutroom open ~/Movies/basics
+cp examples/01-basics.tsx ~/Movies/basics/index.tsx
 ```
+
+`open` creates the folder with an empty `index.tsx`, and the app picks up the copied
+entry as soon as it lands. Over `open` (from a shell or an agent), a folder must be new
+or empty unless it already is a Cutroom project, so copy the example in after opening,
+not before.
 
 | Example | Shows |
 | --- | --- |

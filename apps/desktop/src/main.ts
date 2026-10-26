@@ -21,10 +21,11 @@ import { registerInterviewAnalysis } from './interview-analysis-ipc';
 import { registerVideoWorkflows } from './video-workflows-ipc';
 import { LocalVisualIndexService } from './visual-index';
 import { DapiServer } from "./dapi/server";
+import { pinProject } from "./dapi/output-policy";
 import { instructions } from "./dapi/docs";
 import { EditingStyleStore } from "./editing-style";
 import { readEditingSkills } from "./editing-skills";
-import { toolByName } from "@diffusionstudio/dapi";
+import { DapiError, toolByName } from "@diffusionstudio/dapi";
 import { agentChatEndpoint, configureAgentChat, deleteProjectChats, stopAgentChat } from "./agent-chat";
 import { cliStatus, installCli, uninstallCli } from "./cli-install";
 import { applyMcp, mcpStatus } from "./mcp-install";
@@ -43,6 +44,7 @@ import { InstagramAuthService } from './instagram-auth';
 import { InstagramPublishingService } from './instagram-publishing';
 import { LocalSpeechService } from "./speech";
 import { LocalReframeService } from "./reframe-analysis";
+import { configureWebMediaService } from "./web-media";
 import {
   compileProject,
   createProject,
@@ -66,6 +68,7 @@ import {
   readConfig,
   readManifest,
   removeEntry,
+  startWrite,
   statEntry,
   unwatchProject,
   watchProject,
@@ -166,6 +169,10 @@ function releaseUpdates():Promise<ReleaseUpdates>{
 
 let mainWindow: BrowserWindow | null = null;
 let lastProject: string | null = null;
+// Where lastProject really was when it was opened. Tools write in the project
+// freely, so they get this pinned path, never a fresh resolution of a folder
+// an agent's shell could since have swapped for a link (see output-policy).
+let lastProjectRoot: string | null = null;
 
 const saveGate = new SaveGate();
 async function flushRenderer(window: BrowserWindow): Promise<void> {
@@ -208,6 +215,10 @@ function docsDir(): string | null {
   return existsSync(dir) ? dir : null;
 }
 
+// Web media search (a main tool) and downloads (over IPC, for the renderer
+// tool) share one service, so a download keeps a search result's provenance.
+const webMedia = configureWebMediaService({ version: app.getVersion(), noteContent, startWrite });
+
 // The MCP server agents and the Cutroom CLI talk to. Started once the app is
 // ready; renderer tools create the window when there is none.
 const editingStyle = new EditingStyleStore(join(app.getPath("userData"), "editing-style.json"));
@@ -224,6 +235,7 @@ const dapi = new DapiServer({
     acquire: () => windows.acquire(),
     hold: () => windows.hold(),
     lastProject: () => lastProject,
+    projectRoot: () => lastProjectRoot,
   },
   onToolCall: (props) => track("tool_called", props),
 });
@@ -485,6 +497,32 @@ if (squirrelLaunch) {
   });
   mainBridge.handle(MAIN_CHANNELS.AUDIO_FINISH_CANCEL,({id},event)=>{const work=audioOwners.get(id);if(work?.owner===event.sender.id)work.cancel();});
   app.on('will-quit',()=>{visual.dispose();audioFinishing.dispose();});
+  const webMediaOwners = new Map<string, { owner: number; cancel: () => void }>();
+  mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD, async (request, event) => {
+    if (webMediaOwners.has(request.id)) throw new Error("This download is already running.");
+    const sender = event.sender;
+    const controller = new AbortController();
+    const cancel = () => controller.abort(new DapiError("canceled", "The download was canceled."));
+    webMediaOwners.set(request.id, { owner: sender.id, cancel });
+    sender.once("destroyed", cancel);
+    sender.once("render-process-gone", cancel);
+    sender.once("did-start-loading", cancel);
+    try {
+      return await webMedia.download(request, controller.signal);
+    } finally {
+      webMediaOwners.delete(request.id);
+      sender.removeListener("destroyed", cancel);
+      sender.removeListener("render-process-gone", cancel);
+      sender.removeListener("did-start-loading", cancel);
+    }
+  });
+  mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_CANCEL, ({ id }, event) => {
+    const work = webMediaOwners.get(id);
+    if (work?.owner === event.sender.id) work.cancel();
+  });
+  mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_COMMIT, (request) => webMedia.commit(request));
+  mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_DISCARD, ({ id }) => webMedia.discard(id));
+  app.on("will-quit", () => webMedia.dispose());
   const reframe = new LocalReframeService({ runtimePath: join(app.getAppPath(), "dist", "reframe-vision"), cacheDir: join(app.getPath('userData'), 'reframe-cache') });
   const reframeOwners = new Map<string, { owner: number; cancel: () => void }>();
   app.on("will-quit", () => reframe.dispose());
@@ -598,8 +636,9 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_PICK_SAVE, ({ dir, name, startIn, action }) =>
     pickSaveLocation(mainWindow, dir, name, startIn, action),
   );
-  mainBridge.handle(MAIN_CHANNELS.PROJECTS_SAVE, ({ dir, target }) => saveProject(dir, target));
-  mainBridge.handle(MAIN_CHANNELS.PROJECTS_MOVE, ({ dir, target }) => moveProject(dir, target));
+  // A download into the folder would only hold the move up: the renderer has let go of the project, so its result is dropped anyway.
+  mainBridge.handle(MAIN_CHANNELS.PROJECTS_SAVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); return saveProject(dir, target); });
+  mainBridge.handle(MAIN_CHANNELS.PROJECTS_MOVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); return moveProject(dir, target); });
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_RENAME, ({ dir, displayName }) => renameProject(dir, displayName));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_DUPLICATE, ({ dir }) => duplicateProject(dir));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_DELETE, ({ dir }) => deleteProject(dir).then(deleteProjectChats));
@@ -665,6 +704,7 @@ if (squirrelLaunch) {
   });
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_WATCH, ({ dir }, event) => {
     lastProject = dir;
+    lastProjectRoot = pinProject(dir);
     tray.refresh();
     watchProject(BrowserWindow.fromWebContents(event.sender), dir);
   });

@@ -92,7 +92,7 @@ export function EditingSkillsSettings() {
                   </div>
                 )}</For>
               </div>
-              <p class="text-xs leading-relaxed text-muted-foreground">Local editing uses your connected agent. Optional cloud transcription and narration require their own API setup and are used only when requested. Installing a guide does not connect a service.</p>
+              <p class="text-xs leading-relaxed text-muted-foreground">Local editing uses your connected agent. Web image, video and audio search uses the public Openverse and Wikimedia Commons libraries without an account; downloads are saved in the project with their credits. Optional cloud transcription and narration require their own API setup and are used only when requested. Installing a guide does not connect a service.</p>
             </Show>
           </Show>
           <Show when={guideError()}><p role="alert" class="text-sm text-destructive">{guideError()}</p></Show>

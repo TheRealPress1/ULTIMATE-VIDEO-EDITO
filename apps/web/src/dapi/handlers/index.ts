@@ -24,6 +24,7 @@ import { filmstrip } from "./filmstrip";
 import { waveform } from "./waveform";
 import { listen } from "./listen";
 import { generate, job } from "./generate";
+import { webMediaDownload } from "./web-media";
 
 import type { Handlers } from "../handler";
 
@@ -58,4 +59,5 @@ export const handlers: Handlers = {
   listen,
   generate,
   job,
+  web_media_download: webMediaDownload,
 };

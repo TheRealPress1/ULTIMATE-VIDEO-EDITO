@@ -763,10 +763,11 @@ export class AgentHost {
         model,
         resume: chat.meta.resume ? confirmedResume(chat.meta.resume, chat.meta.harness) : undefined,
         mcp: this.options.mcp,
-        instructions: chatInstructions(chat.meta.cwd, this.options.instructions),
+        instructions: chatInstructions(chat.meta.cwd, this.options.instructions, chat.meta.harness),
         env,
         emit,
         onResume,
+        dataDir: resolve(this.options.store.dataDir),
       });
       if (!current()) throw new Error("The agent session ended before it was ready.");
       // Adapters which return an already acknowledged session also pass the

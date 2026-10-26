@@ -8,9 +8,14 @@ import { present, toCallToolResult, toErrorResult } from "./present";
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { GenericTool, ToolName } from "@diffusionstudio/dapi";
+import type { WritePolicy } from "./output-policy";
 
-/** Runs one tool wherever it lives (main or renderer) and returns the handler's raw result. */
-export type ToolRunner = (tool: GenericTool, args: unknown, signal: AbortSignal) => Promise<unknown>;
+/**
+ * Runs one tool wherever it lives (main or renderer) and returns the
+ * handler's raw result. `writes` is the policy the call's outputs are held
+ * to, when the session has one.
+ */
+export type ToolRunner = (tool: GenericTool, args: unknown, signal: AbortSignal, writes?: WritePolicy) => Promise<unknown>;
 
 /**
  * Serves the whole catalog on an MCP session: every tool registered with the
@@ -22,16 +27,21 @@ export type ToolRunner = (tool: GenericTool, args: unknown, signal: AbortSignal)
  * fails every call on the `outputSchema` before it reaches the app. What
  * clients get instead is the same schema in 2020-12 (see `toolJsonSchemas`);
  * `tools/call` and the validation behind it stay the SDK's.
+ *
+ * With `writePolicy`, each call takes the policy once, as it comes in: the
+ * runner checks the call against it, and `present` judges every file it
+ * writes for the call by it again.
  */
-export function serveCatalog(session: McpServer, run: ToolRunner): void {
+export function serveCatalog(session: McpServer, run: ToolRunner, writePolicy?: () => WritePolicy): void {
   for (const tool of tools) {
     session.registerTool(
       tool.name,
       { title: tool.title, description: tool.description, inputSchema: tool.input, outputSchema: tool.output, annotations: tool.annotations },
       async (args, extra) => {
         try {
-          const result = await run(tool, args, extra.signal);
-          return toCallToolResult(await present(tool.name as ToolName, args, result));
+          const writes = writePolicy?.();
+          const result = await run(tool, args, extra.signal, writes);
+          return toCallToolResult(await present(tool.name as ToolName, args, result, writes));
         } catch (error) {
           return toErrorResult(error);
         }

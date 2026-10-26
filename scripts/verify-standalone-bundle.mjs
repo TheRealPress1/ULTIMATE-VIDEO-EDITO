@@ -42,7 +42,7 @@ for (const path of [
   "package.json", "dist/main.js", "dist/preload.js", "dist/agent-host.mjs", "dist/corner_radius.node", "dist/reframe-vision", "dist/visual-vision", "dist/reference-style", "dist/playback-proxy", "dist/speaker-analysis", "dist/speaker-model.json", "dist/speaker-model-LICENSE.txt", "dist/audio-tools/ffmpeg", "dist/audio-tools/runtime.json", "dist/release-config.json", "web/index.html",
 ]) file(join(application, path));
 for (const path of [
-  "cli/dapi.js", "cli/bin/dapi", "runtime/package.json", "docs/INSTRUCTIONS.md",
+  "cli/dapi.js", "cli/bin/dapi", "runtime/package.json", "docs/INSTRUCTIONS.md", "docs/skills/editor.md", "docs/skills/watch.md", "docs/skills/uve-web-media/SKILL.md", "docs/reference/tools/web-media.md",
   "docs/reference/tools/transcribe.md", "docs/reference/tools/reference-style.md", "docs/reference/tools/speaker-framing.md", "docs/playback-performance.md", "speech/whisper-cli", "speech/LICENSE", "speech/runtime.json",
 ]) file(join(resources, path));
 file(join(bundle, "Contents", "MacOS", executableName), true);

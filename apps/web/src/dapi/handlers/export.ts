@@ -4,8 +4,8 @@
 
 import { canEncodeVideo } from "mediabunny";
 import { computeOutputSize } from "@diffusionstudio/encoder";
-import { Computed, FrameRate, Workarea } from "@diffusionstudio/runtime";
-import { isAbsoluteSource } from "@diffusionstudio/assets";
+import { Computed, FrameRate, Workarea, getLibrary } from "@diffusionstudio/runtime";
+import { isAbsoluteSource, isUrlSource } from "@diffusionstudio/assets";
 import { DapiError } from "@diffusionstudio/dapi";
 
 import { renderOverlay, renderScene } from "@/context/render";
@@ -18,6 +18,7 @@ import { MAIN_CHANNELS } from "@desktop/main-channels";
 import { requireScene } from "../lib/scene";
 
 import type { AudioCodec, OutputFormat, VideoCodec } from "mediabunny";
+import type { AssetLibrary } from "@diffusionstudio/assets";
 import type { ExportSettings } from "@diffusionstudio/dapi";
 import type { ContainerFormat, ExportConfig } from "@/engine/project-config";
 import type { ToolHandler } from "../handler";
@@ -91,6 +92,46 @@ async function reconcileCodecs(settings: ExportConfig, format: ContainerFormat):
   };
 }
 
+/**
+ * Refuses an export onto media the library plays from: a linked original,
+ * a file under `assets/`, or a link to one, compared where each really is.
+ * Encoding a scene over its own source would destroy the footage it reads.
+ * A target that does not exist yet is compared by its path alone.
+ */
+export async function refuseSourceOverwrite(library: AssetLibrary, target: string): Promise<void> {
+  const refuse = () => new DapiError("invalid-input", "That path is source media used by this project; export to a new file name.");
+  const sources = library.list().map((asset) => asset.source).filter((source) => !isUrlSource(source));
+  const absolute = (source: string) => (isAbsoluteSource(source) ? source : library.fs.absolute?.(source) ?? source);
+  if (sources.some((source) => absolute(source) === target)) throw refuse();
+  const realPath = library.fs.realPath?.bind(library.fs);
+  if (!realPath) return;
+  const real = await realPath(target).catch(() => null);
+  if (real === null) return;
+  const reals = await Promise.all(sources.map((source) => realPath(source).catch(() => null)));
+  if (reals.includes(real)) throw refuse();
+}
+
+/** Main's `EXPORTS_OUTSIDE` (apps/desktop/src/dapi/output-policy.ts), which refuses the same before the call reaches here. */
+const EXPORTS_OUTSIDE =
+  "The project's exports folder leads outside the project, so an export can't be written there. Make `exports` a plain folder in the project, or give the export a `path`.";
+
+/**
+ * Refuses the default target, `exports/<id>.<format>`, when the project's
+ * `exports` folder really is somewhere outside the project: a link an
+ * agent's shell put in its place would carry the export, renamed over
+ * whatever has its name, out of the project. The file itself is renamed
+ * into place, so a link at its own name is replaced rather than followed. A
+ * folder not there yet is made by the write.
+ */
+export async function refuseExportsOutside(library: AssetLibrary, dir: string): Promise<void> {
+  const realPath = library.fs.realPath?.bind(library.fs);
+  if (!realPath) return;
+  const [project, exports] = await Promise.all([realPath(dir).catch(() => null), realPath("exports").catch(() => null)]);
+  if (exports === null) return;
+  const inside = (root: string) => exports === root || [`${root}/`, `${root}\\`].some((prefix) => exports.startsWith(prefix));
+  if (project === null || !inside(project)) throw new DapiError("invalid-input", EXPORTS_OUTSIDE);
+}
+
 export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
   const { world, project, engine } = ctx.requireSession();
   const scene = requireScene(world, id, "export");
@@ -104,6 +145,9 @@ export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
   const settings = await reconcileCodecs({ format, video: base.video, audio: base.audio }, format);
   const key = sceneConfigKey(scene) ?? id;
   const target = path ?? `${project.dir()}/exports/${key.replace(/[^\w.-]+/g, "-")}.${format}`;
+  const library = getLibrary(world);
+  if (path === undefined) await refuseExportsOutside(library, project.dir());
+  await refuseSourceOverwrite(library, target);
 
   // Fail before the render machinery spins up: an unencodable configuration
   // is known right away (same precheck the UI export runs).

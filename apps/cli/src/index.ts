@@ -272,6 +272,26 @@ program
   });
 
 program
+  .command("web_media_search")
+  .description(describe("web_media_search"))
+  .argument("<query>", field("web_media_search", "query"))
+  .option("-k, --kind <kind>", field("web_media_search", "kind"))
+  .option("--orientation <orientation>", field("web_media_search", "orientation"))
+  .option("--license <license>", field("web_media_search", "license"))
+  .option("-s, --sources <source...>", field("web_media_search", "sources"))
+  .option("-l, --limit <n>", field("web_media_search", "limit"), numeric)
+  .option("-p, --preview <n>", `${field("web_media_search", "preview")}; the CLI prints each thumbnail's file as the result's previewPath`, numeric)
+  .action((query: string, opts: Omit<ToolInput<"web_media_search">, "query">) => run("web_media_search", { query, ...opts }));
+
+program
+  .command("web_media_download")
+  .description(describe("web_media_download"))
+  .argument("<url>", field("web_media_download", "url"))
+  .option("-n, --name <name>", field("web_media_download", "name"))
+  .option("--prefer <kind>", field("web_media_download", "prefer"))
+  .action((url: string, opts: Omit<ToolInput<"web_media_download">, "url">) => run("web_media_download", { url, ...opts }));
+
+program
   .command("logs")
   .description(describe("logs"))
   .option("-n, --tail <n>", field("logs", "tail"), numeric)

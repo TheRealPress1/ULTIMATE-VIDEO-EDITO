@@ -7,12 +7,14 @@ import { MCP_HOST, MCP_PATH, MCP_PORT, isDapiError, tools } from "@diffusionstud
 import { mainHandlers } from "./handlers";
 import { DapiHttpServer } from "./http";
 import { instructions } from "./docs";
+import { guardToolOutputs } from "./output-policy";
 import { RendererCalls } from "./renderer-calls";
 import { serveCatalog } from "./tools-session";
 
 import type { TrackProps } from "@diffusionstudio/api-contract";
 import type { LogEntry } from "@diffusionstudio/dapi";
 import type { AppWindow, MainContext, MainToolName } from "./handler";
+import type { WritePolicy } from "./output-policy";
 import type { RendererHost } from "./renderer-calls";
 import type { EditingStyleStore } from "../editing-style";
 
@@ -105,15 +107,17 @@ export class DapiServer {
     // `name` is the machine identity, and matches the key we write into agent
     // configs; `title` is what a client shows a person.
     const session = new McpServer({ name: SERVER_NAME, title: "Cutroom", version: this.deps.version }, { instructions: this.instructionsText });
-    serveCatalog(session, async (tool, args, signal) => {
+    serveCatalog(session, async (tool, args, signal, writes = this.writePolicy()) => {
       const release = this.deps.window.hold();
       const startedAt = performance.now();
       // The failure's code (`not-found`, `busy`, …), never its message: messages name the user's files.
       let error: string | undefined;
       try {
-        return await (tool.environment === "main" ?
-          this.runInMain(tool.name as MainToolName, args, signal)
-          : this.renderer.call(tool.name, args, signal));
+        // Tools run without asking, so where they write is held to the agents' rules (see output-policy).
+        return await guardToolOutputs(tool.name, args, writes, () =>
+          tool.environment === "main" ?
+            this.runInMain(tool.name as MainToolName, args, signal)
+            : this.renderer.call(tool.name, args, signal));
       } catch (thrown) {
         error = isDapiError(thrown) ? thrown.code : "error";
         throw thrown;
@@ -129,12 +133,17 @@ export class DapiServer {
           duration_ms: Math.round(performance.now() - startedAt),
         });
       }
-    });
+    }, () => this.writePolicy());
     return session;
   }
 
+  /** Where tools may write for the call coming in: the project the editor has open, by the real path main pinned when it opened it. */
+  private writePolicy(): WritePolicy {
+    return { project: this.deps.window.lastProject(), pinned: this.deps.window.projectRoot() };
+  }
+
   private runInMain(name: MainToolName, args: unknown, signal: AbortSignal): Promise<unknown> {
-    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle };
+    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, project: () => this.deps.window.lastProject(), window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle };
     // Each handler takes its own parsed args; the map's union type cannot
     // express that pairing, so the call site widens.
     return (mainHandlers[name] as (args: unknown, ctx: MainContext) => Promise<unknown>)(args, ctx);

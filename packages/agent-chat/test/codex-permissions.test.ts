@@ -3,6 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { EventEmitter } from "node:events";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { PassThrough, Writable } from "node:stream";
 import { spawn } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,12 +26,16 @@ vi.mock("../src/host/env", async (importOriginal) => ({
 
 type Message = { id?: number | string; method?: string; params?: Record<string, unknown>; result?: unknown; error?: unknown };
 const cleanup: Array<() => Promise<void>> = [];
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.spyOn(console, "info").mockImplementation(() => {});
+});
 afterEach(async () => {
   for (const close of cleanup.splice(0)) await close();
+  vi.mocked(console.info).mockRestore();
 });
 
-async function start(resume?: OpenOptions["resume"], mcpName = "cutroom") {
+async function start(resume?: OpenOptions["resume"], mcpName = "cutroom", cwd = "/project") {
   const calls: Message[] = [];
   const stdout = new PassThrough();
   const receive = (message: Message) => stdout.write(`${JSON.stringify(message)}\n`);
@@ -49,7 +56,7 @@ async function start(resume?: OpenOptions["resume"], mcpName = "cutroom") {
   vi.mocked(spawn).mockReturnValue(child);
   let transcript = emptyTranscript();
   const session: HarnessSession = await new CodexHarness().open({
-    cwd: "/project", model: "test-model", resume,
+    cwd, model: "test-model", resume,
     mcp: { name: mcpName, url: "http://127.0.0.1:43127/mcp" },
     env: { env: { PATH: "/test", HOME: "/existing/home" }, extraDirs: [] }, emit: () => {},
   });
@@ -71,18 +78,14 @@ async function start(resume?: OpenOptions["resume"], mcpName = "cutroom") {
     await vi.waitFor(() => expect(calls.some((call) => call.id === id && !call.method)).toBe(true));
     return calls.find((call) => call.id === id && !call.method)!.result;
   };
-  const allow = () => {
-    const pending = transcript.pending!;
-    session.respond(pending.id, { answers: { [pending.questions[0]!.id]: ["Allow once"] } });
-  };
-  return { calls, receive, request, response, session, allow, pending: () => transcript.pending!, items: () => transcript.items };
+  return { calls, receive, request, response, session, pending: () => transcript.pending, items: () => transcript.items };
 }
 
-describe("Codex project permissions", () => {
-  it.each([false, true])("sets project sandbox and approval policy, including resumed threads (%s)", async (resumed) => {
+describe("Codex automatic permissions", () => {
+  it.each([false, true])("never asks for approval and keeps the sandbox offline, including resumed threads (%s)", async (resumed) => {
     const { calls } = await start(resumed ? { codex: { threadId: "thread-1" } } : undefined);
     expect(calls.find((call) => call.method === (resumed ? "thread/resume" : "thread/start"))?.params).toMatchObject({
-      cwd: "/project", sandbox: "workspace-write", approvalPolicy: "on-request",
+      cwd: "/project", sandbox: "workspace-write", approvalPolicy: "never",
       config: {
         "mcp_servers.compound.enabled": false,
         "mcp_servers.node_repl.enabled": false,
@@ -94,7 +97,8 @@ describe("Codex project permissions", () => {
     expect(calls.find((call) => call.method === "config/read")?.params).toEqual({ cwd: "/project", includeLayers: false });
     expect(calls.some((call) => call.method?.startsWith("config/") && call.method !== "config/read")).toBe(false);
     expect(calls.find((call) => call.method === "turn/start")?.params).toMatchObject({
-      approvalPolicy: "on-request",
+      approvalPolicy: "never",
+      // Workspace-write reads the whole disk, credential stores included: no network to send them anywhere.
       sandboxPolicy: { type: "workspaceWrite", writableRoots: [], networkAccess: false, excludeTmpdirEnvVar: false, excludeSlashTmp: false },
     });
     expect(vi.mocked(spawn).mock.calls[0]?.[1]).toEqual(expect.arrayContaining([
@@ -102,6 +106,7 @@ describe("Codex project permissions", () => {
       "mcp_servers.cutroom.enabled=true",
       "mcp_servers.cutroom.required=true",
       "mcp_servers.cutroom.tool_timeout_sec=14400",
+      'mcp_servers.cutroom.default_tools_approval_mode="approve"',
     ]));
     expect(vi.mocked(spawn).mock.calls[0]?.[2]).toMatchObject({ env: { HOME: "/existing/home" }, shell: false });
   });
@@ -109,6 +114,7 @@ describe("Codex project permissions", () => {
   it("injects a different valid MCP name without creating quoted key segments", async () => {
     const { calls } = await start(undefined, "editor-tools");
     expect(vi.mocked(spawn).mock.calls[0]?.[1]).toContain('mcp_servers.editor-tools.url="http://127.0.0.1:43127/mcp"');
+    expect(vi.mocked(spawn).mock.calls[0]?.[1]).toContain('mcp_servers.editor-tools.default_tools_approval_mode="approve"');
     expect(calls.find((call) => call.method === "thread/start")?.params?.config).toMatchObject({ "mcp_servers.cutroom.enabled": false });
   });
 
@@ -117,89 +123,35 @@ describe("Codex project permissions", () => {
     expect(spawn).not.toHaveBeenCalled();
   });
 
-  it("reviews native MCP confirmations and supplies the elicitation response shape", async () => {
-    const { receive, request, calls, response, pending, allow } = await start();
-    receive({ method: "item/started", params: { threadId: "thread-1", turnId: "turn-1", item: {
-      id: "capture-1", type: "mcpToolCall", server: "cutroom", tool: "capture",
-      arguments: { id: "smoke", output: "/project/cache/verification" },
-    } } });
-    const id = request("mcpServer/elicitation/request", {
-      serverName: "cutroom", mode: "form", message: "Allow capture to write these images?",
-      requestedSchema: { type: "object", properties: {} },
-      _meta: { tool_description: "INTERNAL LONG DOCUMENTATION", persist: true, tool_params: { id: "smoke", output: "/project/cache/verification" } },
-    });
-    await vi.waitFor(() => expect(pending()).not.toBeNull());
-    expect(pending().questions[0]?.question).toContain("Allow capture to write these images?");
-    expect(pending().questions[0]?.question).toContain("/project/cache/verification");
-    expect(pending().questions[0]?.question).not.toContain("INTERNAL LONG DOCUMENTATION");
-    expect(pending().questions[0]?.question).not.toContain("thread-1");
-    expect(calls.some((call) => call.id === id)).toBe(false);
-    allow();
+  it.each([
+    ["an uncorrelated confirmation", { turnId: null, mode: "form", requestedSchema: { type: "object", properties: {}, required: [] } }],
+    ["a tool-call confirmation", { mode: "form", requestedSchema: { type: "object", properties: {} }, _meta: { codex_approval_kind: "mcp_tool_call", tool_params: { model: "flux-2-klein" } } }],
+    ["a confirmation with optional fields", { mode: "form", requestedSchema: { type: "object", properties: { persist: { type: "boolean" } } } }],
+  ])("accepts %s from the cutroom server without a card", async (_name, params) => {
+    const { request, response, pending } = await start();
+    const id = request("mcpServer/elicitation/request", { serverName: "cutroom", message: "Allow generate?", ...params });
     await expect(response(id)).resolves.toEqual({ action: "accept", content: {}, _meta: null });
-  });
-
-  it('automatically approves an exact current local editor call without a card', async () => {
-    const { receive, request, response, pending } = await start();
-    receive({ method: 'item/started', params: { threadId: 'thread-1', turnId: 'turn-1', item: {
-      id: 'check-1', type: 'mcpToolCall', server: 'cutroom', tool: 'check', arguments: { id: 'scene' },
-    } } });
-    const id = request('mcpServer/elicitation/request', {
-      serverName: 'cutroom', mode: 'form', requestedSchema: { type: 'object', properties: {} },
-      _meta: { tool_params: { id: 'scene' } },
-    });
-    await expect(response(id)).resolves.toEqual({ action: 'accept', content: {}, _meta: null });
     expect(pending()).toBeNull();
   });
 
-  it.each(['ambiguous', 'different arguments', 'uncorrelated turn', 'other server'])('keeps the approval card for %s MCP confirmation', async (reason) => {
-    const { receive, request, response, pending, session } = await start();
-    const server = reason === 'other server' ? 'untrusted' : 'cutroom';
-    const item = { id: 'check-1', type: 'mcpToolCall', server, tool: 'check', arguments: { id: 'scene' } };
-    receive({ method: 'item/started', params: { item } });
-    if (reason === 'ambiguous') receive({ method: 'item/started', params: { item: { ...item, id: 'check-2' } } });
-    const id = request('mcpServer/elicitation/request', {
-      ...(reason === 'uncorrelated turn' ? { turnId: null } : {}), serverName: server, mode: 'form',
-      requestedSchema: { type: 'object', properties: {} },
-      _meta: { tool_params: { id: reason === 'different arguments' ? 'other' : 'scene' } },
-    });
-    await vi.waitFor(() => expect(pending()).not.toBeNull());
-    session.respond(pending().id, 'skip');
-    await expect(response(id)).resolves.toEqual({ action: 'decline', content: null, _meta: null });
-  });
-
-  it('cancels a valid automatic MCP decision if the item completes during validation', async () => {
-    const { receive, request, response, pending } = await start();
-    const item = { id: 'check-1', type: 'mcpToolCall', server: 'cutroom', tool: 'check', arguments: {} };
-    receive({ method: 'item/started', params: { item } });
-    const id = request('mcpServer/elicitation/request', { serverName: 'cutroom', mode: 'form',
-      requestedSchema: { type: 'object', properties: {} }, _meta: { tool_params: {} },
-    });
-    receive({ method: 'item/completed', params: { item } });
-    await expect(response(id)).resolves.toEqual({ action: 'cancel', content: null, _meta: null });
-    expect(pending()).toBeNull();
-  });
-
-  it("handles MCP confirmations without a correlated turn and denies skipped cards", async () => {
-    const { request, response, pending, session } = await start();
+  it("declines confirmations from other servers without a card", async () => {
+    const { request, response, pending, items } = await start();
     const id = request("mcpServer/elicitation/request", {
-      turnId: null, serverName: "cutroom", mode: "form", message: "Allow context?",
-      requestedSchema: { type: "object", properties: {}, required: [] },
+      serverName: "untrusted", mode: "form", requestedSchema: { type: "object", properties: {} },
+      _meta: { codex_approval_kind: "mcp_tool_call" },
     });
-    expect(pending().questions[0]?.question).toContain("Allow context?");
-    session.respond(pending().id, "skip");
     await expect(response(id)).resolves.toEqual({ action: "decline", content: null, _meta: null });
+    expect(pending()).toBeNull();
+    expect(items()).toEqual([]);
   });
 
   it("cancels resolved and stale MCP confirmations without granting access", async () => {
-    const { request, receive, response, pending } = await start();
+    const { request, response, pending } = await start();
     const params = { serverName: "cutroom", mode: "form", requestedSchema: { type: "object", properties: {} } };
-    const id = request("mcpServer/elicitation/request", params);
-    expect(pending()).not.toBeNull();
-    receive({ method: "serverRequest/resolved", params: { requestId: id } });
-    await expect(response(id)).resolves.toEqual({ action: "cancel", content: null, _meta: null });
-    expect(pending()).toBeNull();
     const stale = request("mcpServer/elicitation/request", { ...params, threadId: "other-thread" });
     await expect(response(stale)).resolves.toEqual({ action: "cancel", content: null, _meta: null });
+    const oldTurn = request("mcpServer/elicitation/request", { ...params, turnId: "old-turn" });
+    await expect(response(oldTurn)).resolves.toEqual({ action: "cancel", content: null, _meta: null });
     expect(pending()).toBeNull();
   });
 
@@ -215,56 +167,71 @@ describe("Codex project permissions", () => {
     expect(items()).toContainEqual(expect.objectContaining({ kind: "notice", level: "error", text: expect.stringContaining("This chat cannot complete") }));
   });
 
-  it("does not execute a command approval until the user chooses Allow once", async () => {
-    const { request, calls, response, pending, allow } = await start();
+  it("declines command escalations and cancels stale ones", async () => {
+    const { request, response, pending } = await start();
     const id = request("item/commandExecution/requestApproval", { command: "ffmpeg -i source.mp4 /outside/final.mp4", cwd: "/project" });
-    expect(pending().questions[0]?.question).toContain("/outside/final.mp4");
-    expect(calls.some((call) => call.id === id)).toBe(false);
-    allow();
-    await expect(response(id)).resolves.toEqual({ decision: "accept" });
+    await expect(response(id)).resolves.toEqual({ decision: "decline" });
+    const wrongThread = request("item/commandExecution/requestApproval", { threadId: "another-thread", command: "ls" });
+    await expect(response(wrongThread)).resolves.toEqual({ decision: "cancel" });
+    expect(pending()).toBeNull();
   });
 
-  it("denies skipped requests and rejects stale thread or turn approvals", async () => {
-    const { request, response, pending, session } = await start();
-    const id = request("item/fileChange/requestApproval", { grantRoot: "/outside" });
-    session.respond(pending().id, "skip");
-    await expect(response(id)).resolves.toEqual({ decision: "decline" });
-    const wrongThread = request("item/fileChange/requestApproval", { threadId: "another-thread" });
+  it("accepts project file additions and updates, and declines everything else", async () => {
+    const project = await realpath(await mkdtemp(join(tmpdir(), "uve-codex-project-")));
+    cleanup.push(() => rm(project, { recursive: true, force: true }));
+    await mkdir(join(project, "assets"));
+    await writeFile(join(project, "assets", "title.tsx"), "export default 'Title';");
+    const { request, response, pending, receive } = await start(undefined, "cutroom", project);
+    const cases: [string, unknown[], unknown, string][] = [
+      ["in-project", [{ path: join(project, "assets/title.tsx"), kind: "update" }, { path: join(project, "assets/new.tsx"), kind: { type: "add" } }], undefined, "accept"],
+      ["granted", [{ path: join(project, "assets/title.tsx"), kind: "update" }], project, "accept"],
+      ["outside", [{ path: "/outside/title.tsx", kind: "update" }], undefined, "decline"],
+      ["delete", [{ path: join(project, "assets/title.tsx"), kind: "delete" }], undefined, "decline"],
+      ["move", [{ path: join(project, "a.tsx"), kind: { type: "update", move_path: join(project, "b.tsx") } }], undefined, "decline"],
+      ["protected", [{ path: join(project, ".git/config"), kind: "update" }], undefined, "decline"],
+      ["outside grant", [{ path: join(project, "assets/title.tsx"), kind: "update" }], "/outside", "decline"],
+      ["empty", [], undefined, "decline"],
+    ];
+    for (const [id, changes, grantRoot, decision] of cases) {
+      receive({ method: "item/started", params: { item: { id, type: "fileChange", changes } } });
+      const requestId = request("item/fileChange/requestApproval", { itemId: id, grantRoot });
+      await expect(response(requestId), id).resolves.toEqual({ decision });
+    }
+    const unknown = request("item/fileChange/requestApproval", { itemId: "never-started" });
+    await expect(response(unknown)).resolves.toEqual({ decision: "decline" });
     const oldTurn = request("item/fileChange/requestApproval", { turnId: "old-turn" });
-    await expect(response(wrongThread)).resolves.toEqual({ decision: "cancel" });
     await expect(response(oldTurn)).resolves.toEqual({ decision: "cancel" });
     expect(pending()).toBeNull();
   });
 
-  it("shows the proposed file changes with their approval", async () => {
-    const { request, response, pending, receive, allow } = await start();
-    const diff = "-export const title = 'Before';\n+export const title = 'After';";
-    receive({ method: "item/started", params: { item: { id: "file-edit", type: "fileChange", changes: [{ path: "/outside/title.tsx", diff }] } } });
-    const id = request("item/fileChange/requestApproval", { itemId: "file-edit", grantRoot: "/outside" });
-    expect(pending().questions[0]?.question).toContain("Before");
-    expect(pending().questions[0]?.question).toContain("After");
-    allow();
-    await expect(response(id)).resolves.toEqual({ decision: "accept" });
+  it("grants neither network nor file system access when Codex asks for more", async () => {
+    const { request, response, pending } = await start();
+    const network = request("item/permissions/requestApproval", { permissions: { network: { enabled: true } } });
+    await expect(response(network)).resolves.toEqual({ permissions: {}, scope: "turn" });
+    const both = request("item/permissions/requestApproval", { permissions: { network: { enabled: true }, fileSystem: { write: ["/outside/render"] } } });
+    await expect(response(both)).resolves.toEqual({ permissions: {}, scope: "turn" });
+    const files = request("item/permissions/requestApproval", { permissions: { network: null, fileSystem: { write: ["/outside/render"] } } });
+    await expect(response(files)).resolves.toEqual({ permissions: {}, scope: "turn" });
+    expect(pending()).toBeNull();
   });
 
-  it("grants only the permissions shown and only for the active turn", async () => {
-    const { request, response, pending, allow } = await start();
-    const permissions = { network: null, fileSystem: { write: ["/outside/render"] } };
-    const id = request("item/permissions/requestApproval", { permissions });
-    expect(pending().questions[0]?.question).toContain("for the current turn");
-    allow();
-    await expect(response(id)).resolves.toEqual({ permissions: { fileSystem: permissions.fileSystem }, scope: "turn" });
+  it("denies legacy approval callbacks", async () => {
+    const { request, response, pending } = await start();
+    for (const method of ["execCommandApproval", "applyPatchApproval"]) {
+      const id = request(method, { conversationId: "thread-1", callId: "call-1" });
+      await expect(response(id)).resolves.toEqual({ decision: { denied: { rejection: expect.any(String) } } });
+    }
+    expect(pending()).toBeNull();
   });
 
-  it("withdraws a resolved request without granting or dismissing the next queued request", async () => {
-    const { request, response, pending, receive, allow } = await start();
-    const first = request("item/fileChange/requestApproval", { grantRoot: "/one" });
-    const second = request("item/fileChange/requestApproval", { grantRoot: "/two" });
-    expect(pending().questions[0]?.question).toContain("/one");
-    receive({ method: "serverRequest/resolved", params: { threadId: "thread-1", requestId: first } });
-    await expect(response(first)).resolves.toEqual({ decision: "cancel" });
-    expect(pending().questions[0]?.question).toContain("/two");
-    allow();
-    await expect(response(second)).resolves.toEqual({ decision: "accept" });
+  it("still routes the model's own questions to the question card", async () => {
+    const { request, response, pending, session } = await start();
+    const id = request("item/tool/requestUserInput", { itemId: "ask-1", questions: [
+      { id: "format", header: "Format", question: "Which format?", options: [{ label: "9:16", description: "Portrait" }] },
+    ] });
+    await vi.waitFor(() => expect(pending()).not.toBeNull());
+    expect(pending()!.questions[0]).toMatchObject({ header: "Format", question: "Which format?" });
+    session.respond(pending()!.id, { answers: { format: ["9:16"] } });
+    await expect(response(id)).resolves.toEqual({ answers: { format: { answers: ["9:16"] } } });
   });
 });

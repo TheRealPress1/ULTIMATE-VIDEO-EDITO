@@ -7,6 +7,7 @@ import { skills, editingStyle } from "./skills";
 import { report } from "./report";
 import { window } from "./window";
 import { instagramAccounts, instagramPosts, instagramPostAnalytics, instagramAccountInsights } from "./instagram";
+import { webMediaSearch } from "./web-media";
 
 import type { MainHandlers } from "../handler";
 
@@ -21,4 +22,5 @@ export const mainHandlers: MainHandlers = {
   instagram_posts: instagramPosts,
   instagram_post_analytics: instagramPostAnalytics,
   instagram_account_insights: instagramAccountInsights,
+  web_media_search: webMediaSearch,
 };

@@ -9,14 +9,14 @@
 // next send re-opens it from the session id confirmed by the CLI.
 
 import { randomUUID } from "node:crypto";
+import { dirname, isAbsolute } from "node:path";
 import { query, resolveSettings } from "@anthropic-ai/claude-agent-sdk";
 
 import { HARNESS_LABELS } from "../protocol";
 import { compareVersions, parseVersion, resolveBinary, resolveClaudeExecutable, runOnce } from "./env";
 import { QuestionBox, collectResult, newItemId, summarizeInput, toolTitle, truncateDetail } from "./harness";
-import { auditAutomaticApproval, requestApproval } from "./approval";
-import { claudeProjectSandbox, explicitPermissionBoundary, shellNeedsReview } from './project-sandbox';
-import { canAutoApproveFile, canAutoApproveMcp } from './local-permissions';
+import { ALLOW, POLICY_MESSAGES, auditAutomaticApproval, decideNetworkAccess, decideRead, decideWrite, deny } from "./automatic-policy";
+import { SHELL_MESSAGES, claudeProjectSandbox, cliRemovalCheck, shellDenial } from './project-sandbox';
 
 import type {
   CanUseTool,
@@ -28,6 +28,7 @@ import type {
   SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
 import type { HarnessInfo, Item, Question, RequestResponse } from "../protocol";
+import type { AuditScope, HostLookup, PolicyDecision } from "./automatic-policy";
 import type { HostEnv } from "./env";
 import type { Emit, Harness, HarnessSession, OpenOptions, ResumeCursor, TurnOutcome } from "./harness";
 
@@ -120,8 +121,61 @@ function childEnv(host: HostEnv, version: string): Record<string, string> {
   };
 }
 
-/** A user question uses the same card as a tool approval. */
+/**
+ * An editing session's child: auto-memory is off, because its files live in
+ * ~/.claude/projects, which the write policy refuses and the sandbox hides.
+ * Cutroom's `editing_style` tool is the supported memory.
+ */
+function sessionEnv(host: HostEnv, version: string): Record<string, string> {
+  return { ...childEnv(host, version), CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" };
+}
+
+/** The model's question to the user: the only card a Claude chat shows. */
 const ASK_USER_QUESTION = "AskUserQuestion";
+
+const READ_TOOLS = new Set(["Read", "Glob", "Grep"]);
+const WRITE_TOOLS = new Set(["Write", "Edit", "MultiEdit", "NotebookEdit"]);
+/** Built-ins with no reach beyond the session itself. */
+const BENIGN_TOOLS = new Set([
+  "TodoWrite", "ToolSearch", "Skill", "ListMcpResourcesTool", "ReadMcpResourceTool", "BashOutput",
+  "KillShell", "KillBash", "TaskOutput", "TaskStop", "ExitPlanMode",
+]);
+/**
+ * Plan mode writes its plan under ~/.claude/plans, which the write policy
+ * refuses. The CLI allows EnterPlanMode without asking, so a PreToolUse
+ * hook refuses it; the callback refuses it too, as a backstop.
+ */
+const ENTER_PLAN_MODE = "EnterPlanMode";
+export const PLAN_MODE_MESSAGE = "Plan mode isn't used in Cutroom chats; work directly and outline your plan in the reply.";
+const INACTIVE = "The editing request is no longer active.";
+
+/**
+ * The folder Glob searches when its pattern is absolute: the fixed part
+ * before the first wildcard, which the CLI uses instead of `path`. A `~/`
+ * pattern is judged the same way, in case a CLI expands it.
+ */
+export function globSearchRoot(pattern: unknown): string | undefined {
+  if (typeof pattern !== "string") return undefined;
+  const home = pattern.startsWith("~/");
+  if (!home && !isAbsolute(pattern)) return undefined;
+  const wildcard = pattern.search(/[*?[{]/);
+  if (wildcard === -1) return dirname(pattern);
+  const fixed = pattern.slice(0, wildcard);
+  const cut = Math.max(fixed.lastIndexOf("/"), fixed.lastIndexOf("\\"));
+  if (cut <= 0) return home ? "~" : "/";
+  return fixed.slice(0, cut);
+}
+
+/** WebFetch runs in the CLI process, outside the sandbox: the same host decision applies. */
+async function decideFetch(url: unknown, lookup?: HostLookup): Promise<PolicyDecision> {
+  let hostname: string;
+  try {
+    hostname = new URL(String(url)).hostname;
+  } catch {
+    return deny(POLICY_MESSAGES.invalidHost);
+  }
+  return decideNetworkAccess(hostname, { lookup });
+}
 
 const SIGN_IN_HINT = "Run `claude auth login` in a terminal";
 
@@ -166,6 +220,7 @@ class ClaudeSession implements HarnessSession {
   private readonly claudePath: string;
   private readonly version: string;
   private readonly automaticShellFallback: boolean;
+  private readonly lookupHost: HostLookup | undefined;
   private sessionId: string;
   private q: Query | null = null;
   private queue: Queue<SDKUserMessage> | null = null;
@@ -178,11 +233,12 @@ class ClaudeSession implements HarnessSession {
   /** Set once the resume cursor points at a session the CLI has written. */
   private started: boolean;
 
-  constructor(options: OpenOptions, claudePath: string, version: string, automaticShellFallback = true) {
+  constructor(options: OpenOptions, claudePath: string, version: string, automaticShellFallback = true, lookupHost?: HostLookup) {
     this.options = options;
     this.claudePath = claudePath;
     this.version = version;
     this.automaticShellFallback = automaticShellFallback;
+    this.lookupHost = lookupHost;
     this.model = options.model;
     const resumed = options.resume && "claude" in options.resume ? options.resume.claude.sessionId : null;
     this.sessionId = resumed ?? randomUUID();
@@ -201,7 +257,8 @@ class ClaudeSession implements HarnessSession {
       pathToClaudeCodeExecutable: this.claudePath,
       // Native file checks and the OS command sandbox scope automatic edits.
       permissionMode: "acceptEdits",
-      ...claudeProjectSandbox(this.options.cwd),
+      // A resumed session keeps its id (no forkSession), so its tool results stay in one folder.
+      ...claudeProjectSandbox(this.options.cwd, { privateDirs: this.privateDirs, cliPath: this.claudePath, sessionId: this.sessionId }),
       disallowedTools: ["Agent", "Task"],
       ...(this.started ? { resume: this.sessionId } : { sessionId: this.sessionId }),
       includePartialMessages: true,
@@ -210,11 +267,16 @@ class ClaudeSession implements HarnessSession {
       strictMcpConfig: true,
       canUseTool: this.canUseTool,
       hooks: {
-        PreToolUse: [{ matcher: 'Bash', hooks: [this.beforeShell] }],
+        PreToolUse: [
+          { matcher: 'Bash', hooks: [this.beforeShell] },
+          // acceptEdits writes inside the project without asking; protected names still need refusing.
+          { matcher: 'Write|Edit|MultiEdit|NotebookEdit', hooks: [this.beforeWrite] },
+          { matcher: ENTER_PLAN_MODE, hooks: [this.beforePlanMode] },
+        ],
         PostToolUse: [{ matcher: 'Bash', hooks: [this.afterShell] }],
       },
       env: {
-        ...childEnv(this.options.env, this.version), CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL: "1",
+        ...sessionEnv(this.options.env, this.version), CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL: "1",
         // HTTP's request and idle defaults otherwise cancel long local analysis.
         ...(mcp ? { MCP_TOOL_TIMEOUT: "14400000", CLAUDE_CODE_MCP_TOOL_IDLE_TIMEOUT: "14400000" } : {}),
       },
@@ -324,59 +386,105 @@ class ClaudeSession implements HarnessSession {
   }
 
   // -------------------------------------------------------------------
-  // Permissions and questions
+  // Automatic tool decisions and questions
 
+  /** Refuses destructive or unsandboxed commands before the CLI evaluates them, with guidance. */
   private readonly beforeShell: HookCallback = async (request) => {
     if (request.hook_event_name !== 'PreToolUse') return {};
-    if (shellNeedsReview(request.tool_input as Record<string, unknown>)) return { hookSpecificOutput: {
-      hookEventName: 'PreToolUse', permissionDecision: 'ask', permissionDecisionReason: 'Review destructive commands or access outside the project sandbox.',
-    } };
-    return {};
+    const refusal = shellDenial(request.tool_input as Record<string, unknown>);
+    if (!refusal) return {};
+    auditAutomaticApproval('claude', 'Bash', 'deny', 'project-sandbox');
+    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: refusal } };
   };
 
+  /** The write decision for every file edit, including project writes the CLI would allow without asking. */
+  private readonly beforeWrite: HookCallback = async (request) => {
+    if (request.hook_event_name !== 'PreToolUse') return {};
+    const input = request.tool_input as Record<string, unknown>;
+    const decision = await decideWrite({ cwd: this.options.cwd, path: input.file_path ?? input.notebook_path });
+    if (decision.allow) return {};
+    auditAutomaticApproval('claude', request.tool_name, 'deny', 'project-file');
+    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: decision.message } };
+  };
+
+  /** Plan mode is refused with guidance: the CLI would otherwise enter it without asking. */
+  private readonly beforePlanMode: HookCallback = async (request) => {
+    if (request.hook_event_name !== 'PreToolUse') return {};
+    auditAutomaticApproval('claude', ENTER_PLAN_MODE, 'deny', 'unavailable-tool');
+    return { hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: PLAN_MODE_MESSAGE } };
+  };
+
+  /** The host's own stores, hidden from file tools and the shell like the credential stores. */
+  private get privateDirs(): string[] {
+    return this.options.dataDir ? [this.options.dataDir] : [];
+  }
+
+  /** Audits commands the sandbox allowed without consulting canUseTool. */
   private readonly afterShell: HookCallback = async (request) => {
     if (request.hook_event_name !== 'PostToolUse') return {};
     const input = request.tool_input as Record<string, unknown>;
-    if (!this.reviewedTools.delete(request.tool_use_id) && this.automaticShellFallback && !shellNeedsReview(input)) auditAutomaticApproval('claude', 'Bash', 'project-sandbox');
+    if (!this.reviewedTools.delete(request.tool_use_id) && this.automaticShellFallback && !shellDenial(input)) auditAutomaticApproval('claude', 'Bash', 'allow', 'project-sandbox');
     return {};
   };
 
-  /** Bash may reach this callback for complex syntax, but still runs inside the enforced OS sandbox. */
-  private readonly canUseTool: CanUseTool = async (toolName, input, { signal, title, description, decisionReason, blockedPath, toolUseID, matchedAskRule }) => {
+  /**
+   * Never renders a card: every call the CLI hands over is allowed or
+   * refused with guidance. The CLI's reasons, blocked paths and matched
+   * rules are not grounds to ask; this policy decides.
+   */
+  private readonly canUseTool: CanUseTool = async (toolName, input, { signal, toolUseID, decisionReason }) => {
     if (toolName === ASK_USER_QUESTION) return this.askUser(input, signal);
     const turn = this.turn;
-    if (!turn || signal.aborted) return { behavior: 'deny', message: 'The editing request is no longer active.' };
-    const fileTool = ['Read', 'Write', 'Edit', 'NotebookEdit'].includes(toolName);
-    // Native working directories omit our temporary capture/backup roots.
-    // This ordinary scope reason is resolved by canonical path validation;
-    // explicit blocked paths, rules and policy reasons still require review.
-    const ordinaryFileScope = fileTool && !blockedPath &&
-      /^Path is outside allowed working directories\.?$/i.test(decisionReason?.trim() ?? '');
-    if (!matchedAskRule && (ordinaryFileScope || !explicitPermissionBoundary(decisionReason, blockedPath))) {
-      let scope: 'project-file' | 'local-editor-tool' | 'project-sandbox' | undefined;
-      if (toolName === 'Bash' && this.automaticShellFallback && !shellNeedsReview(input)) scope = 'project-sandbox';
-      else if (fileTool && await canAutoApproveFile({
-        cwd: this.options.cwd, path: input.file_path ?? input.notebook_path, kind: toolName === 'Read' ? 'read' : 'write',
-      })) scope = 'project-file';
-      else if (this.options.mcp && toolName.startsWith(`mcp__${this.options.mcp.name}__`) && await canAutoApproveMcp({
-        cwd: this.options.cwd, serverName: this.options.mcp.name, expectedServerName: this.options.mcp.name,
-        toolName: toolName.slice(`mcp__${this.options.mcp.name}__`.length), arguments: input,
-      })) scope = 'local-editor-tool';
-      if (scope && !signal.aborted && this.turn === turn) {
-        this.reviewedTools.add(toolUseID);
-        auditAutomaticApproval('claude', toolName, scope);
-        return { behavior: 'allow', updatedInput: input };
-      }
+    if (!turn || signal.aborted) {
+      auditAutomaticApproval('claude', toolName, 'deny', 'inactive');
+      return { behavior: 'deny', message: INACTIVE };
     }
-    if (signal.aborted || this.turn !== turn) return { behavior: 'deny', message: 'The editing request is no longer active.' };
-    this.reviewedTools.add(toolUseID);
-    const decision = await requestApproval(this.questions, title ?? `Allow ${toolTitle(toolName)}?`, {
-      input, description, reason: decisionReason, blockedPath,
-    }, signal);
-    return decision === "accept"
-      ? { behavior: "allow", updatedInput: input }
-      : { behavior: "deny", message: decision === "cancel" ? "The user stopped the action." : "The user did not approve this action." };
+    const { decision, scope } = await this.decide(toolName, input, decisionReason);
+    if (signal.aborted || this.turn !== turn) {
+      auditAutomaticApproval('claude', toolName, 'deny', 'inactive');
+      return { behavior: 'deny', message: INACTIVE };
+    }
+    auditAutomaticApproval('claude', toolName, decision.allow ? 'allow' : 'deny', scope);
+    if (!decision.allow) return { behavior: 'deny', message: decision.message };
+    if (toolName === 'Bash') this.reviewedTools.add(toolUseID);
+    return { behavior: 'allow', updatedInput: input };
   };
+
+  private async decide(toolName: string, input: Record<string, unknown>, reason?: string): Promise<{ decision: PolicyDecision; scope: AuditScope }> {
+    const cwd = this.options.cwd;
+    if (toolName === 'SandboxNetworkAccess') return { decision: await decideNetworkAccess(input.host, { lookup: this.lookupHost }), scope: 'sandbox-network' };
+    if (toolName === 'Bash') {
+      // Bash reaches this callback for complex syntax; it still runs inside the enforced OS sandbox.
+      // Other ask reasons are no grounds to refuse, but the CLI's dangerous-removal check is.
+      const refusal = shellDenial(input) ?? (cliRemovalCheck(reason) ? SHELL_MESSAGES.destructive : null) ??
+        (this.automaticShellFallback ? null : SHELL_MESSAGES.managed);
+      return { decision: refusal ? deny(refusal) : ALLOW, scope: 'project-sandbox' };
+    }
+    if (READ_TOOLS.has(toolName)) {
+      const path = [input.file_path, input.path, input.notebook_path].find((value) => typeof value === 'string' && value !== '');
+      // An absolute Glob pattern chooses the searched folder itself.
+      const searched = toolName === 'Glob' ? globSearchRoot(input.pattern) : undefined;
+      const decisions = await Promise.all([path, searched].filter((value) => value !== undefined)
+        .map((target) => decideRead({ cwd, path: target, recursive: toolName !== 'Read', privateDirs: this.privateDirs })));
+      return { decision: decisions.find((decision) => !decision.allow) ?? ALLOW, scope: 'file-read' };
+    }
+    if (WRITE_TOOLS.has(toolName)) return { decision: await decideWrite({ cwd, path: input.file_path ?? input.notebook_path }), scope: 'project-file' };
+    if (toolName === 'WebFetch') return { decision: await decideFetch(input.url, this.lookupHost), scope: 'web' };
+    if (toolName === 'WebSearch') return { decision: ALLOW, scope: 'web' };
+    if (toolName.startsWith('mcp__')) {
+      // Cutroom's tools enforce their own write safety and report refusals as tool errors.
+      const prefix = this.options.mcp ? `mcp__${this.options.mcp.name}__` : null;
+      return prefix && toolName.startsWith(prefix) && toolName.length > prefix.length
+        ? { decision: ALLOW, scope: 'local-editor-tool' }
+        : { decision: deny("Only Cutroom's tools are connected in this chat."), scope: 'other-mcp' };
+    }
+    if (BENIGN_TOOLS.has(toolName)) return { decision: ALLOW, scope: 'built-in' };
+    if (toolName === ENTER_PLAN_MODE) return { decision: deny(PLAN_MODE_MESSAGE), scope: 'unavailable-tool' };
+    return {
+      decision: deny(`${toolName} isn't available in Cutroom editing sessions; use the cutroom tools or a sandboxed shell command.`),
+      scope: 'unavailable-tool',
+    };
+  }
 
   private async askUser(input: Record<string, unknown>, signal: AbortSignal): Promise<PermissionResult> {
     const raw = Array.isArray(input.questions) ? (input.questions as Record<string, unknown>[]) : [];
@@ -503,12 +611,10 @@ class ClaudeSession implements HarnessSession {
       }
 
       case "result": {
-        for (const denial of message.permission_denials ?? []) {
-          turn.emit({
-            type: "item.completed",
-            item: { id: newItemId("n"), kind: "notice", level: "info", text: `Blocked: ${toolTitle(denial.tool_name)}${summarizeInput(denial.tool_input) ? ` · ${summarizeInput(denial.tool_input)}` : ""}` },
-          });
-        }
+        // Denials are automatic policy and the model explains them when it
+        // matters; keep only the tool names for the host log.
+        const denials = (message.permission_denials ?? []).map((denial) => denial.tool_name);
+        if (denials.length) console.info("[uve-permissions]", JSON.stringify({ provider: "claude", denials }));
         if (message.subtype === "success" && !message.is_error) {
           this.finish({ status: "completed" });
         } else {
@@ -531,9 +637,12 @@ class ClaudeSession implements HarnessSession {
 export class ClaudeHarness implements Harness {
   readonly id = "claude" as const;
   private readonly version: string;
+  private readonly lookupHost: HostLookup | undefined;
 
-  constructor(version = "0.0.0") {
+  /** `lookupHost` replaces the system resolver in network decisions (tests). */
+  constructor(version = "0.0.0", options: { lookupHost?: HostLookup } = {}) {
     this.version = version;
+    this.lookupHost = options.lookupHost;
   }
 
   async probe(env: HostEnv, signal: AbortSignal): Promise<HarnessInfo> {
@@ -598,7 +707,7 @@ export class ClaudeHarness implements Harness {
       automaticShellFallback = !settings.effective.policyHelper && !settings.sources.some((source) =>
         source.source === 'managed' && (source.settings.sandbox !== undefined || source.settings.policyHelper !== undefined));
     } catch { /* Unknown effective settings must not enable host auto-approval. */ }
-    return new ClaudeSession(options, resolveClaudeExecutable(binary), this.version, automaticShellFallback);
+    return new ClaudeSession(options, resolveClaudeExecutable(binary), this.version, automaticShellFallback, this.lookupHost);
   }
 }
 

@@ -25,6 +25,10 @@ const TIMEOUTS: Record<string, number> = {
   listen: 14_400_000,
   generate: 600_000,
   job: 600_000,
+  // Two providers and four thumbnails, each with its own shorter limit.
+  web_media_search: 120_000,
+  // The app stops a download at 20 minutes; this leaves it time to say so.
+  web_media_download: 1_260_000,
 };
 
 /**

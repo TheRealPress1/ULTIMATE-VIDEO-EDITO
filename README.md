@@ -26,7 +26,7 @@ The **MCP & agents** settings also let you explicitly connect external coding to
 - Local MCP endpoint: `http://127.0.0.1:43127/mcp`
 - MCP server name: `cutroom`
 - macOS app data: `~/Library/Application Support/Cutroom`
-- Routine project edits and local editor tools run automatically. Claude uses its native command sandbox and scoped file permissions; Codex uses its workspace sandbox. Commands can write within the project and temporary directories. Requests for broader access and external actions still require review. These session settings do not change your global agent configuration.
+- In-app chats never show permission prompts. Project edits, Cutroom tools, web search/fetch, and sandboxed commands run automatically; Claude chats' commands can also download from public hosts. Commands can write within the project and temporary directories, and neither agent can replace files outside the project. Claude chats use Claude's native command sandbox, which also refuses deleting files or running system commands from the shell, reaching local network addresses, and reading credential stores, with guidance the agent can act on. Codex chats use Codex's workspace sandbox without network access, because that sandbox can't hide credential stores; Cutroom declines its requests for wider access without a prompt, and Codex agents get web media through Cutroom's `web_media_search` and `web_media_download` tools instead. Agents still ask you questions when a brief is ambiguous. These session settings do not change your global agent configuration.
 
 An optional CLI can be linked from settings. Without linking it globally:
 
@@ -34,7 +34,7 @@ An optional CLI can be linked from settings. Without linking it globally:
 npm run build --workspace=@diffusionstudio/cli
 node apps/cli/dist/index.js open /absolute/path/to/project
 node apps/cli/dist/index.js context
-node apps/cli/dist/index.js screenshot -o .context/screenshots
+node apps/cli/dist/index.js screenshot -o /tmp/cutroom-screenshots
 ```
 
 ## Edit a video
@@ -54,26 +54,27 @@ Prompts and agent undo/redo wait for pending project saves. Interrupted sessions
 
 - Local projects, project search, recent conversations, and persistent chat history.
 - Right-click or two-finger-click a sidebar chat for Open, Rename, Move to folder, and Delete. Named folders organize chats without changing their editing projects. Delete offers Undo; Recently deleted restores conversations across restarts. The more button and Shift+F10 open the same menu. Removing a folder keeps its chats.
-- Claude Code and Codex model selection, streamed responses, cancellation, and approval requests.
+- Claude Code and Codex model selection, streamed responses, cancellation, agent questions, and automatic allow/deny decisions without permission prompts.
 - Editable JSX compositions, an initial scene from imported footage, canvas manipulation, multiple scenes, timeline trimming/splitting, playback, inspector controls, and export.
 - Local speech transcription and automatic captions, editable words and timings, and seven caption presets with font and color controls. External caption JSON edits refresh the existing layer without reopening the project or resetting undo history.
 - Latest agent edit review with conflict-protected undo/redo, and export settings, progress, cancellation, and saved-file discovery.
 - MCP tools for project context, source editing, media inspection, frame capture, validation, and export.
 - Shared UVE editing skills for both agents, saved editing preferences, edited-scene caption tools, and local audio peak inspection/normalization.
+- Openly licensed web image, video, and audio search (Openverse and Wikimedia Commons, no API key) and downloads into the project's `assets/web/` folder, with license provenance and a project `CREDITS.md`.
 - Original Cutroom branding, isolated application data, and no upstream telemetry or update service.
 - Instagram analytics, comparisons between selected posts, browser authorization when its service is configured, and an explicitly approved publishing queue. Developer-token connections remain available.
 
-The remaining roadmap now includes local visual search, transcript-based timeline editing, audio finishing, rendered review, Instagram connection/publishing infrastructure, and a signed release/update path. External activation is separate: Instagram browser sign-in needs a deployed authorization service and Meta setup; publishing needs permission and a public media URL; private releases use signed/notarized DMGs through GitHub login; automatic private updates need an authenticated service. Other social platforms, an embedded research browser, and hosted generation/billing are not configured. See [the roadmap](docs/ROADMAP.md) for exact capabilities and limits.
+The remaining roadmap now includes local visual search, transcript-based timeline editing, audio finishing, rendered review, Instagram connection/publishing infrastructure, and a signed release/update path. External activation is separate: Instagram browser sign-in needs a deployed authorization service and Meta setup; publishing needs permission and a public media URL; private releases use signed/notarized DMGs through GitHub login; automatic private updates need an authenticated service. Other social platforms, an embedded research browser, and hosted generation/billing are not configured; agents use `web_media_search` and `web_media_download` for web images, video, and audio instead of hosted generation. See [the roadmap](docs/ROADMAP.md) for exact capabilities and limits.
 
 ## Editing skills and personal style
 
-**Settings → Editing skills** shows the versioned library shared by Claude Code and Codex: story selection, dialogue pacing, caption finishing, social reframing, audio finishing, personal style, motion graphics, performance insights, and final review. Both agents receive the same app instructions and can load relevant guides with the `skills` tool. No global agent configuration is changed. Local transcript, waveform, and frame analysis are the default; the guides do not assume hosted audio analysis is configured.
+**Settings → Editing skills** shows the versioned library shared by Claude Code and Codex: the base editor and watch guides, story selection, dialogue pacing, caption finishing, social reframing, audio finishing, personal style, motion graphics, web images and media, performance insights, and final review. Both agents receive the same app instructions and can load relevant guides with the `skills` tool. No global agent configuration is changed. Local transcript, waveform, and frame analysis are the default; the guides do not assume hosted audio analysis is configured.
 
 Save ongoing preferences in **Your editing style**, or explicitly ask the agent to remember a preference. Notes stay in the app's local `editing-style.json`, apply across projects, and yield to each project's brief. Concurrent changes are protected by revisions; failed reads do not erase existing preferences. The `editing_style` tool exposes the same record to both providers.
 
 The `captions` tool transcribes the edited scene mix with local Whisper. **Audio** measures integrated LUFS, true peak and loudness range; optional finishing creates a separate scene with dialogue leveling, conservative noise reduction and editable music ducking. Select music tracks explicitly and review the resulting full-mix measurement: the dialogue target alone does not guarantee the final mix target. Original media remains unchanged. See the [caption](docs/reference/tools/captions.md) and [audio finishing](docs/reference/tools/audio-finish.md) references.
 
-Optional official OpenAI transcription and speech skills are bundled with their licenses and [pinned provenance](docs/skills/imports/provenance.json). Their UVE launcher defaults to a dry-run; live calls require Python 3.9+, the OpenAI Python SDK, an API key, and authorization for that separate service. They are not supplied by a Claude Code or Codex subscription. Remotion guidance is linked as reference material; UVE keeps its own editable JSX renderer. Skill instructions improve the workflow but do not themselves add automatic subject tracking or guarantee editorial quality.
+Optional official OpenAI transcription and speech skills are bundled with their licenses and [pinned provenance](docs/skills/imports/provenance.json). Their UVE launcher defaults to a dry-run; live calls require Python 3.9+, the OpenAI Python SDK, an API key, and your explicit request to use that separate paid service. They are not supplied by a Claude Code or Codex subscription. Remotion guidance is linked as reference material; UVE keeps its own editable JSX renderer. Skill instructions improve the workflow but do not themselves add automatic subject tracking or guarantee editorial quality.
 
 ## Automatic social formats
 

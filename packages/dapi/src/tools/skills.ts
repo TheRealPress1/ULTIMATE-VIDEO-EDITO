@@ -9,8 +9,11 @@ const Skill = z.object({
 });
 export const skills = defineTool({
   name: "skills", title: "Editing skills",
-  description: "List UVE's shared editing skills or read one by id. Use before substantial editing to select only relevant workflows. Returns bundled instructions and their base directory for relative references/scripts. Available means the guide is installed; optional cloud skills still require their listed dependencies and explicit use of that service. Both Claude Code and Codex use this same library.",
-  input: z.object({ action: z.enum(["list", "read"]).default("list"), id: z.string().min(1).optional() }),
+  description: "List UVE's shared editing skills, including the base `editor` and `watch` guides, or read one by id. Use before substantial editing to select only relevant workflows. Returns bundled instructions and their base directory for relative references/scripts. Available means the guide is installed; optional cloud skills still require their listed dependencies and explicit use of that service. Both Claude Code and Codex use this same library.",
+  input: z.object({
+    action: z.enum(["list", "read"]).default("list"),
+    id: z.string().min(1).optional().describe('skill id from list, e.g. "editor" or "uve-web-media"; the listed path such as "skills/editor.md" or "skills/uve-web-media/SKILL.md" also works'),
+  }),
   output: z.object({ version: z.string(), skills: z.array(Skill), selected: Skill.extend({ content: z.string(), baseDir: z.string() }).optional() }),
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   environment: "main",

@@ -74,7 +74,7 @@ export type ChatEvent =
   | { type: "request.resolved"; requestId: string; outcome: "answered" | "skipped" | "cancel" }
   | { type: "chat.updated"; chat: ChatSummary };
 
-/** Question cards also carry explicit, single-use tool approval choices. */
+/** A question the agent asks the user. Tool permissions are decided automatically and never become cards. */
 export type PendingRequest = { id: string; type: "question"; questions: Question[] };
 
 export type Question = {

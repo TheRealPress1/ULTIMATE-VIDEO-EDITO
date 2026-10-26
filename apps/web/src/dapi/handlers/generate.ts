@@ -23,14 +23,27 @@ import type { GenerationResult } from "@diffusionstudio/dapi";
 import type { ToolContext, ToolHandler } from "../handler";
 import type { Destination } from "../lib/outputs";
 
+/** What the web and native layers offer instead of hosted generation, for an agent to act on. */
+const LOCAL_ALTERNATIVES =
+  "For photos, video or audio from the web use web_media_search then web_media_download; build titles and graphics as native JSX layers. Local sam-2.1 masking still works.";
+
+/**
+ * Hosted models without the hosted service: refused before anything else
+ * runs (a project lookup, an upload, a sign-in check), saying what to use instead.
+ */
+function refuseHosted(model: string): never {
+  if (model === "universal-3.5-pro") {
+    throw new DapiError("unsupported", "Cutroom transcribes audio locally. Use the transcribe tool with an audio or video path, or Generate captions in the editor.");
+  }
+  throw new DapiError("unsupported", `Hosted generation (${model}) isn't configured in Cutroom, so it can't run. ${LOCAL_ALTERNATIVES}`);
+}
+
 /**
  * Starts a job: on the API, or, for a model that runs on this machine, in the
  * app (see ../local). Both answer with the API's `Job`, and `job` polls both.
  */
 export const generate: ToolHandler<"generate"> = async (args, ctx) => {
-  if (LOCAL_MODE && args.model === "universal-3.5-pro") {
-    throw new DapiError("invalid-input", "Cutroom transcribes audio locally. Use the transcribe tool with an audio or video path, or Generate captions in the editor.");
-  }
+  if (LOCAL_MODE && !isLocalModel(args.model)) refuseHosted(args.model);
   if (isLocalModel(args.model)) {
     return startLocalJob(args, destination(args.output, ctx.session()), ctx);
   }
@@ -66,6 +79,9 @@ export const generate: ToolHandler<"generate"> = async (args, ctx) => {
 export const job: ToolHandler<"job"> = async ({ id, cancel }, ctx) => {
   if (isLocalJobId(id)) {
     return localJob(id, cancel ?? false);
+  }
+  if (LOCAL_MODE) {
+    throw new DapiError("unsupported", `Hosted generation isn't configured in Cutroom, so job ${id} can't be checked; only local sam-2.1 jobs (local-…) run here. ${LOCAL_ALTERNATIVES}`);
   }
 
   await requireSignIn();
