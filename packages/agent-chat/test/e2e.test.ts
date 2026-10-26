@@ -16,7 +16,7 @@ import { emptyTranscript, reduce } from "../src/reduce";
 import { FakeHarness } from "../src/host/fake";
 import { createAgentHost } from "../src/host/index";
 
-import type { ChatEvent, ChatSnapshot, Item } from "../src/protocol";
+import type { ChatEvent, ChatSnapshot, ChatSummary, ChatFoldersState, Item } from "../src/protocol";
 import type { Transcript } from "../src/reduce";
 import type { RunningAgentHost } from "../src/host/index";
 
@@ -345,6 +345,31 @@ describe("agent chat end to end", () => {
     const list = await client.request("chats.list", { projectId: PROJECT.projectId });
     expect(list.map((entry) => entry.id)).not.toContain(chatId);
     await expect(client.request("chats.open", { chatId })).rejects.toMatchObject({ code: "not-found" });
+    expect(existsSync(join(dir, "chats", chatId, "events.jsonl"))).toBe(true);
+    await client.request("chats.restore", { chatId });
+    expect((await client.request("chats.open", { chatId })).items).toContainEqual(expect.objectContaining({ kind: "user", text: "bye" }));
+  });
+
+  it("pushes durable chat and folder changes to clients that never opened the chat", async () => {
+    const client = await connect();
+    const observer = await connect();
+    const summaries: ChatSummary[] = [];
+    const folders: ChatFoldersState[] = [];
+    observer.onChatChanged((chat) => summaries.push(chat));
+    observer.onChatFoldersChanged((state) => folders.push(state));
+    const { chatId } = await client.request("turn.send", { ...PROJECT, text: "Organize me", model: MODEL });
+    await follow(client, chatId).until(idle);
+    const renamed = await client.request("chats.rename", { chatId, title: "My named edit" });
+    await vi.waitFor(() => expect(summaries).toContainEqual(renamed));
+    const folder = await client.request("chatFolders.create", { name: "Episode 2", chatId });
+    await vi.waitFor(() => expect(folders).toContainEqual(folder));
+    expect(folder.assignments[chatId]).toBe(folder.folders.at(-1)!.id);
+    const deleted = await client.request("chats.delete", { chatId });
+    await vi.waitFor(() => expect(summaries).toContainEqual(deleted));
+    const restored = await client.request("chats.restore", { chatId });
+    await vi.waitFor(() => expect(summaries).toContainEqual(restored));
+    expect(restored.title).toBe("My named edit");
+    expect(restored.projectId).toBe(PROJECT.projectId);
   });
 
   it("deletes every chat of a project and leaves the other projects' alone", async () => {

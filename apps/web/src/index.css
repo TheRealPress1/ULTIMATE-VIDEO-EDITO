@@ -386,6 +386,21 @@
 .cutroom-chat-row { display: flex; width: 100%; gap: 8px; align-items: center; height: 36px; padding: 0 10px; margin-bottom: 2px; border-radius: 7px; text-align: left; font-size: 12px; color: var(--foreground); }
 .cutroom-chat-row > span:first-child { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .cutroom-chat-empty { margin: 6px 10px; max-width: 175px; color: #777; font-size: 12px; line-height: 1.7; }
+.cutroom-chat-row-shell { position: relative; min-width: 0; }
+.cutroom-chat-row-shell > .cutroom-chat-row { padding-right: 29px; }
+.cutroom-chat-row:focus-visible, .cutroom-chat-more:focus-visible, .cutroom-chat-trash:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.cutroom-chat-row:disabled { cursor: default; color: var(--muted-foreground); }
+.cutroom-chat-more { position: absolute; right: 3px; top: 6px; display: grid; width: 24px; height: 24px; place-items: center; border-radius: 5px; color: var(--muted-foreground); opacity: 0; }
+.cutroom-chat-row-shell:hover > .cutroom-chat-more, .cutroom-chat-row-shell:focus-within > .cutroom-chat-more, .cutroom-chat-row-shell[data-expanded] > .cutroom-chat-more { opacity: 1; }
+.cutroom-chat-more:hover { color: var(--foreground); background: var(--accent); }
+.cutroom-chat-folder { margin-bottom: 6px; }
+.cutroom-chat-folder-toggle { gap: 5px; color: var(--muted-foreground); }
+.cutroom-chat-count { font-size: 10px; color: var(--muted-foreground); }
+.cutroom-chat-folder-contents { margin-left: 8px; padding-left: 3px; border-left: 1px solid var(--border-strong); }
+.cutroom-folder-empty { padding: 6px 9px; color: var(--muted-foreground); font-size: 11px; line-height: 1.6; }
+.cutroom-chat-section-label { padding: 10px 10px 5px; color: var(--muted-foreground); font-size: 10px; }
+.cutroom-chat-trash { display: flex; align-items: center; flex-shrink: 0; gap: 8px; padding: 8px 10px; margin-top: 5px; border-radius: 6px; color: var(--muted-foreground); font-size: 11px; }
+.cutroom-chat-trash:hover { background: var(--accent); color: var(--foreground); }
 .cutroom-unread-dot, .cutroom-connected-dot { display: inline-block; flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; background: #438df7; }
 .cutroom-connected-dot { background: #48af86; }
 .cutroom-sidebar-footer { padding-top: 12px; flex-shrink: 0; }

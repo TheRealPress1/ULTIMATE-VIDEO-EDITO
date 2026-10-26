@@ -22,12 +22,14 @@ export type ChatMeta = ChatSummary & { cwd: string; resume: ResumeCursor | null 
 type PendingEvent = { bytes: Buffer; written?: { offset: number; ino: number; dev: number } };
 
 export class ChatStore {
+  readonly dataDir: string;
   private readonly root: string;
   private readonly writes = new Map<string, Promise<void>>();
   /** Failed appends stay in order until a later append or metadata save retries them. */
   private readonly pendingEvents = new Map<string, PendingEvent[]>();
 
   constructor(dataDir: string) {
+    this.dataDir = dataDir;
     this.root = join(dataDir, "chats");
   }
 

@@ -4,7 +4,7 @@
 
 // This project's chats, newest first: title, relative time, a spinner while
 // one runs, a dot and "Needs you" while one waits, a check on the active one.
-// Hovering a row shows a remove button that deletes without confirmation.
+// Hovering a row shows a remove button. Deleted chats can be restored from the sidebar.
 
 import { For, Show } from "solid-js";
 import { toast } from "somoto";
@@ -22,7 +22,7 @@ import { Icon } from "@/components/ui/icon";
 
 import type { ChatSummary } from "@diffusionstudio/agent-chat";
 
-import { chatState, deleteChat, refreshChats } from "./store";
+import { chatState, deleteChat, refreshChats, restoreChat } from "./store";
 
 type HistoryMenuProps = {
   projectId: string;
@@ -49,7 +49,10 @@ export function HistoryMenu(props: HistoryMenuProps) {
   const remove = (event: MouseEvent, chat: ChatSummary) => {
     event.stopPropagation();
     event.preventDefault();
-    deleteChat(props.projectId, chat.id).catch((error: Error) => toast.error("Could not delete the chat", { description: error.message }));
+    deleteChat(props.projectId, chat.id).then(() => toast.success("Chat moved to Recently deleted", {
+      duration: 8000,
+      action: { label: "Undo", onClick: () => void restoreChat(chat.id).catch((error: Error) => toast.error("Could not restore chat", { description: error.message })) },
+    })).catch((error: Error) => toast.error("Could not delete the chat", { description: error.message }));
   };
 
   return (
@@ -95,6 +98,7 @@ export function HistoryMenu(props: HistoryMenuProps) {
                     <button
                       type="button"
                       aria-label={`Delete chat ${chat.title}`}
+                      disabled={chat.status !== "idle"}
                       class="relative hidden size-6 shrink-0 -mr-1 text-muted-foreground transition-colors hover:text-foreground focus-ring group-hover/row:inline-block"
                       onPointerDown={(event) => event.stopPropagation()}
                       onPointerUp={(event) => event.stopPropagation()}

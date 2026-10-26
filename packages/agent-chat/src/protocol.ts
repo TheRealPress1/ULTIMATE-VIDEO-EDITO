@@ -38,7 +38,13 @@ export type ChatSummary = {
   status: ChatStatus;
   createdAt: number;
   updatedAt: number;
+  /** Hidden from normal history until restored; transcript and project stay intact. */
+  deletedAt?: number;
 };
+
+/** Sidebar organization only: a chat's editing project never changes. */
+export type ChatFolder = { id: string; name: string; createdAt: number };
+export type ChatFoldersState = { version: 1; revision: number; folders: ChatFolder[]; assignments: Record<string, string> };
 
 export type ToolStatus = "running" | "done" | "failed";
 
@@ -108,10 +114,17 @@ export type MethodMap = {
   "edits.review": { params: { projectId: string }; result: EditReview | null };
   "edits.restore": { params: { projectId: string; checkpointId: string; cwd: string; direction: "undo" | "redo" }; result: EditReview | null };
   "harnesses.list": { params: { refresh?: boolean }; result: HarnessInfo[] };
-  "chats.list": { params: { projectId: string }; result: ChatSummary[] };
+  "chats.list": { params: { projectId: string; deleted?: boolean }; result: ChatSummary[] };
   "chats.open": { params: { chatId: string }; result: ChatSnapshot };
   "chats.close": { params: { chatId: string }; result: void };
-  "chats.delete": { params: { chatId: string }; result: void };
+  "chats.rename": { params: { chatId: string; title: string }; result: ChatSummary };
+  "chats.delete": { params: { chatId: string }; result: ChatSummary };
+  "chats.restore": { params: { chatId: string }; result: ChatSummary };
+  "chatFolders.get": { params: Record<string, never>; result: ChatFoldersState };
+  "chatFolders.create": { params: { name: string; chatId?: string }; result: ChatFoldersState };
+  "chatFolders.rename": { params: { folderId: string; name: string }; result: ChatFoldersState };
+  "chatFolders.delete": { params: { folderId: string }; result: ChatFoldersState };
+  "chatFolders.move": { params: { chatId: string; folderId: string | null }; result: ChatFoldersState };
   "turn.send": {
     params: {
       chatId?: string;
@@ -155,6 +168,9 @@ export type HostMsg =
   | { t: "res"; id: string; ok: true; data: unknown }
   | { t: "res"; id: string; ok: false; error: HostError }
   | { t: "event"; chatId: string; seq: number; event: ChatEvent }
+  /** Metadata changes reach history lists even if that chat was never opened. */
+  | { t: "chat.changed"; chat: ChatSummary }
+  | { t: "chatFolders.changed"; state: ChatFoldersState }
   /** Pushed whenever the probes change. */
   | { t: "harnesses"; harnesses: HarnessInfo[] };
 
