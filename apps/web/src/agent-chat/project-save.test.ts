@@ -24,6 +24,8 @@ vi.mock('./connection', () => ({
     request: mocks.request,
     onState: () => () => {},
     onHarnesses: () => () => {},
+    onChatChanged: () => () => {},
+    onChatFoldersChanged: () => () => {},
     open: () => () => {},
     connect() {},
   },

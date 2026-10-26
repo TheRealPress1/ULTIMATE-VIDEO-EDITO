@@ -9,7 +9,7 @@
 // is the draft per chat, which tab is up, and which chat each project shows.
 
 import { batch, createRoot } from "solid-js";
-import { createStore, produce, reconcile } from "solid-js/store";
+import { createStore, reconcile } from "solid-js/store";
 import { toast } from "somoto";
 
 import {
@@ -19,6 +19,7 @@ import {
   type ChatEvent,
   type ChatSnapshot,
   type ChatSummary,
+  type ChatFoldersState,
   type HarnessInfo,
   type Item,
   type ModelRef,
@@ -51,6 +52,11 @@ type State = {
   chats: Record<string, Transcript>;
   /** History by project id, newest first. */
   lists: Record<string, ChatSummary[]>;
+  /** Recoverable deleted conversations, separate from the normal history. */
+  deletedLists: Record<string, ChatSummary[]>;
+  folders: ChatFoldersState;
+  foldersLoaded: boolean;
+  foldersError: string | null;
   drafts: Record<string, Draft>;
   /** The user item shown while `turn.send` is in flight, by draft key. */
   sending: Record<string, Item | null>;
@@ -65,6 +71,10 @@ const [state, setState] = createStore<State>({
   harnesses: [],
   chats: {},
   lists: {},
+  deletedLists: {},
+  folders: { version: 1, revision: 0, folders: [], assignments: {} },
+  foldersLoaded: false,
+  foldersError: null,
   drafts: {},
   sending: {},
 });
@@ -95,12 +105,22 @@ const DRAFT = "";
 export function activeChatId(projectId: string): string | null {
   const remembered = root.active()[projectId];
   if (remembered === DRAFT) return null;
-  if (remembered && (state.chats[remembered] || state.lists[projectId]?.some((chat) => chat.id === remembered))) return remembered;
-  return state.lists[projectId]?.[0]?.id ?? null;
+  if (remembered) {
+    const list = state.lists[projectId];
+    const chat = list?.find((entry) => entry.id === remembered) ?? (list === undefined ? state.chats[remembered]?.chat : undefined);
+    if (chat?.projectId === projectId && chat.deletedAt === undefined) return remembered;
+  }
+  return state.lists[projectId]?.find((chat) => chat.deletedAt === undefined)?.id ?? null;
 }
 
 export function setActiveChat(projectId: string, chatId: string | null): void {
   root.setActive({ ...root.active(), [projectId]: chatId ?? DRAFT });
+}
+
+/** A default selection becomes explicit before history can change its order. */
+function preserveActiveChat(projectId: string): void {
+  const current = activeChatId(projectId);
+  if (current && root.active()[projectId] !== current) setActiveChat(projectId, current);
 }
 
 // --- connection ---------------------------------------------------------
@@ -120,6 +140,8 @@ export function ensureConnected(): void {
     // model submenu (or its currently focused model item).
     setState("harnesses", reconcile(harnesses, { key: "id" }));
   });
+  client.onChatChanged(upsertSummary);
+  client.onChatFoldersChanged(applyChatFolders);
   setState("connection", hasHost() ? "connecting" : "unavailable");
   if (hasHost()) client.connect();
 }
@@ -189,6 +211,11 @@ export function modelLabel(ref: ModelRef | null): string {
 
 const queue = new Map<string, ChatEvent[]>();
 let flushScheduled = false;
+/** Latest host metadata, including tombstones, outlives transcript subscriptions. */
+const summaries = new Map<string, ChatSummary>();
+const summaryChanges = new Map<string, number>();
+const listRequests = new Map<string, number>();
+let summaryChange = 0;
 /** New chats whose optimistic item waits for the first snapshot, by chat id → draft key. */
 const awaitingSnapshot = new Map<string, string>();
 
@@ -199,12 +226,13 @@ function flush(): void {
   queue.clear();
   batch(() => {
     for (const [chatId, events] of pending) {
+      if (summaries.get(chatId)?.deletedAt !== undefined) continue;
       let transcript = state.chats[chatId] ?? emptyTranscript();
       for (const event of events) {
         transcript = reduce(transcript, event);
-        if (event.type === "chat.updated") upsertSummary(event.chat);
         if (event.type === "turn.started") setState("sending", chatId, null);
       }
+      transcript = { ...transcript, chat: summaries.get(chatId) ?? transcript.chat };
       setState("chats", chatId, transcript);
     }
   });
@@ -218,19 +246,42 @@ function scheduleFlush(): void {
   setTimeout(flush, 120);
 }
 
-function upsertSummary(chat: ChatSummary): void {
-  setState(
-    "lists",
-    chat.projectId,
-    produce((list) => {
-      if (!list) return;
-      const index = list.findIndex((entry) => entry.id === chat.id);
-      if (index >= 0) list[index] = chat;
-      else list.unshift(chat);
-      list.sort((a, b) => b.updatedAt - a.updatedAt);
-    }),
-  );
-  if (!state.lists[chat.projectId]) setState("lists", chat.projectId, [chat]);
+function newerSummary(chat: ChatSummary): ChatSummary {
+  const previous = summaries.get(chat.id);
+  return previous && previous.updatedAt >= chat.updatedAt ? previous : chat;
+}
+
+function upsertSummary(incoming: ChatSummary): void {
+  const previous = summaries.get(incoming.id);
+  if (previous && previous.updatedAt > incoming.updatedAt) return;
+  const chat = incoming;
+  // A rename, restore, or another chat's activity must not switch the transcript
+  // just because the editor initially selected the newest conversation.
+  preserveActiveChat(chat.projectId);
+  summaries.set(chat.id, chat);
+  summaryChanges.set(chat.id, ++summaryChange);
+  const deleted = chat.deletedAt !== undefined;
+  const target = deleted ? "deletedLists" : "lists";
+  const other = deleted ? "lists" : "deletedLists";
+  batch(() => {
+    setState(target, chat.projectId, (list) => [...(list ?? []).filter((entry) => entry.id !== chat.id), chat].sort((a, b) => b.updatedAt - a.updatedAt));
+    if (state[other][chat.projectId]) setState(other, chat.projectId, (list) => list.filter((entry) => entry.id !== chat.id));
+    if (deleted) {
+      queue.delete(chat.id);
+      const awaiting = awaitingSnapshot.get(chat.id);
+      awaitingSnapshot.delete(chat.id);
+      if (awaiting) setState("sending", awaiting, null);
+      setState("sending", chat.id, null);
+      setState("chats", chat.id, undefined!);
+    } else if (state.chats[chat.id]) {
+      setState("chats", chat.id, "chat", reconcile(chat));
+    }
+  });
+  if (deleted) {
+    subscriptions.get(chat.id)?.();
+    subscriptions.delete(chat.id);
+    if (root.active()[chat.projectId] === chat.id) setActiveChat(chat.projectId, activeChatId(chat.projectId));
+  }
 }
 
 const subscriptions = new Map<string, () => void>();
@@ -238,6 +289,7 @@ const subscriptions = new Map<string, () => void>();
 /** Subscribes to a chat (once); the transcript lands in the store and stays current. */
 export function openChat(chatId: string): void {
   ensureConnected();
+  if (summaries.get(chatId)?.deletedAt !== undefined) return;
   if (subscriptions.has(chatId)) return;
   const unsubscribe = client.open(chatId, (message) => {
     if (message.type === "snapshot") {
@@ -249,6 +301,11 @@ export function openChat(chatId: string): void {
       }
       return;
     }
+    if (message.event.type === "chat.updated") {
+      upsertSummary(message.event.chat);
+      return;
+    }
+    if (summaries.get(chatId)?.deletedAt !== undefined) return;
     const events = queue.get(chatId);
     if (events) events.push(message.event);
     else queue.set(chatId, [message.event]);
@@ -258,21 +315,69 @@ export function openChat(chatId: string): void {
 }
 
 function applySnapshot(snapshot: ChatSnapshot): void {
+  const chat = newerSummary(snapshot.chat);
+  if (chat.deletedAt !== undefined) return;
   queue.delete(snapshot.chat.id);
   batch(() => {
-    setState("chats", snapshot.chat.id, { items: snapshot.items, pending: snapshot.pending, turnId: null, chat: snapshot.chat });
-    upsertSummary(snapshot.chat);
+    setState("chats", snapshot.chat.id, { items: snapshot.items, pending: snapshot.pending, turnId: null, chat });
+    upsertSummary(chat);
   });
 }
 
 /** Fetches a project's history; the store keeps it current from then on. */
 export async function refreshChats(projectId: string): Promise<void> {
   try {
-    await whenOpen();
-    const list = await client.request("chats.list", { projectId });
-    setState("lists", projectId, list);
+    await refreshChatList(projectId, false);
   } catch {
     // Offline: whatever the store holds stays.
+  }
+}
+
+/** Deleted history errors are shown by the caller rather than disguised as an empty bin. */
+export async function refreshDeletedChats(projectId: string): Promise<void> {
+  await refreshChatList(projectId, true);
+}
+
+async function refreshChatList(projectId: string, deleted: boolean): Promise<void> {
+  await whenOpen();
+  const key = `${deleted ? "deleted" : "active"}:${projectId}`;
+  const request = (listRequests.get(key) ?? 0) + 1;
+  listRequests.set(key, request);
+  const started = summaryChange;
+  const list = await client.request("chats.list", { projectId, ...(deleted ? { deleted: true } : {}) });
+  if (listRequests.get(key) !== request) return;
+  const entries = new Map<string, ChatSummary>();
+  for (const incoming of list) {
+    const chat = newerSummary(incoming);
+    if (chat.projectId === projectId) entries.set(chat.id, chat);
+  }
+  // A new chat or management operation can arrive while this list is in flight.
+  for (const [id, changed] of summaryChanges) {
+    const chat = summaries.get(id)!;
+    if (changed > started && chat.projectId === projectId) entries.set(id, chat);
+  }
+  const result = [...entries.values()].filter((chat) => (chat.deletedAt !== undefined) === deleted).sort((a, b) => b.updatedAt - a.updatedAt);
+  for (const chat of result) summaries.set(chat.id, chat);
+  if (!deleted) preserveActiveChat(projectId);
+  setState(deleted ? "deletedLists" : "lists", projectId, result);
+}
+
+function applyChatFolders(folders: ChatFoldersState): void {
+  if (state.foldersLoaded && folders.revision < state.folders.revision) return;
+  batch(() => {
+    setState("folders", reconcile(folders));
+    setState("foldersLoaded", true);
+    setState("foldersError", null);
+  });
+}
+
+export async function refreshChatFolders(): Promise<void> {
+  try {
+    await whenOpen();
+    applyChatFolders(await client.request("chatFolders.get", {}));
+  } catch (error) {
+    setState("foldersError", error instanceof Error ? error.message : String(error));
+    throw error;
   }
 }
 
@@ -381,16 +486,46 @@ export async function respond(chatId: string, requestId: string, response: Reque
   await client.request("request.respond", { chatId, requestId, response });
 }
 
-export async function deleteChat(projectId: string, chatId: string): Promise<void> {
-  subscriptions.get(chatId)?.();
-  subscriptions.delete(chatId);
-  await client.request("chats.delete", { chatId });
-  batch(() => {
-    setState("lists", projectId, (list) => (list ?? []).filter((entry) => entry.id !== chatId));
-    setState("chats", chatId, undefined!);
-    setState("drafts", chatId, undefined!);
-  });
-  if (root.active()[projectId] === chatId) setActiveChat(projectId, activeChatId(projectId));
+export async function renameChat(chatId: string, title: string): Promise<ChatSummary> {
+  await whenOpen();
+  const chat = await client.request("chats.rename", { chatId, title });
+  upsertSummary(chat);
+  return chat;
+}
+
+/** Deletion is recoverable. Keep an unsent draft available if the chat is restored. */
+export async function deleteChat(_projectId: string, chatId: string): Promise<void> {
+  await whenOpen();
+  upsertSummary(await client.request("chats.delete", { chatId }));
+}
+
+export async function restoreChat(chatId: string): Promise<ChatSummary> {
+  await whenOpen();
+  const chat = await client.request("chats.restore", { chatId });
+  upsertSummary(chat);
+  return chat;
+}
+
+export async function createChatFolder(name: string, chatId?: string): Promise<ChatFoldersState> {
+  await whenOpen();
+  const folders = await client.request("chatFolders.create", { name, ...(chatId ? { chatId } : {}) });
+  applyChatFolders(folders);
+  return folders;
+}
+
+export async function renameChatFolder(folderId: string, name: string): Promise<void> {
+  await whenOpen();
+  applyChatFolders(await client.request("chatFolders.rename", { folderId, name }));
+}
+
+export async function deleteChatFolder(folderId: string): Promise<void> {
+  await whenOpen();
+  applyChatFolders(await client.request("chatFolders.delete", { folderId }));
+}
+
+export async function moveChatToFolder(chatId: string, folderId: string | null): Promise<void> {
+  await whenOpen();
+  applyChatFolders(await client.request("chatFolders.move", { chatId, folderId }));
 }
 
 /** The transcript to render for a chat; empty until its snapshot lands. */
@@ -399,7 +534,8 @@ export const transcriptOf = (chatId: string | null): Transcript => (chatId ? (st
 /** The summary as the host last reported it; the list's copy until the transcript's arrives. */
 export function summaryOf(projectId: string, chatId: string | null): ChatSummary | null {
   if (!chatId) return null;
-  return state.chats[chatId]?.chat ?? state.lists[projectId]?.find((entry) => entry.id === chatId) ?? null;
+  const chat = state.chats[chatId]?.chat ?? state.lists[projectId]?.find((entry) => entry.id === chatId);
+  return chat?.projectId === projectId && chat.deletedAt === undefined ? chat : null;
 }
 
 // --- home-view handoff ---------------------------------------------------

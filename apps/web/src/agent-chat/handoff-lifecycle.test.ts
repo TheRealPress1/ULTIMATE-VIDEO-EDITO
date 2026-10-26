@@ -37,6 +37,8 @@ vi.mock("./connection", () => ({
       return () => mocks.listeners.delete(fn);
     },
     onHarnesses: () => () => {},
+    onChatChanged: () => () => {},
+    onChatFoldersChanged: () => () => {},
     open: () => () => {},
     connect() {},
   },

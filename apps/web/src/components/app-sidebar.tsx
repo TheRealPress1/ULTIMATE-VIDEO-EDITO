@@ -3,13 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { useLocation, useNavigate } from "@solidjs/router";
-import { For, Show, createEffect, createMemo } from "solid-js";
+import { Show, createEffect, createMemo } from "solid-js";
 import { toast } from "somoto";
 
 import { Icon } from "@/components/ui/icon";
 import { AnalyticsIcon } from "@/components/dashboard/analytics-view";
 import { createProjectList, openProjectFromList } from "@/components/dashboard/shared";
-import { activeChatId, chatState, ensureConnected, refreshChats, setActiveChat, setSidebarTab } from "@/agent-chat/store";
+import { chatState, ensureConnected, refreshChats, setActiveChat, setSidebarTab } from "@/agent-chat/store";
+import { SidebarHistory } from "@/agent-chat/sidebar-history";
 import { projectRoute } from "@/hooks/use-project-route";
 import { projectKey, type ProjectInfo } from "@/projects";
 
@@ -80,25 +81,7 @@ export function AppSidebar(props: AppSidebarProps) {
           <AnalyticsIcon /><span>Analytics</span>
         </button>
       </nav>
-      <div class="cutroom-chats-heading">
-        <span>Chats</span>
-        <button type="button" aria-label="New conversation" title="New conversation" onClick={() => navigate("/")}>
-          <Icon name="plus-add" />
-        </button>
-      </div>
-      <div class="cutroom-chat-history">
-        <Show when={chats().length > 0} fallback={<p class="cutroom-chat-empty">Your conversations will appear here.</p>}>
-          <For each={chats()}>
-            {({ chat, project }) => (
-              <button type="button" class="cutroom-chat-row" title={chat.title} classList={{ "is-active": props.projectId === project.id && activeChatId(project.id) === chat.id }} onClick={() => void openConversation(project, chat.id)}>
-                <span>{chat.title}</span>
-                <Show when={chat.status === "running"}><Icon name="spinner-loader" class="size-3.5 shrink-0 animate-spin text-muted-foreground" /></Show>
-                <Show when={chat.status === "waiting"}><span class="cutroom-unread-dot" title="Waiting for your reply" /></Show>
-              </button>
-            )}
-          </For>
-        </Show>
-      </div>
+      <SidebarHistory chats={chats()} projects={projects() ?? []} projectId={props.projectId} onOpen={(project, id) => void openConversation(project, id)} onNew={() => navigate("/")} />
       <div class="cutroom-sidebar-footer">
         <button type="button" class="cutroom-nav-item" onClick={() => navigate("/?dashboard=mcp")}>
           <Icon name="ai-mcp-cli" /><span>Connect agents</span>

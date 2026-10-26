@@ -53,6 +53,7 @@ Prompts and agent undo/redo wait for pending project saves. Interrupted sessions
 ## Working features
 
 - Local projects, project search, recent conversations, and persistent chat history.
+- Right-click or two-finger-click a sidebar chat for Open, Rename, Move to folder, and Delete. Named folders organize chats without changing their editing projects. Delete offers Undo; Recently deleted restores conversations across restarts. The more button and Shift+F10 open the same menu. Removing a folder keeps its chats.
 - Claude Code and Codex model selection, streamed responses, cancellation, and approval requests.
 - Editable JSX compositions, an initial scene from imported footage, canvas manipulation, multiple scenes, timeline trimming/splitting, playback, inspector controls, and export.
 - Local speech transcription and automatic captions, editable words and timings, and seven caption presets with font and color controls. External caption JSON edits refresh the existing layer without reopening the project or resetting undo history.

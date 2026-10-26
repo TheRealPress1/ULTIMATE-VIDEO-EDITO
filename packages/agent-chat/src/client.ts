@@ -11,6 +11,8 @@
 import type {
   ChatEvent,
   ChatSnapshot,
+  ChatSummary,
+  ChatFoldersState,
   ClientMsg,
   HarnessInfo,
   HostError,
@@ -68,6 +70,8 @@ export class AgentChatClient {
   private subscriptions = new Map<string, Subscription>();
   private stateListeners = new Set<(state: ConnectionState) => void>();
   private harnessListeners = new Set<(harnesses: HarnessInfo[]) => void>();
+  private chatChangedListeners = new Set<(chat: ChatSummary) => void>();
+  private chatFoldersListeners = new Set<(state: ChatFoldersState) => void>();
   private backoff: number;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectionAttempt = 0;
@@ -97,6 +101,16 @@ export class AgentChatClient {
   onHarnesses(listener: (harnesses: HarnessInfo[]) => void): () => void {
     this.harnessListeners.add(listener);
     return () => void this.harnessListeners.delete(listener);
+  }
+
+  onChatChanged(listener: (chat: ChatSummary) => void): () => void {
+    this.chatChangedListeners.add(listener);
+    return () => void this.chatChangedListeners.delete(listener);
+  }
+
+  onChatFoldersChanged(listener: (state: ChatFoldersState) => void): () => void {
+    this.chatFoldersListeners.add(listener);
+    return () => void this.chatFoldersListeners.delete(listener);
   }
 
   /** Starts connecting; idempotent. */
@@ -327,6 +341,14 @@ export class AgentChatClient {
       case "harnesses": {
         this._harnesses = message.harnesses;
         for (const listener of this.harnessListeners) listener(message.harnesses);
+        return;
+      }
+      case "chat.changed": {
+        for (const listener of this.chatChangedListeners) listener(message.chat);
+        return;
+      }
+      case "chatFolders.changed": {
+        for (const listener of this.chatFoldersListeners) listener(message.state);
         return;
       }
     }

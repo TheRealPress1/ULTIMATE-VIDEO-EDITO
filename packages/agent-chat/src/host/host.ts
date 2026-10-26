@@ -13,6 +13,7 @@ import { mkdir, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { CheckpointStore, type Checkpoint } from "./checkpoints";
+import { ChatFolderStore, ChatFolderError } from "./chat-folders";
 
 import { isPersistedEvent, reduce } from "../reduce";
 import { HARNESS_IDS, HARNESS_LABELS, isHarnessId, titleFor } from "../protocol";
@@ -22,6 +23,7 @@ import type {
   ChatEvent,
   ChatSnapshot,
   ChatSummary,
+  ChatFoldersState,
   ClientMsg,
   ErrorCode,
   HarnessId,
@@ -103,9 +105,15 @@ export class AgentHost {
   private stopping = false;
   /** Source checkpoints require one writer per project, across all chats. */
   private readonly busyProjects = new Map<string, string>();
+  private readonly chatMutations = new Set<string>();
+  private readonly metadataSaves = new Map<string, Promise<void>>();
+  private readonly projectStarts = new Map<string, Promise<unknown>>();
+  private readonly deletingProjects = new Set<string>();
+  private readonly folders: ChatFolderStore;
 
   constructor(options: AgentHostOptions) {
     this.options = options;
+    this.folders = new ChatFolderStore(options.store.dataDir);
     for (const harness of options.harnesses) this.harnessById.set(harness.id, harness);
   }
 
@@ -123,6 +131,7 @@ export class AgentHost {
     if (this.options.checkpoints) {
       const latest = new Map<string, ChatMeta>();
       for (const meta of metas) {
+        if (meta.deletedAt !== undefined) continue;
         if (!latest.has(meta.projectId) || latest.get(meta.projectId)!.updatedAt < meta.updatedAt) latest.set(meta.projectId, meta);
       }
       for (const meta of latest.values()) {
@@ -138,7 +147,7 @@ export class AgentHost {
       const chat = this.register(meta);
       if (meta.status !== "idle") {
         // The harness process is gone with the last host; the turn is over.
-        chat.meta = { ...meta, status: "idle" };
+        chat.meta = { ...meta, status: "idle", updatedAt: nextUpdatedAt(meta) };
         try {
           await this.options.store.append(meta.id, { type: "turn.completed", turnId: "recovered", status: "interrupted" });
           await this.options.store.writeMeta(chat.meta);
@@ -228,14 +237,35 @@ export class AgentHost {
       case "harnesses.list":
         return this.listHarnesses((p as MethodParams<"harnesses.list">).refresh === true) as Promise<R>;
       case "chats.list":
-        return this.listChats(requireString(p, "projectId")) as R;
+        return this.listChats(requireString(p, "projectId"), (p as MethodParams<"chats.list">).deleted === true) as R;
       case "chats.open":
         return this.openChat(connection, requireString(p, "chatId")) as Promise<R>;
       case "chats.close":
-        this.get(requireString(p, "chatId")).subscribers.delete(connection);
+        this.get(requireString(p, "chatId"), true).subscribers.delete(connection);
         return undefined as R;
+      case "chats.rename":
+        return this.renameChat(requireString(p, "chatId"), requireString(p, "title")) as Promise<R>;
       case "chats.delete":
         return this.deleteChat(requireString(p, "chatId")) as Promise<R>;
+      case "chats.restore":
+        return this.restoreChat(requireString(p, "chatId")) as Promise<R>;
+      case "chatFolders.get":
+        return this.folders.get() as Promise<R>;
+      case "chatFolders.create": {
+        const input = p as MethodParams<"chatFolders.create">;
+        if (input.chatId !== undefined) this.get(requireString(input, "chatId"));
+        return this.updateFolders(() => this.folders.create(requireString(input, "name"), input.chatId)) as Promise<R>;
+      }
+      case "chatFolders.rename":
+        return this.updateFolders(() => this.folders.rename(requireString(p, "folderId"), requireString(p, "name"))) as Promise<R>;
+      case "chatFolders.delete":
+        return this.updateFolders(() => this.folders.delete(requireString(p, "folderId"))) as Promise<R>;
+      case "chatFolders.move": {
+        const input = p as MethodParams<"chatFolders.move">;
+        this.get(requireString(input, "chatId"));
+        if (input.folderId !== null) requireString(input, "folderId");
+        return this.updateFolders(() => this.folders.move(input.chatId, input.folderId)) as Promise<R>;
+      }
       case "turn.send":
         return this.send(connection, p as MethodParams<"turn.send">) as Promise<R>;
       case "turn.interrupt":
@@ -340,9 +370,9 @@ export class AgentHost {
     return chat;
   }
 
-  private get(chatId: string): Chat {
+  private get(chatId: string, includeDeleted = false): Chat {
     const chat = this.chats.get(chatId);
-    if (!chat) throw new HostError("not-found", `No chat ${chatId}`);
+    if (!chat || (!includeDeleted && chat.meta.deletedAt !== undefined)) throw new HostError("not-found", `No chat ${chatId}`);
     return chat;
   }
 
@@ -353,9 +383,9 @@ export class AgentHost {
     return chat.turn && summary.status === "idle" ? { ...summary, status: "running" } : summary;
   }
 
-  private listChats(projectId: string): ChatSummary[] {
+  private listChats(projectId: string, deleted = false): ChatSummary[] {
     return [...this.chats.values()]
-      .filter((chat) => chat.meta.projectId === projectId)
+      .filter((chat) => chat.meta.projectId === projectId && (chat.meta.deletedAt !== undefined) === deleted)
       .sort((a, b) => b.meta.updatedAt - a.meta.updatedAt)
       .map((chat) => this.summary(chat));
   }
@@ -374,27 +404,103 @@ export class AgentHost {
   private async openChat(connection: Connection, chatId: string): Promise<ChatSnapshot> {
     const chat = this.get(chatId);
     await this.ensureLoaded(chat);
+    this.get(chatId);
     chat.subscribers.add(connection);
     return { chat: this.summary(chat), items: chat.transcript.items, seq: chat.seq, pending: chat.transcript.pending };
   }
 
-  private async deleteChat(chatId: string): Promise<void> {
-    const chat = this.get(chatId);
-    if (chat.turn) await this.interrupt(chatId);
+  private async closeChatSession(chat: Chat): Promise<void> {
     if (chat.idleTimer) clearTimeout(chat.idleTimer);
+    chat.idleTimer = null;
     chat.sessionGeneration += 1;
-    await chat.session?.close().catch(() => {});
+    const session = chat.session;
     chat.session = null;
-    this.chats.delete(chatId);
-    await this.options.store.remove(chatId);
+    await session?.close().catch(() => {});
+  }
+
+  /** Metadata commits publish only after disk accepts them; edits cannot race the save. */
+  private async changeChat(chatId: string, change: (meta: ChatMeta) => ChatMeta, includeDeleted = false): Promise<ChatSummary> {
+    const chat = this.get(chatId, includeDeleted);
+    if (chat.turn || this.chatMutations.has(chatId)) throw new HostError("busy", "Wait for this chat's edit to finish before changing it.");
+    this.chatMutations.add(chatId);
+    let settled!: () => void;
+    this.metadataSaves.set(chatId, new Promise<void>((resolve) => { settled = resolve; }));
+    let reserved = false;
+    try {
+      await this.reserveProject(chat.meta.projectId, chat.meta.cwd);
+      reserved = true;
+      // Invalidates delayed provider acknowledgments before taking the metadata snapshot.
+      await this.closeChatSession(chat);
+      const next = { ...change(chat.meta), updatedAt: nextUpdatedAt(chat.meta) };
+      await this.options.store.writeMeta(next);
+      chat.meta = next;
+      const summary = this.summary(chat);
+      chat.transcript = reduce(chat.transcript, { type: "chat.updated", chat: summary });
+      this.publish(chat, { type: "chat.updated", chat: summary }, false);
+      return summary;
+    } finally {
+      if (reserved) this.busyProjects.delete(chat.meta.projectId);
+      this.chatMutations.delete(chatId);
+      this.metadataSaves.delete(chatId);
+      settled();
+    }
+  }
+
+  private renameChat(chatId: string, value: string): Promise<ChatSummary> {
+    const title = value.trim();
+    if (!title || title.length > 160) throw new HostError("bad-request", "Use a chat name between 1 and 160 characters.");
+    return this.changeChat(chatId, (meta) => ({ ...meta, title }));
+  }
+
+  private deleteChat(chatId: string): Promise<ChatSummary> {
+    return this.changeChat(chatId, (meta) => ({ ...meta, deletedAt: meta.deletedAt ?? Date.now() }), true);
+  }
+
+  private restoreChat(chatId: string): Promise<ChatSummary> {
+    return this.changeChat(chatId, (meta) => {
+      const { deletedAt: _deletedAt, ...restored } = meta;
+      return restored;
+    }, true);
+  }
+
+  private async updateFolders(change: () => Promise<ChatFoldersState>): Promise<ChatFoldersState> {
+    try {
+      const state = await change();
+      this.broadcast({ t: "chatFolders.changed", state });
+      return state;
+    } catch (error) {
+      if (error instanceof ChatFolderError) throw new HostError(error.code, error.message);
+      throw error;
+    }
+  }
+
+  /** Project teardown really removes its chat storage, including recoverable deleted chats. */
+  private async purgeChat(chatId: string): Promise<void> {
+    const chat = this.get(chatId, true);
+    if (this.chatMutations.has(chatId)) throw new HostError("busy", "Chat changes are still being saved.");
+    this.chatMutations.add(chatId);
+    try {
+      if (chat.turn) await this.interrupt(chatId);
+      await this.closeChatSession(chat);
+      await this.options.store.remove(chatId);
+      this.chats.delete(chatId);
+      this.broadcast({ t: "chat.changed", chat: { ...this.summary(chat), deletedAt: chat.meta.deletedAt ?? Date.now() } });
+    } finally { this.chatMutations.delete(chatId); }
   }
 
   /** Deletes every chat of a project, stopping any that is running: its folder is gone. */
   async deleteChats(projectId: string): Promise<void> {
-    const ids = [...this.chats.values()].filter((chat) => chat.meta.projectId === projectId).map((chat) => chat.meta.id);
-    await Promise.all(
-      ids.map((id) => this.deleteChat(id).catch((error: Error) => this.log(`delete ${id} failed: ${error.message}`))),
-    );
+    this.deletingProjects.add(projectId);
+    try {
+      // A first turn may have persisted metadata but not acquired its turn object yet.
+      // Wait for that startup before interrupting, so it cannot recreate a purged chat.
+      await this.projectStarts.get(projectId)?.catch(() => {});
+      const ids = [...this.chats.values()].filter((chat) => chat.meta.projectId === projectId).map((chat) => chat.meta.id);
+      await Promise.all(ids.map(async (id) => {
+        await this.metadataSaves.get(id);
+        await this.purgeChat(id).catch((error: Error) => this.log(`delete ${id} failed: ${error.message}`));
+      }));
+    } finally { this.deletingProjects.delete(projectId); }
   }
 
   // ---------------------------------------------------------------------
@@ -402,6 +508,7 @@ export class AgentHost {
 
   private async reserveProject(projectId: string, cwd: string): Promise<void> {
     const path = await realpath(cwd).catch(() => resolve(cwd));
+    if (this.deletingProjects.has(projectId)) throw new HostError("busy", "This project is being removed.");
     if (this.busyProjects.has(projectId) || [...this.busyProjects.values()].includes(path)) {
       throw new HostError("busy", "Wait for the current project edit to finish before starting another edit or restoring a checkpoint.");
     }
@@ -420,10 +527,14 @@ export class AgentHost {
   }
 
   private async send(connection: Connection, params: MethodParams<"turn.send">): Promise<{ chatId: string }> {
+    if (params.chatId && this.chatMutations.has(params.chatId)) throw new HostError("busy", "Chat changes are still being saved.");
     const projectId = requireString(params, "projectId");
     await this.reserveProject(projectId, requireString(params, "cwd"));
-    try { return await this.sendReserved(connection, params); }
+    const starting = this.sendReserved(connection, params);
+    this.projectStarts.set(projectId, starting);
+    try { return await starting; }
     catch (error) { this.busyProjects.delete(projectId); throw error; }
+    finally { if (this.projectStarts.get(projectId) === starting) this.projectStarts.delete(projectId); }
   }
 
   private async sendReserved(connection: Connection, params: MethodParams<"turn.send">): Promise<{ chatId: string }> {
@@ -437,6 +548,7 @@ export class AgentHost {
     let chat: Chat;
     if (params.chatId) {
       chat = this.get(params.chatId);
+      if (this.chatMutations.has(params.chatId)) throw new HostError("busy", "Chat changes are still being saved.");
       if (chat.meta.projectId !== projectId) throw new HostError("bad-request", "This chat belongs to another project");
       if (chat.meta.harness !== model.harness) throw new HostError("harness-mismatch", "A chat keeps the harness it started with");
       if (chat.turn) throw new HostError("busy", "A turn is already running");
@@ -484,7 +596,7 @@ export class AgentHost {
     const checkpoint = await this.options.checkpoints?.begin(projectId, cwd, text) ?? null;
     const turnId = randomUUID();
     const user: Item = { id: `u-${turnId.slice(0, 12)}`, kind: "user", text, ...(attachments.length ? { attachments } : {}) };
-    const running: ChatMeta = { ...chat.meta, cwd, model: model.model, status: "running", updatedAt: Date.now() };
+    const running: ChatMeta = { ...chat.meta, cwd, model: model.model, status: "running", updatedAt: nextUpdatedAt(chat.meta) };
     try { await this.options.store.writeMeta(running); }
     catch (error) {
       if (!params.chatId) this.chats.delete(chat.meta.id);
@@ -521,11 +633,11 @@ export class AgentHost {
         if (current) chat.open.set(event.itemId, current);
       }
       if (event.type === "request.opened" && chat.meta.status === "running") {
-        chat.meta = { ...chat.meta, status: "waiting", updatedAt: Date.now() };
+        chat.meta = { ...chat.meta, status: "waiting", updatedAt: nextUpdatedAt(chat.meta) };
         void this.options.store.writeMeta(chat.meta).catch((error: Error) => this.persistenceFailed(chat, error));
         this.publish(chat, { type: "chat.updated", chat: this.summary(chat) });
       } else if (event.type === "request.resolved" && chat.meta.status === "waiting" && chat.turn) {
-        chat.meta = { ...chat.meta, status: "running", updatedAt: Date.now() };
+        chat.meta = { ...chat.meta, status: "running", updatedAt: nextUpdatedAt(chat.meta) };
         void this.options.store.writeMeta(chat.meta).catch((error: Error) => this.persistenceFailed(chat, error));
         this.publish(chat, { type: "chat.updated", chat: this.summary(chat) });
       }
@@ -556,6 +668,7 @@ export class AgentHost {
       try { subscriber.send(message); }
       catch (error) { this.log(`chat subscriber disconnected: ${(error as Error).message}`); }
     }
+    if (event.type === "chat.updated") this.broadcast({ t: "chat.changed", chat: event.chat });
   }
 
   private async runTurn(chat: Chat, turnId: string, text: string, model: string, emit: Emit, checkpoint: Checkpoint | null): Promise<void> {
@@ -594,7 +707,7 @@ export class AgentHost {
     // Publish the new metadata in memory before waiting for disk. A provider
     // acknowledgment arriving during this write must preserve the idle status,
     // and its newer cursor must not be replaced when this await finishes.
-    chat.meta = { ...chat.meta, status: "idle", updatedAt: Date.now() };
+    chat.meta = { ...chat.meta, status: "idle", updatedAt: nextUpdatedAt(chat.meta) };
     try {
       await this.options.store.writeMeta(chat.meta);
     } catch (error) {
@@ -703,8 +816,15 @@ export class AgentHost {
   }
 
   private broadcast(message: HostMsg): void {
-    for (const connection of this.connections) connection.send(message);
+    for (const connection of this.connections) {
+      try { connection.send(message); }
+      catch (error) { this.log(`chat client disconnected: ${(error as Error).message}`); }
+    }
   }
+}
+
+function nextUpdatedAt(meta: ChatMeta): number {
+  return Math.max(Date.now(), meta.updatedAt + 1);
 }
 
 function requireString(record: object, key: string): string {
