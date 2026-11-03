@@ -10,7 +10,7 @@ Search for complete exchanges with a clear opening and payoff. Use the [story-se
 
 Use `waveform` near the candidate's boundaries and `grab` at important words, speaker changes, and the ending. Check the adjacent exchange for qualifications or context. Do not infer who spoke from a local transcript or claim to hear delivery from a frame. `listen` can return local speech evidence for a short source window; it does not diarize speakers or identify an active speaker.
 
-For a page URL, use a user-provided local file. `web_media_download` saves a direct media link, or the media a page declares, into the project; streaming platforms such as YouTube need the user's own export. A downloaded excerpt can start at a different source offset than requested. Probe its duration and match identifiable content before mapping original timestamps into it; a probe alone cannot identify the original source offset.
+For a page URL, prefer the user's local file when there is one. Otherwise `web_media_download` saves a direct media link, or the media a page declares, into the project; for a YouTube, Vimeo or other platform episode, `media_download` with `kind: "video"` saves the whole upload into `assets/footage/` (audio alone by default). A downloaded excerpt can start at a different source offset than requested. Probe its duration and match identifiable content before mapping original timestamps into it; a probe alone cannot identify the original source offset.
 
 ## Assemble the selected range
 

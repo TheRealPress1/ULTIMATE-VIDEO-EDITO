@@ -23,6 +23,7 @@ import type { ReframeAnalysisRequest, ReframeAnalysisResult, ReframeAnalysisProg
 import type { VisualIndexRequest, VisualIndexJob, VisualIndexResult, VisualProgress } from './visual-types';
 import type { AudioFinishingRequest, AudioFinishingResult } from './audio-finishing-types';
 import type { UpdateStatus } from './update-types';
+import type { DownloaderStatus } from './downloader/types';
 import type { InstagramAuthStatus, InstagramPublishDraft, InstagramPublishQueue } from './instagram-publishing-types';
 import type { InstagramAuthPoll } from './instagram-auth';
 import type { ReferenceRequest, ReferenceJob, ReferenceResult, ReferenceProgress } from './reference-types';
@@ -30,6 +31,8 @@ import type { SpeakerAnalysisRequest, SpeakerAnalysisResult, SpeakerAnalysisProg
 import type { AnalysisCacheRequest, AnalysisCacheResult, AnalysisCachePut } from './analysis-cache-types';
 import type { PlaybackProxyRequest, PlaybackProxyJob, PlaybackProxyResult, PlaybackProxyProgress } from './playback-proxy-types';
 import type { WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest } from './web-media-types';
+import type { EarshotStatus, SoundEffectsReply, SoundEffectsRequest } from './addons/earshot/types';
+import type { MediaCommitRequest, MediaCommitResult, MediaDownloaded, MediaDownloadRequest } from "./media-download-types";
 
 export const MAIN_WIRE = {
   REQUEST: "main:request",
@@ -52,6 +55,9 @@ export const MAIN_CHANNELS = {
   UPDATES_STATUS: 'updates:status',
   UPDATES_CHECK: 'updates:check',
   UPDATES_INSTALL: 'updates:install',
+  DOWNLOADER_STATUS: 'downloader:status',
+  DOWNLOADER_CHECK: 'downloader:check',
+  DOWNLOADER_REINSTALL: 'downloader:reinstall',
   APP_SHOW_IN_FOLDER: "app:show-in-folder",
   APP_EDITORS_LIST: "app:editors-list",
   APP_OPEN_IN_EDITOR: "app:open-in-editor",
@@ -92,6 +98,15 @@ export const MAIN_CHANNELS = {
   WEB_MEDIA_CANCEL: 'web-media:cancel',
   WEB_MEDIA_COMMIT: 'web-media:commit',
   WEB_MEDIA_DISCARD: 'web-media:discard',
+  EARSHOT_STATUS: 'earshot:status',
+  EARSHOT_INSTALL: 'earshot:install',
+  EARSHOT_REMOVE: 'earshot:remove',
+  SOUND_EFFECTS_RUN: 'sound-effects:run',
+  SOUND_EFFECTS_CANCEL: 'sound-effects:cancel',
+  MEDIA_DOWNLOAD: 'media:download',
+  MEDIA_CANCEL: 'media:cancel',
+  MEDIA_COMMIT: 'media:commit',
+  MEDIA_DISCARD: 'media:discard',
   INSTAGRAM_CONNECT: "instagram:connect",
   INSTAGRAM_SYNC: "instagram:sync",
   INSTAGRAM_DISCONNECT: "instagram:disconnect",
@@ -276,6 +291,10 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.UPDATES_STATUS]: {request:void;response:UpdateStatus};
   [MAIN_CHANNELS.UPDATES_CHECK]: {request:void;response:UpdateStatus};
   [MAIN_CHANNELS.UPDATES_INSTALL]: {request:void;response:void};
+  // Settings → Downloads: the managed yt-dlp's state, "Check for update" and "Reinstall".
+  [MAIN_CHANNELS.DOWNLOADER_STATUS]: { request: void; response: DownloaderStatus };
+  [MAIN_CHANNELS.DOWNLOADER_CHECK]: { request: void; response: DownloaderStatus };
+  [MAIN_CHANNELS.DOWNLOADER_REINSTALL]: { request: void; response: DownloaderStatus };
   [MAIN_CHANNELS.EDITING_SKILLS]: { request: ToolArgs<"skills">; response: ToolOutput<"skills"> };
   [MAIN_CHANNELS.EDITING_STYLE_GET]: { request: void; response: EditingStyle };
   [MAIN_CHANNELS.EDITING_STYLE_SET]: { request: { notes: string; expectedRevision: number }; response: EditingStyle };
@@ -307,6 +326,17 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.WEB_MEDIA_CANCEL]: { request: { id: string }; response: void };
   [MAIN_CHANNELS.WEB_MEDIA_COMMIT]: { request: WebMediaCommitRequest; response: WebMediaCommitResult };
   [MAIN_CHANNELS.WEB_MEDIA_DISCARD]: { request: { id: string }; response: void };
+  // Audio intelligence (earshot): Settings' status line and its buttons; sound_effects' main half (bank, renders into the project, audit).
+  [MAIN_CHANNELS.EARSHOT_STATUS]: { request: void; response: EarshotStatus };
+  [MAIN_CHANNELS.EARSHOT_INSTALL]: { request: void; response: EarshotStatus };
+  [MAIN_CHANNELS.EARSHOT_REMOVE]: { request: void; response: EarshotStatus };
+  [MAIN_CHANNELS.SOUND_EFFECTS_RUN]: { request: SoundEffectsRequest; response: SoundEffectsReply };
+  [MAIN_CHANNELS.SOUND_EFFECTS_CANCEL]: { request: { id: string }; response: void };
+  // media_download: main runs the downloader into the project, the renderer imports, then commits (ledger + CREDITS.md) or discards.
+  [MAIN_CHANNELS.MEDIA_DOWNLOAD]: { request: MediaDownloadRequest; response: MediaDownloaded };
+  [MAIN_CHANNELS.MEDIA_CANCEL]: { request: { id: string }; response: void };
+  [MAIN_CHANNELS.MEDIA_COMMIT]: { request: MediaCommitRequest; response: MediaCommitResult };
+  [MAIN_CHANNELS.MEDIA_DISCARD]: { request: { id: string }; response: void };
   [MAIN_CHANNELS.REFRAME_CANCEL]: { request: { id: string }; response: void };
   [MAIN_CHANNELS.PROJECTS_COLLECT_PICK]: { request: {dir: string}; response: string | null };
   [MAIN_CHANNELS.PROJECTS_COLLECT]: { request: {dir: string; target: string}; response: CollectProjectResult };

@@ -13,9 +13,6 @@ import type { ToolOutput, WebMediaLicense, WebMediaProvider } from "@diffusionst
 import type { WebMediaDownloaded } from "@desktop/web-media-types";
 import type { ToolContext, ToolHandler } from "../handler";
 
-/** Where downloads live in the library: `assets/web/` on disk. */
-const FOLDER = "web";
-
 /** Where an asset came from on the web, kept on its manifest record next to its other fields. */
 export type WebMediaRecord = {
   fileUrl: string;
@@ -62,20 +59,20 @@ function measured(asset: Asset): Pick<ToolOutput<"web_media_download">, "width" 
 }
 
 /**
- * Has main download the file into the project's `assets/web/` (the network
+ * Has main download the file into the project's `assets/<folder>/` (the network
  * and the disk are main's; the renderer's fetch is bound by CORS), imports it
  * into the live library, notes where it came from on the asset, and has main
  * record it in the ledger and CREDITS.md. A file the library can't take is
  * taken back out of the project.
  */
-export const webMediaDownload: ToolHandler<"web_media_download"> = async ({ url, name, prefer }, ctx) => {
+export const webMediaDownload: ToolHandler<"web_media_download"> = async ({ url, name, prefer, folder }, ctx) => {
   const { session, dir, assertCurrent } = currentProject(ctx);
   const id = crypto.randomUUID();
   const cancel = () => void mainBridge.call(MAIN_CHANNELS.WEB_MEDIA_CANCEL, { id }).catch(() => {});
   ctx.signal.addEventListener("abort", cancel, { once: true });
   let download: WebMediaDownloaded;
   try {
-    download = await mainBridge.call(MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD, { id, dir, url, prefer, ...(name ? { name } : {}) });
+    download = await mainBridge.call(MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD, { id, dir, url, prefer, folder, ...(name ? { name } : {}) });
   } catch (error) {
     if (ctx.signal.aborted) throw canceled();
     throw error;
@@ -90,7 +87,9 @@ export const webMediaDownload: ToolHandler<"web_media_download"> = async ({ url,
     assertCurrent();
     // By its project path under `assets/`, as the library's own scan would
     // link it, so a scan racing this import finds the same asset, not a copy.
-    const { assets, failed } = await library.import([download.source], { folder: FOLDER });
+    // Into the library folder the file is in: the one asked for, or the folder that already held these bytes.
+    const landedIn = /^assets\/(web|music|sfx)\//.exec(download.source)?.[1] ?? folder;
+    const { assets, failed } = await library.import([download.source], { folder: landedIn });
     if (!assets[0]) {
       const reason = failed[0]?.error.message ?? "the library refused it";
       throw new DapiError("unsupported", `The downloaded file couldn't be opened as media (${reason}). Try another result or link.`);

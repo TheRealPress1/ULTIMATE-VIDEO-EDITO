@@ -34,15 +34,26 @@ describe("web media tool contracts", () => {
     expect(input.parse({ query: "a", sources: ["wikimedia"], preview: 0 })).toMatchObject({ sources: ["wikimedia"], preview: 0 });
   });
 
-  it("accepts only http(s) URLs for download and defaults to images", () => {
+  it("accepts only http(s) URLs for download and defaults to images in the web folder", () => {
     const input = webMediaDownload.input;
-    expect(input.parse({ url: "https://example.com/a.jpg" })).toEqual({ url: "https://example.com/a.jpg", prefer: "image" });
+    expect(input.parse({ url: "https://example.com/a.jpg" })).toEqual({ url: "https://example.com/a.jpg", prefer: "image", folder: "web" });
+    expect(input.parse({ url: "https://example.com/a.mp3", folder: "sfx" })).toMatchObject({ folder: "sfx" });
+    expect(input.parse({ url: "https://example.com/a.ogg", folder: "music" })).toMatchObject({ folder: "music" });
+    for (const folder of ["footage", "../web", "/tmp", "", "Web"]) expect(input.safeParse({ url: "https://e.com/a", folder }).success, folder).toBe(false);
     expect(input.parse({ url: "HTTP://example.com/a", name: " launch ", prefer: "video" })).toMatchObject({ name: "launch", prefer: "video" });
     for (const url of ["file:///etc/passwd", "ftp://example.com/a.jpg", "javascript:alert(1)", "example.com/a.jpg", "", `https://e.com/${"a".repeat(4096)}`]) {
       expect(input.safeParse({ url }).success, url).toBe(false);
     }
     expect(input.safeParse({ url: "https://e.com/a", name: "x".repeat(81) }).success).toBe(false);
     expect(input.safeParse({ url: "https://e.com/a", prefer: "audio" }).success).toBe(false);
+  });
+
+  it("opens each description with where it fits, pointing platform uploads to media_*", () => {
+    expect(webMediaSearch.description).toMatch(/^Openly licensed stock/);
+    expect(webMediaSearch.description).toContain("media_search");
+    expect(webMediaDownload.description).toMatch(/^Openly licensed stock/);
+    expect(webMediaDownload.description).toContain("media_download");
+    expect(webMediaDownload.description).not.toContain("can't be downloaded here");
   });
 
   it("keeps preview bytes out of the published output schema", () => {

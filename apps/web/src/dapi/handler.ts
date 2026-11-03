@@ -27,6 +27,6 @@ export type ToolContext = {
 export type ToolHandler<N extends ToolName> = (args: ToolArgs<N>, ctx: ToolContext) => Promise<ToolResult<N>>;
 
 /** The tools the renderer answers; the rest run in the main process. */
-export type ServedToolName = Exclude<ToolName, "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "web_media_search">;
+export type ServedToolName = Exclude<ToolName, "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "audio_catalog" | "web_media_search" | "media_search" | "sound_analyze">;
 
 export type Handlers = { readonly [N in ServedToolName]: ToolHandler<N> };

@@ -29,6 +29,10 @@ const TIMEOUTS: Record<string, number> = {
   web_media_search: 120_000,
   // The app stops a download at 20 minutes; this leaves it time to say so.
   web_media_download: 1_260_000,
+  // A first search installs the downloader (a minute or so); a listing may also update it and run once more.
+  media_search: 300_000,
+  // The app stops a download at 60 minutes, after reading its metadata; this leaves it time to check the file and say so.
+  media_download: 4_200_000,
 };
 
 /**

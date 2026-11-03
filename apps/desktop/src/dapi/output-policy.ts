@@ -66,6 +66,23 @@ function protectedPart(parts: readonly string[]): string | undefined {
 }
 
 /**
+ * Why main may not write a download or a render into a library folder of
+ * the project (`label`, e.g. `assets/music`), judged by `real`, where the
+ * folder really leads; null when it may. The folder must be inside the
+ * project (`root`, real too), not the project itself, and not in a protected
+ * folder: an agent's shell may make the folder a link to `.git`, and main's
+ * writes hold to the same line the agents' own file tools do.
+ */
+export function libraryFolderRefusal(root: string, real: string, label: string): string | null {
+  const inside = relative(root, real);
+  if (!inside || isAbsolute(inside) || inside === ".." || inside.startsWith(`..${sep}`)) {
+    return `The project's ${label} folder leads outside the project. Remove that link and try again.`;
+  }
+  const segment = protectedPart(inside.split(sep));
+  return segment ? `The project's ${label} folder leads into ${segment}, which Cutroom keeps off-limits to editing sessions. Remove that link and try again.` : null;
+}
+
+/**
  * How a tool writes its target, which is what an existing one outside the
  * project and temp folders comes down to:
  * - `file`: written as named, replacing what is there.
@@ -388,7 +405,7 @@ export async function openRefusal(dir: string, policy: WritePolicy): Promise<str
  */
 export async function checkToolOutputs(tool: string, args: unknown, policy: WritePolicy): Promise<void> {
   if (!args || typeof args !== "object" || Array.isArray(args)) return;
-  const { output, path, dir, model } = args as Record<string, unknown>;
+  const { output, path, dir, model, folder } = args as Record<string, unknown>;
   const checks: Array<Promise<string | null>> = [];
   if (typeof output === "string") {
     const library = tool === "generate" && localPath(output) && !looksAbsolute(output);
@@ -400,6 +417,10 @@ export async function checkToolOutputs(tool: string, args: unknown, policy: Writ
   }
   if (tool === "export" && path === undefined) checks.push(defaultExportRefusal(policy));
   if (tool === "open" && typeof dir === "string") checks.push(openRefusal(dir, policy));
+  // A library folder is the download's to check against the project; an absolute one is a place on disk the file is made in.
+  if (tool === "media_download" && typeof folder === "string" && (looksAbsolute(folder) || !localPath(folder))) {
+    checks.push(writeRefusal(folder, "fresh", policy));
+  }
   if (policy.project && tool !== "open" && isToolName(tool) && toolByName(tool).environment === "renderer") {
     checks.push(projectRoot(policy).then((project) => (project === "moved" ? PROJECT_MOVED : null)));
   }

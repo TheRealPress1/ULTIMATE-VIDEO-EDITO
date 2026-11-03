@@ -20,19 +20,21 @@ import { createReadStream, rmSync } from "node:fs";
 import { mkdir, open, realpath, rename, rm, stat } from "node:fs/promises";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
-import { basename, isAbsolute, join, relative } from "node:path";
+import { basename, isAbsolute, join } from "node:path";
 import { Readable, pipeline } from "node:stream";
 import { createBrotliDecompress, createGunzip, createInflate } from "node:zlib";
 import { DapiError } from "@diffusionstudio/dapi";
 import { tempPathFor } from "./atomic";
+import { libraryFolderRefusal } from "./dapi/output-policy";
 import { withProjectLock } from "./project-write-transactions";
 import { checkWebUrl, hostOf, resolvePublic, systemResolve } from "./web-media-url";
 import { NOT_MEDIA, SNIFF_BYTES, sharedMedia, sniff } from "./web-media-sniff";
 import {
-  PROVIDER_NAMES, UNKNOWN_LICENSE, WIKIMEDIA_WIDTHS, attributionLine, interleave, isWikimediaRendition, openverseUrl, parseOpenverse, parseWikimedia,
+  PROVIDER_NAMES, UNKNOWN_LICENSE, WIKIMEDIA_WIDTHS, attributionLine, catalogLicense, interleave, isWikimediaRendition, openverseUrl, parseOpenverse, parseWikimedia,
   urlKey, wikimediaUrl,
 } from "./web-media-providers";
 import { CREDITS_FILE, itemPath, readLedger, writeCredits, writeLedger } from "./web-media-ledger";
+import { looksLikeMediaFile, platformOf, siteName } from "./platform-url";
 
 import type { LookupAddress, LookupOptions } from "node:dns";
 import type { IncomingMessage } from "node:http";
@@ -41,7 +43,7 @@ import type { ProviderResult, SearchArgs } from "./web-media-providers";
 import type { Resolve } from "./web-media-url";
 import type { Sniffed, SniffedMedia } from "./web-media-sniff";
 import type {
-  WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest, WebMediaLedger, WebMediaLedgerItem,
+  WebMediaCatalogCredit, WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest, WebMediaFolder, WebMediaLedger, WebMediaLedgerItem,
 } from "./web-media-types";
 
 /** What the service fetches with: the subset of `fetch` it uses. Redirects are never followed by it; the service does that, checking each hop. */
@@ -102,8 +104,29 @@ const PAGE_CANDIDATES = 3;
 const SLUG_MAX = 48;
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 
+/** The library folders a download may land in, under `assets/`. */
+const WEB_MEDIA_FOLDERS: readonly WebMediaFolder[] = ["web", "music", "sfx"];
+
 export const NO_PAGE_MEDIA =
-  "This page doesn't expose a downloadable image or video. Video platforms (YouTube, Instagram, TikTok…) stream through their players — ask the user to export or import their own copy.";
+  "This page doesn't expose a downloadable image or video. For a video or a song on YouTube, TikTok, Instagram, X, Vimeo, SoundCloud or another platform, use media_download with the page's url instead.";
+/** A link to a platform media_download knows: it downloads the upload behind the page, which web_media_download can't. */
+export function platformPage(site: string): string {
+  const name = siteName(site);
+  return `This is ${/^[AEIOUX]/.test(name) ? "an" : "a"} ${name} page. Use media_download with this url instead (kind "audio" for the sound, the default, or "video" for picture and sound).`;
+}
+/** A file link on a platform's own host that answers with a page: a bot check or a moved file, whose page is media_download's. */
+export function platformFileMoved(site: string): string {
+  const name = siteName(site);
+  return `This ${name} file link answers with a web page instead of the file (it may have moved, or ${name} is checking for bots). Give media_download the ${name} page the file belongs to instead.`;
+}
+/**
+ * A picture asked for in `music` or `sfx`, which hold sounds (and videos,
+ * for their sound): what a sound's page shares is most often its cover or
+ * its waveform, never the sound.
+ */
+export function notSound(folder: WebMediaFolder): string {
+  return `This link gives an image, not a sound, so nothing was saved in assets/${folder}/. Pass the sound file's own link (on Commons, the file under upload.wikimedia.org), or give a Freesound or platform page to media_download, which fetches the sound behind it.`;
+}
 /** A search result whose file URL serves a page now: whatever that page shares is not the result, nor under its license. */
 export const RESULT_MOVED =
   "This search result's file now answers with a web page instead (it may have moved or been taken down). Pick another result.";
@@ -132,6 +155,12 @@ export type WebMediaOptions = {
    * says so. Asked only when a request fails.
    */
   proxy?: (url: URL) => string | undefined | Promise<string | undefined>;
+  /**
+   * What Cutroom's curated audio catalog records about a file it ships, or
+   * null: a download of that file is credited with the catalog's checked
+   * rights and credit line rather than as an unverified link.
+   */
+  catalogCredit?: (url: string) => Promise<WebMediaCatalogCredit | null>;
 };
 
 type Provenance = {
@@ -380,6 +409,7 @@ export class WebMediaService {
   private readonly timeouts: WebMediaTimeouts;
   private readonly caps: Record<WebMediaKind, number>;
   private readonly proxy: (url: URL) => string | undefined | Promise<string | undefined>;
+  private readonly catalogCredit: (url: string) => Promise<WebMediaCatalogCredit | null>;
   /** Search results by file and page URL, least recently seen first. */
   private readonly recent = new Map<string, ProviderResult>();
   /** Downloads the renderer is importing, by request id. */
@@ -401,6 +431,7 @@ export class WebMediaService {
     this.timeouts = { ...TIMEOUTS, ...options.timeouts };
     this.caps = { ...WEB_MEDIA_CAPS, ...options.caps };
     this.proxy = options.proxy ?? machineProxy;
+    this.catalogCredit = options.catalogCredit ?? (async () => null);
   }
 
   // -------------------------------------------------------------------------
@@ -674,7 +705,8 @@ export class WebMediaService {
   // Download
 
   /**
-   * Downloads `request.url` into `<dir>/assets/web/` and holds it for the
+   * Downloads `request.url` into `<dir>/assets/<folder>/` (`web` unless
+   * asked for `music` or `sfx`) and holds it for the
    * renderer, which imports it and then commits or discards it. A search
    * result's page URL downloads the result's file, with its provenance; a web
    * page downloads the media it shares; the same bytes already downloaded
@@ -755,7 +787,15 @@ export class WebMediaService {
     const dir = request.dir;
     const root = await this.projectRoot(dir);
     const requested = checkWebUrl(request.url);
+    // A platform page is media_download's: what the page shares is a thumbnail, not the upload.
+    // A file on the platform's own host (a MyInstants MP3) is fetched like any other link, but never read as a page.
+    const site = platformOf(requested);
+    if (site && !looksLikeMediaFile(requested)) throw new DapiError("unsupported", platformPage(site));
+    const folder = request.folder ?? "web";
+    if (!WEB_MEDIA_FOLDERS.includes(folder)) throw new DapiError("invalid-input", `Downloads land in ${WEB_MEDIA_FOLDERS.join(", ")}; not ${String(folder)}.`);
     const known = this.recall(requested.href);
+    // A file Cutroom's own audio catalog ships, whose rights were checked when it was curated.
+    const curated = known ? null : await this.catalogCredit(requested.href).catch(() => null);
     // A search result's own file, or nothing: the page its URL may serve now is some other picture, not under the result's license.
     const source = checkWebUrl(known?.url ?? requested.href);
     // Waiting for a turn with the host is not downloading: the clock starts once it has one.
@@ -763,23 +803,30 @@ export class WebMediaService {
     const bounded = deadline(signal, this.timeouts.overall, `The download took longer than ${Math.round(this.timeouts.overall / 60_000)} minutes and was stopped.`);
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
-      const { opened, media, page } = await this.resolveMedia(source, bounded.signal, request.prefer, !known);
+      const refusePage = known ? () => new DapiError("not-found", RESULT_MOVED) : site ? () => new DapiError("unsupported", platformFileMoved(site)) : undefined;
+      const { opened, media, page } = await this.resolveMedia(source, bounded.signal, request.prefer, refusePage);
       reader = opened.reader;
+      // Refused before anything is written: the reader is let go of on the way out.
+      if (media.kind === "image" && folder !== "web") throw new DapiError("unsupported", notSound(folder));
       const cap = this.caps[media.kind];
       const declared = Number(opened.response.headers.get("content-length"));
       if (declared > cap) {
         await opened.reader.cancel().catch(() => {});
         throw tooLarge(media.kind, cap);
       }
-      const webDir = await this.webDir(dir, root);
+      const webDir = await this.webDir(dir, root, folder);
       const temp = (job.temp = tempPathFor(join(webDir, "download")));
       const { sha256, bytes } = await this.stream(opened, temp, cap, media.kind, bounded.signal);
       // Done with the network: the host's next download goes ahead while this one lands.
       release();
       const result = known ?? this.recall(opened.url.href);
-      const title = result?.title ?? page?.title;
+      // The catalog vouches for its file, not for whatever a page at that address shares now.
+      const listed = !result && !page ? curated : null;
+      const title = result?.title ?? listed?.title ?? page?.title;
       const provenance: Provenance = result
         ? { title: result.title, creator: result.creator, provider: result.provider, pageUrl: result.pageUrl, license: result.license, attribution: result.attribution }
+        : listed
+        ? catalogProvenance(listed, opened.url.href)
         : {
           ...(title ? { title } : {}),
           ...(page ? { pageUrl: page.url } : {}),
@@ -791,7 +838,7 @@ export class WebMediaService {
       const landing = this.startWrite(dir);
       let landed: Awaited<ReturnType<WebMediaService["land"]>>;
       try {
-        landed = await this.land(dir, webDir, temp, { slug, ext: media.ext, sha256, bytes, provenance }, (file, kept, deduplicated) => {
+        landed = await this.land(dir, webDir, temp, { folder, slug, ext: media.ext, sha256, bytes, provenance }, (file, kept, deduplicated) => {
           const item: WebMediaLedgerItem = {
             file,
             sha256,
@@ -847,11 +894,12 @@ export class WebMediaService {
   }
 
   /**
-   * The media at `url`: the file itself, or, for a web page (unless `pages`
-   * is false), the first media it shares that downloads.
+   * The media at `url`: the file itself, or, for a web page, the first media
+   * it shares that downloads. With `refusePage`, a page is refused with the
+   * error it makes instead.
    */
   private async resolveMedia(
-    url: URL, signal: AbortSignal, prefer: "image" | "video", pages: boolean,
+    url: URL, signal: AbortSignal, prefer: "image" | "video", refusePage: (() => DapiError) | undefined,
   ): Promise<{ opened: Opened; media: SniffedMedia; page?: { url: string; title?: string } }> {
     const first = await this.open(url, signal, prefer, { retry: true });
     if (first.sniffed.kind === "rejected") {
@@ -859,9 +907,9 @@ export class WebMediaService {
       throw new DapiError("unsupported", first.sniffed.reason);
     }
     if (first.sniffed.kind !== "html") return { opened: first, media: first.sniffed };
-    if (!pages) {
+    if (refusePage) {
       await first.reader.cancel().catch(() => {});
-      throw new DapiError("not-found", RESULT_MOVED);
+      throw refusePage();
     }
 
     const html = await this.text(first, signal, HTML_MAX, true);
@@ -899,18 +947,16 @@ export class WebMediaService {
     return root;
   }
 
-  /** `assets/web` in the project, created when missing, as its real path, which must stay inside the project. */
-  private async webDir(dir: string, root: string): Promise<string> {
-    const web = join(dir, "assets", "web");
+  /** `assets/<folder>` in the project, created when missing, as its real path, which must stay inside the project and out of its protected folders. */
+  private async webDir(dir: string, root: string, folder: WebMediaFolder): Promise<string> {
+    const web = join(dir, "assets", folder);
     // A level at a time below the project, never the project itself: a folder that moved away must not come back empty where it was.
     for (const folder of [join(dir, "assets"), web]) {
       await mkdir(folder).catch((error: NodeJS.ErrnoException) => { if (error.code !== "EEXIST") throw error; });
     }
     const real = await realpath(web);
-    const rel = relative(root, real);
-    if (!rel || rel.startsWith("..") || isAbsolute(rel)) {
-      throw new DapiError("invalid-input", "The project's assets/web folder leads outside the project. Remove that link and try again.");
-    }
+    const refusal = libraryFolderRefusal(root, real, `assets/${folder}`);
+    if (refusal) throw new DapiError("invalid-input", refusal);
     return real;
   }
 
@@ -952,7 +998,7 @@ export class WebMediaService {
    */
   private async land(
     dir: string, webDir: string, temp: string,
-    file: { slug: string; ext: string; sha256: string; bytes: number; provenance: Provenance },
+    file: { folder: WebMediaFolder; slug: string; ext: string; sha256: string; bytes: number; provenance: Provenance },
     register: (file: string, provenance: Provenance, deduplicated: boolean) => void,
   ): Promise<{ file: string; deduplicated: boolean; provenance: Provenance }> {
     const landed = (result: { file: string; deduplicated: boolean; provenance: Provenance }) => {
@@ -973,7 +1019,7 @@ export class WebMediaService {
         const name = `${file.slug}-${file.sha256.slice(0, 8)}${attempt > 1 ? `-${attempt}` : ""}.${file.ext}`;
         const target = join(webDir, name);
         // The library's `source`: through `assets/`, as its scan finds the file, even when a link leads elsewhere in the project.
-        const source = `assets/web/${name}`;
+        const source = `assets/${file.folder}/${name}`;
         if (await holds(target, file.bytes, file.sha256)) {
           await rm(temp, { force: true });
           return landed({ file: source, deduplicated: true, provenance: file.provenance });
@@ -1119,6 +1165,17 @@ function sha256Of(path: string): Promise<string> {
 let singleton: WebMediaService | undefined;
 
 /** The app's one service: one memory of recent search results for the tools and the download channel alike. */
+/** A catalog file's provenance: its checked license (unverified for rights that name no terms) and the catalog's own credit line. */
+function catalogProvenance(credit: WebMediaCatalogCredit, fileUrl: string): Provenance {
+  const license = catalogLicense(credit.rights, credit.attribution) ?? UNKNOWN_LICENSE;
+  return {
+    title: credit.title,
+    ...(credit.pageUrl ? { pageUrl: credit.pageUrl } : {}),
+    license,
+    attribution: credit.attribution ?? attributionLine({ title: credit.title, pageUrl: credit.pageUrl, fileUrl, license }),
+  };
+}
+
 export function webMediaService(): WebMediaService {
   return (singleton ??= new WebMediaService());
 }

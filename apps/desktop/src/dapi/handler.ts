@@ -4,6 +4,7 @@
 
 import type { LogEntry, ToolArgs, ToolResult } from "@diffusionstudio/dapi";
 import type { EditingStyleStore } from "../editing-style";
+import type { AudioCatalogStore } from "../audio-catalog";
 
 /** The main window, as the `window` tool drives it. */
 export type AppWindow = {
@@ -19,6 +20,8 @@ export type AppWindow = {
 export type MainContext = {
   docsDir?: string | null;
   editingStyle?: EditingStyleStore;
+  /** The music and effect catalog with the user's personal layer. */
+  audioCatalog?: AudioCatalogStore;
   /** Fires when the caller cancels or goes away. */
   signal: AbortSignal;
   /** The app's console buffer, oldest first. */
@@ -32,7 +35,7 @@ export type MainContext = {
 };
 
 /** The tools that need the file system, a child process or the window itself, not a renderer. */
-export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "web_media_search";
+export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "audio_catalog" | "web_media_search" | "media_search" | "sound_analyze";
 
 export type MainHandler<N extends MainToolName> = (args: ToolArgs<N>, ctx: MainContext) => Promise<ToolResult<N>>;
 

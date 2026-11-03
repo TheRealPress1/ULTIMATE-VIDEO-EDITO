@@ -15,6 +15,8 @@ export type InstagramPost = {
   mediaProductType: string;
   permalink: string | null;
   thumbnailUrl: string | null;
+  /** The post's own file on Instagram's CDN as of the last sync (Graph `media_url`); it expires, and some posts have none. */
+  mediaUrl?: string | null;
   publishedAt: string;
   syncedAt: string;
   metrics: InstagramMetrics;

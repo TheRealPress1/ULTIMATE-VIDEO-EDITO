@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { InstagramConnection } from "./instagram-connection";
 import { EditingSkillsSettings } from "./editing-skills";
 import { UpdateSettings } from './update-settings';
+import { DownloaderSettings } from "./downloader-settings";
+import { AudioIntelligenceSettings } from "./audio-intelligence-settings";
 import { usePermissionState, type PermissionState } from "@/hooks/use-permission";
 
 import {
@@ -173,6 +175,8 @@ export function DashboardSettingsView() {
       <EditingSkillsSettings />
       <InstagramConnection />
       <UpdateSettings />
+      <DownloaderSettings />
+      <AudioIntelligenceSettings />
       <DashboardPermissionsSection />
     </DashboardScrollView>
   );

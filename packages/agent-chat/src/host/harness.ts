@@ -235,7 +235,7 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
       "Never create, change or delete anything in `.cutroom`, `.git`, `.claude`, `.codex` or `.mcp.json`: `.cutroom` holds the project's version history and web-media ledger. " +
       "Leave unused files in place; media in `assets/` and `exports/` may be the only copy. " +
       "Writes outside the project and temporary folders, network access from commands and requests for extra permissions are declined automatically. "
-    : "Cutroom never shows permission prompts: project edits, cutroom tools, web search/fetch and sandboxed commands (including network downloads) run automatically. " +
+    : "Cutroom never shows permission prompts: project edits, cutroom tools, web search/fetch and sandboxed commands run automatically; sandboxed commands reach public hosts for packages and pages, not media. " +
       "Actions outside that boundary are refused automatically with a reason — deleting files or running system commands from the shell, replacing files outside the project, reading credential stores. ";
   const base =
     `You are running in Cutroom's chat panel. The open project is at \`${cwd}\`. ` +
@@ -245,7 +245,8 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
     "Skills are guidance, not proof a service is configured or permission for paid/external actions. " +
     automatic +
     "Adapt (new file name, work inside the project) instead of retrying or asking for permission. " +
-    "For images, video or audio from the web use `web_media_search` and `web_media_download`. " +
+    "Media from outside the project comes through the cutroom tools, never a shell download: `media_search` and `media_download` for YouTube, YouTube Music, SoundCloud, TikTok, Instagram and other platforms; " +
+    "`web_media_search` and `web_media_download` for openly licensed images, video and audio. " +
     "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Cutroom's own approval queue, which agents cannot use.";
   return custom ? `${base}\n\n${custom}` : base;
 }

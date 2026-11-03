@@ -6,9 +6,7 @@ Generate locally from the scene's complete audible mix, after cuts, speed change
 { "id": "reel" }
 ```
 
-```sh
-cutroom captions reel
-```
+`captions` is an MCP tool; the `cutroom` CLI has no command for it.
 
 Returns `{ id, path, segments, words, replacedExisting }`. `path` is a library path under the project's `assets/`, suitable for `<captions src>`. A direct scene caption without authored timing is updated in place, preserving its styling. Otherwise a scene caption is inserted. Existing transcript files and source media are preserved.
 

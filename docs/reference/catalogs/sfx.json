@@ -1,0 +1,1130 @@
+{
+  "version": 1,
+  "kind": "sfx",
+  "updated": "2026-11-03",
+  "entries": [
+    {
+      "id": "freesound:60026",
+      "title": "Short airy whoosh",
+      "description": "A quick, breathy rush of air under half a second long, like a hand sweeping past the lens. Light enough for fast text pops, quick cuts and swipe-style transitions without sounding heavy.",
+      "sourceUrl": "https://cdn.freesound.org/previews/60/60026_71257-hq.mp3",
+      "pageUrl": "https://freesound.org/people/qubodup/sounds/60026/",
+      "durationSeconds": 0.49,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Swosh swoosh whoosh air sound, free, high quality” by qubodup on Freesound, CC0 (no credit required).",
+      "category": "whoosh",
+      "align": "span",
+      "tags": [
+        "air",
+        "fast",
+        "short"
+      ],
+      "uses": [
+        "transition",
+        "montage",
+        "vlog"
+      ],
+      "sourceRange": {
+        "start": 0.02,
+        "end": 0.49
+      },
+      "hitAt": 0.075,
+      "peakDb": -7.3,
+      "suggestedVolumeDb": -8
+    },
+    {
+      "id": "freesound:427823",
+      "title": "Medium whoosh",
+      "description": "A clean, mid-length whoosh that swells and passes in under half a second, with a soft tail. A dependable default for slide-ins, zooms and cuts between scenes.",
+      "sourceUrl": "https://cdn.freesound.org/previews/427/427823_2247456-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Kinoton/sounds/427823/",
+      "durationSeconds": 0.8,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Whoosh #1” by Kinoton on Freesound, CC0 (no credit required).",
+      "category": "whoosh",
+      "align": "span",
+      "tags": [
+        "air",
+        "medium"
+      ],
+      "uses": [
+        "transition",
+        "reveal",
+        "montage"
+      ],
+      "sourceRange": {
+        "start": 0.14,
+        "end": 0.44
+      },
+      "hitAt": 0.215,
+      "peakDb": -5.0,
+      "suggestedVolumeDb": -10
+    },
+    {
+      "id": "freesound:351256",
+      "title": "Deep long whoosh",
+      "description": "A heavy, low whoosh that lands hard and rolls off over a second and a half. Gives weight to a title slam, a big camera move or a dramatic scene change; too large for small interface motion.",
+      "sourceUrl": "https://cdn.freesound.org/previews/351/351256_2247456-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Kinoton/sounds/351256/",
+      "durationSeconds": 3.156,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Deep Whoosh #1” by Kinoton on Freesound, CC0 (no credit required).",
+      "category": "whoosh",
+      "align": "span",
+      "tags": [
+        "deep",
+        "low",
+        "cinematic",
+        "long"
+      ],
+      "uses": [
+        "transition",
+        "reveal",
+        "intro"
+      ],
+      "sourceRange": {
+        "start": 0.3,
+        "end": 1.88
+      },
+      "hitAt": 0.635,
+      "peakDb": -1.9,
+      "suggestedVolumeDb": -13
+    },
+    {
+      "id": "freesound:220191",
+      "title": "Bright sci-fi swoosh",
+      "description": "A bright, tonal swoosh with a synthetic shimmer that fades over about a second. Suits tech and app demos, holographic graphics and futuristic transitions.",
+      "sourceUrl": "https://cdn.freesound.org/previews/220/220191_4100837-hq.mp3",
+      "pageUrl": "https://freesound.org/people/GameAudio/sounds/220191/",
+      "durationSeconds": 1.013,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Space Swoosh - brighter” by GameAudio on Freesound, CC0 (no credit required).",
+      "category": "whoosh",
+      "align": "span",
+      "tags": [
+        "tonal",
+        "sci-fi",
+        "bright"
+      ],
+      "uses": [
+        "tech",
+        "transition",
+        "product"
+      ],
+      "sourceRange": {
+        "start": 0.03,
+        "end": 0.82
+      },
+      "hitAt": 0.315,
+      "peakDb": -9.3,
+      "suggestedVolumeDb": -6
+    },
+    {
+      "id": "freesound:446010",
+      "title": "Reverse whoosh",
+      "description": "A backwards whoosh that grows from nothing and stops abruptly, like air being sucked into the cut. Put its end on the edit point to pull the viewer into the next shot. Quiet in the file, so it needs gain.",
+      "sourceUrl": "https://cdn.freesound.org/previews/446/446010_7079899-hq.mp3",
+      "pageUrl": "https://freesound.org/people/SlavicMagic/sounds/446010/",
+      "durationSeconds": 0.662,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Backwards Whoosh” by SlavicMagic on Freesound, CC0 (no credit required).",
+      "category": "whoosh",
+      "align": "end",
+      "tags": [
+        "reverse",
+        "suck-in",
+        "build"
+      ],
+      "uses": [
+        "transition",
+        "reveal",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 0.61
+      },
+      "hitAt": 0.505,
+      "peakDb": -14.7,
+      "suggestedVolumeDb": 0
+    },
+    {
+      "id": "freesound:60007",
+      "title": "Quick swipe",
+      "description": "A short, sharp swipe that sounds like a finger flicking across a screen. Ideal for phone-screen recordings, carousel slides and quick wipe transitions.",
+      "sourceUrl": "https://cdn.freesound.org/previews/60/60007_71257-hq.mp3",
+      "pageUrl": "https://freesound.org/people/qubodup/sounds/60007/",
+      "durationSeconds": 0.448,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Swipe Whoosh” by qubodup on Freesound, CC0 (no credit required).",
+      "category": "swipe",
+      "align": "span",
+      "tags": [
+        "swipe",
+        "fast",
+        "ui"
+      ],
+      "uses": [
+        "transition",
+        "tech",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.02,
+        "end": 0.42
+      },
+      "hitAt": 0.055,
+      "peakDb": -0.2,
+      "suggestedVolumeDb": -15
+    },
+    {
+      "id": "freesound:561207",
+      "title": "Short riser",
+      "description": "A two-second synthetic swell that climbs steadily and stops at its loudest point. End it exactly on a reveal, a drop or a punchline to make the moment land.",
+      "sourceUrl": "https://cdn.freesound.org/previews/561/561207_10825267-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Rizzard/sounds/561207/",
+      "durationSeconds": 2.0,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Riser” by Rizzard on Freesound, CC0 (no credit required).",
+      "category": "riser",
+      "align": "end",
+      "tags": [
+        "build",
+        "two seconds",
+        "synth"
+      ],
+      "uses": [
+        "reveal",
+        "hook",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.24,
+        "end": 2.0
+      },
+      "hitAt": 1.985,
+      "peakDb": -0.3,
+      "suggestedVolumeDb": -17
+    },
+    {
+      "id": "freesound:609767",
+      "title": "Tension riser",
+      "description": "A dark, growing swell that thickens over about five seconds into a tense, noisy peak. The range ends right after the peak, so its end belongs on the cut into the big moment: a reveal, a twist or a title.",
+      "sourceUrl": "https://cdn.freesound.org/previews/609/609767_13504080-hq.mp3",
+      "pageUrl": "https://freesound.org/people/xkeril/sounds/609767/",
+      "durationSeconds": 12.438,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Tension riser” by xkeril on Freesound, CC0 (no credit required).",
+      "category": "riser",
+      "align": "end",
+      "tags": [
+        "build",
+        "tension",
+        "cinematic",
+        "long"
+      ],
+      "uses": [
+        "reveal",
+        "story",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 5.9
+      },
+      "hitAt": 5.755,
+      "peakDb": -2.9,
+      "suggestedVolumeDb": -14
+    },
+    {
+      "id": "freesound:674291",
+      "title": "Reverse cymbal swell",
+      "description": "A reversed crash cymbal that hisses upward for two seconds and cuts off at its peak. Classic lead-in to a beat drop, a scene change or a logo hit; end it on the hit.",
+      "sourceUrl": "https://cdn.freesound.org/previews/674/674291_3130497-hq.mp3",
+      "pageUrl": "https://freesound.org/people/TheEndOfACycle/sounds/674291/",
+      "durationSeconds": 2.777,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Reversed Crash Cymbal” by TheEndOfACycle on Freesound, CC0 (no credit required).",
+      "category": "riser",
+      "align": "end",
+      "tags": [
+        "cymbal",
+        "reverse",
+        "swell"
+      ],
+      "uses": [
+        "transition",
+        "reveal",
+        "intro"
+      ],
+      "sourceRange": {
+        "start": 0.61,
+        "end": 2.77
+      },
+      "hitAt": 2.665,
+      "peakDb": -6.1,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:482146",
+      "title": "Downlifter sweep",
+      "description": "A steady falling sweep about four seconds long that releases tension after a big moment. Start it on the hit or the cut and let it fall under the next shot. Low in level, so it needs gain.",
+      "sourceUrl": "https://cdn.freesound.org/previews/482/482146_9637845-hq.mp3",
+      "pageUrl": "https://freesound.org/people/neezen./sounds/482146/",
+      "durationSeconds": 4.029,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“downlifter 2.wav” by neezen. on Freesound, CC0 (no credit required).",
+      "category": "downlifter",
+      "align": "onset",
+      "tags": [
+        "falling",
+        "sweep",
+        "synth"
+      ],
+      "uses": [
+        "transition",
+        "outro",
+        "reveal"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 3.87
+      },
+      "peakDb": -16.2,
+      "suggestedVolumeDb": -1
+    },
+    {
+      "id": "freesound:172157",
+      "title": "Lunar downlifter",
+      "description": "A spacey, airy fall that starts loud and drifts down over several seconds, like a signal fading out. Good after a reveal or as a soft exit from an intro sequence.",
+      "sourceUrl": "https://cdn.freesound.org/previews/172/172157_1897295-hq.mp3",
+      "pageUrl": "https://freesound.org/people/maqsim/sounds/172157/",
+      "durationSeconds": 7.394,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Lunar Downlifter FX 4.wav” by maqsim on Freesound, CC0 (no credit required).",
+      "category": "downlifter",
+      "align": "onset",
+      "tags": [
+        "falling",
+        "space",
+        "airy"
+      ],
+      "uses": [
+        "transition",
+        "outro",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 7.39
+      },
+      "peakDb": -2.2,
+      "suggestedVolumeDb": -15
+    },
+    {
+      "id": "freesound:328448",
+      "title": "Cinematic hit",
+      "description": "A hard, trailer-style impact with a big low thump and a long reverberant tail of several seconds. Put its hit on a title card, a cut to black or a dramatic fact; trim the tail for quicker edits.",
+      "sourceUrl": "https://cdn.freesound.org/previews/328/328448_4519159-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Vendarro/sounds/328448/",
+      "durationSeconds": 9.369,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Hard Cinematic Hit” by Vendarro on Freesound, CC0 (no credit required).",
+      "category": "impact",
+      "align": "hit",
+      "tags": [
+        "trailer",
+        "impact",
+        "tail",
+        "big"
+      ],
+      "uses": [
+        "reveal",
+        "intro",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 6.61
+      },
+      "hitAt": 0.015,
+      "peakDb": 0.0,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:162370",
+      "title": "Punch",
+      "description": "A short, meaty punch with a dull body thud and almost no tail. Works for comedic slaps and smacks, text that slams in, or a fist bump on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/162/162370_2572735-hq.mp3",
+      "pageUrl": "https://freesound.org/people/lewisisminted/sounds/162370/",
+      "durationSeconds": 1.324,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Punch #1.mp3” by lewisisminted on Freesound, CC0 (no credit required).",
+      "category": "impact",
+      "align": "hit",
+      "tags": [
+        "punch",
+        "hit",
+        "body"
+      ],
+      "uses": [
+        "comedy",
+        "sports",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.6,
+        "end": 0.8
+      },
+      "hitAt": 0.636,
+      "peakDb": -7.9,
+      "suggestedVolumeDb": -3
+    },
+    {
+      "id": "freesound:51817",
+      "title": "Bassy thud",
+      "description": "A low, bassy slam like something heavy dropped on a wooden floor, with a short rumble after. Grounds a stat or a word appearing on screen, a door shutting or a falling object.",
+      "sourceUrl": "https://cdn.freesound.org/previews/51/51817_612689-hq.mp3",
+      "pageUrl": "https://freesound.org/people/kyles/sounds/51817/",
+      "durationSeconds": 2.035,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“thud bassy slam.aiff” by kyles on Freesound, CC0 (no credit required).",
+      "category": "impact",
+      "align": "hit",
+      "tags": [
+        "thud",
+        "slam",
+        "low"
+      ],
+      "uses": [
+        "reveal",
+        "comedy",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.64,
+        "end": 1.99
+      },
+      "hitAt": 0.825,
+      "peakDb": 0.0,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:212768",
+      "title": "Bass drop",
+      "description": "A loud, saturated bass hit that falls away over a few seconds, felt as much as heard. For the big reveal moment in an intro or a hook; it is heavy, so keep dialogue clear of it.",
+      "sourceUrl": "https://cdn.freesound.org/previews/212/212768_71257-hq.mp3",
+      "pageUrl": "https://freesound.org/people/qubodup/sounds/212768/",
+      "durationSeconds": 4.8,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Bass Drop” by qubodup on Freesound, CC0 (no credit required).",
+      "category": "boom",
+      "align": "hit",
+      "tags": [
+        "bass",
+        "drop",
+        "sub"
+      ],
+      "uses": [
+        "reveal",
+        "hook",
+        "intro"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 3.54
+      },
+      "hitAt": 0.423,
+      "peakDb": -0.4,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:343451",
+      "title": "Sub boom",
+      "description": "A deep boom that hits immediately and decays smoothly over a second and a half. A clean low-end punctuation under a title, a logo or a sudden cut, small enough to repeat.",
+      "sourceUrl": "https://cdn.freesound.org/previews/343/343451_3624044-hq.mp3",
+      "pageUrl": "https://freesound.org/people/greenvwbeetle/sounds/343451/",
+      "durationSeconds": 2.0,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Boom 1” by greenvwbeetle on Freesound, CC0 (no credit required).",
+      "category": "boom",
+      "align": "hit",
+      "tags": [
+        "boom",
+        "sub",
+        "decay"
+      ],
+      "uses": [
+        "reveal",
+        "intro",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 1.67
+      },
+      "hitAt": 0.005,
+      "peakDb": -1.9,
+      "suggestedVolumeDb": -9
+    },
+    {
+      "id": "freesound:333575",
+      "title": "Mouse click",
+      "description": "A single crisp mouse click with a clear transient. Sync it to an on-screen cursor press in a tutorial or screen recording, or to a button appearing in a graphic.",
+      "sourceUrl": "https://cdn.freesound.org/previews/333/333575_5889445-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Sillyslimeball/sounds/333575/",
+      "durationSeconds": 0.325,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Mouse Click” by Sillyslimeball on Freesound, CC0 (no credit required).",
+      "category": "click",
+      "align": "hit",
+      "tags": [
+        "mouse",
+        "click",
+        "ui"
+      ],
+      "uses": [
+        "tutorial",
+        "tech",
+        "explainer"
+      ],
+      "sourceRange": {
+        "start": 0.15,
+        "end": 0.325
+      },
+      "hitAt": 0.165,
+      "peakDb": -7.2,
+      "suggestedVolumeDb": -12
+    },
+    {
+      "id": "freesound:534104",
+      "title": "Mouse double-click",
+      "description": "Two quick mouse clicks in a row, the first one placed on the hit. Use it when a cursor opens a file or an app in a screen recording.",
+      "sourceUrl": "https://cdn.freesound.org/previews/534/534104_11830391-hq.mp3",
+      "pageUrl": "https://freesound.org/people/pbimal/sounds/534104/",
+      "durationSeconds": 0.47,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“mouse-click-double-00.flac” by pbimal on Freesound, CC0 (no credit required).",
+      "category": "click",
+      "align": "hit",
+      "tags": [
+        "mouse",
+        "double click",
+        "ui"
+      ],
+      "uses": [
+        "tutorial",
+        "tech",
+        "explainer"
+      ],
+      "sourceRange": {
+        "start": 0.02,
+        "end": 0.44
+      },
+      "hitAt": 0.04,
+      "peakDb": -3.4,
+      "suggestedVolumeDb": -16
+    },
+    {
+      "id": "freesound:627647",
+      "title": "Mechanical key press",
+      "description": "One clacky press of a mechanical keyboard's enter key, short and bright. Lands well on a search submitted, a command run or a word finishing on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/627/627647_13684433-hq.mp3",
+      "pageUrl": "https://freesound.org/people/alpinemesh/sounds/627647/",
+      "durationSeconds": 0.183,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Enter Key Press Mechanical Keyboard” by alpinemesh on Freesound, CC0 (no credit required).",
+      "category": "typing",
+      "align": "hit",
+      "tags": [
+        "keyboard",
+        "enter",
+        "mechanical"
+      ],
+      "uses": [
+        "tutorial",
+        "tech",
+        "explainer"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 0.183
+      },
+      "hitAt": 0.017,
+      "peakDb": -7.9,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:215744",
+      "title": "Laptop typing",
+      "description": "Several seconds of steady typing on a laptop keyboard, soft and natural. Lay it under animated text being written, a chat window filling up or a coding montage.",
+      "sourceUrl": "https://cdn.freesound.org/previews/215/215744_3877322-hq.mp3",
+      "pageUrl": "https://freesound.org/people/supersnd/sounds/215744/",
+      "durationSeconds": 13.614,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“typing on a laptop keyboard” by supersnd on Freesound, CC0 (no credit required).",
+      "category": "typing",
+      "align": "span",
+      "tags": [
+        "keyboard",
+        "typing",
+        "laptop"
+      ],
+      "uses": [
+        "tutorial",
+        "tech",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.5,
+        "end": 4.5
+      },
+      "peakDb": -6.1,
+      "suggestedVolumeDb": -13
+    },
+    {
+      "id": "freesound:380482",
+      "title": "Chime notification",
+      "description": "A short two-note chime like a message arriving on a phone. Start it as a notification, comment or text bubble appears on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/380/380482_6512973-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Jofae/sounds/380482/",
+      "durationSeconds": 0.324,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Chime Notification” by Jofae on Freesound, CC0 (no credit required).",
+      "category": "notification",
+      "align": "onset",
+      "tags": [
+        "chime",
+        "message",
+        "ui"
+      ],
+      "uses": [
+        "tech",
+        "product",
+        "explainer"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 0.32
+      },
+      "hitAt": 0.02,
+      "peakDb": -4.5,
+      "suggestedVolumeDb": -14
+    },
+    {
+      "id": "freesound:244654",
+      "title": "Clean pop",
+      "description": "A tiny, clean pop under a fifth of a second. Perfect for icons, stickers, captions or list items popping onto the screen one by one.",
+      "sourceUrl": "https://cdn.freesound.org/previews/244/244654_3624044-hq.mp3",
+      "pageUrl": "https://freesound.org/people/greenvwbeetle/sounds/244654/",
+      "durationSeconds": 0.138,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Pop 2” by greenvwbeetle on Freesound, CC0 (no credit required).",
+      "category": "pop",
+      "align": "hit",
+      "tags": [
+        "pop",
+        "ui",
+        "tiny"
+      ],
+      "uses": [
+        "explainer",
+        "product",
+        "vlog"
+      ],
+      "sourceRange": {
+        "start": 0.02,
+        "end": 0.1
+      },
+      "hitAt": 0.041,
+      "peakDb": -1.3,
+      "suggestedVolumeDb": -18
+    },
+    {
+      "id": "freesound:253956",
+      "title": "Bubble pop",
+      "description": "A wet, cartoonish bubble pop with a quick upward blip. Playful punctuation for emoji, thought bubbles and items disappearing in kids' or comedy content.",
+      "sourceUrl": "https://cdn.freesound.org/previews/253/253956_1196472-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Mafon2/sounds/253956/",
+      "durationSeconds": 0.224,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Bubble Pop” by Mafon2 on Freesound, CC0 (no credit required).",
+      "category": "pop",
+      "align": "hit",
+      "tags": [
+        "bubble",
+        "pop",
+        "cartoon"
+      ],
+      "uses": [
+        "comedy",
+        "vlog",
+        "explainer"
+      ],
+      "sourceRange": {
+        "start": 0.04,
+        "end": 0.18
+      },
+      "hitAt": 0.056,
+      "peakDb": 0.0,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "freesound:170229",
+      "title": "Camera shutter",
+      "description": "A short camera shutter snap. Sync it to a freeze frame, a photo appearing, a flash transition or a screenshot moment.",
+      "sourceUrl": "https://cdn.freesound.org/previews/170/170229_3133582-hq.mp3",
+      "pageUrl": "https://freesound.org/people/roachpowder/sounds/170229/",
+      "durationSeconds": 0.295,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Camera Shutter” by roachpowder on Freesound, CC0 (no credit required).",
+      "category": "shutter",
+      "align": "hit",
+      "tags": [
+        "camera",
+        "photo",
+        "snap"
+      ],
+      "uses": [
+        "vlog",
+        "product",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 0.295
+      },
+      "hitAt": 0.11,
+      "peakDb": 0.0,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "freesound:462095",
+      "title": "Sparkle",
+      "description": "A bright twinkling shimmer that rings out over about two seconds. Use it for something clean, shiny or new appearing: a product reveal, a before-and-after or a magic touch.",
+      "sourceUrl": "https://cdn.freesound.org/previews/462/462095_6142149-hq.mp3",
+      "pageUrl": "https://freesound.org/people/MATRIXXX_/sounds/462095/",
+      "durationSeconds": 2.8,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Sparkling Star 01.wav” by MATRIXXX_ on Freesound, CC0 (no credit required).",
+      "category": "sparkle",
+      "align": "onset",
+      "tags": [
+        "shimmer",
+        "magic",
+        "twinkle"
+      ],
+      "uses": [
+        "product",
+        "reveal",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 2.16
+      },
+      "hitAt": 0.257,
+      "peakDb": -0.3,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "freesound:264935",
+      "title": "VHS glitch",
+      "description": "A crackly burst of tape-style digital distortion about a second long. Pairs with glitch transitions, RGB-split effects, retro tech intros or a fake error moment.",
+      "sourceUrl": "https://cdn.freesound.org/previews/264/264935_2771755-hq.mp3",
+      "pageUrl": "https://freesound.org/people/Sassaby/sounds/264935/",
+      "durationSeconds": 1.206,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“VHS Glitch” by Sassaby on Freesound, CC0 (no credit required).",
+      "category": "glitch",
+      "align": "onset",
+      "tags": [
+        "glitch",
+        "vhs",
+        "digital",
+        "noise"
+      ],
+      "uses": [
+        "tech",
+        "transition",
+        "intro"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 1.206
+      },
+      "hitAt": 0.066,
+      "peakDb": -9.6,
+      "suggestedVolumeDb": -5
+    },
+    {
+      "id": "freesound:321137",
+      "title": "Marker stroke",
+      "description": "A sharpie drawing a quick circle on paper, under a second. Use it when a hand-drawn circle, underline or arrow animates over a shot. Quiet, so it needs gain.",
+      "sourceUrl": "https://cdn.freesound.org/previews/321/321137_2816253-hq.mp3",
+      "pageUrl": "https://freesound.org/people/elliott.klein/sounds/321137/",
+      "durationSeconds": 0.805,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Sharpie marker drawing circle 01.wav” by elliott.klein on Freesound, CC0 (no credit required).",
+      "category": "foley",
+      "align": "span",
+      "tags": [
+        "marker",
+        "drawing",
+        "paper"
+      ],
+      "uses": [
+        "explainer",
+        "tutorial",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.05,
+        "end": 0.66
+      },
+      "peakDb": -25.4,
+      "suggestedVolumeDb": 0
+    },
+    {
+      "id": "freesound:82377",
+      "title": "Paper flip",
+      "description": "A single page flipping, light and dry. Fits page-turn transitions, document graphics, chapter changes or notes appearing on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/82/82377_605154-hq.mp3",
+      "pageUrl": "https://freesound.org/people/gynation/sounds/82377/",
+      "durationSeconds": 0.438,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“paper flip 1.wav” by gynation on Freesound, CC0 (no credit required).",
+      "category": "foley",
+      "align": "span",
+      "tags": [
+        "paper",
+        "page",
+        "flip"
+      ],
+      "uses": [
+        "explainer",
+        "story",
+        "transition"
+      ],
+      "sourceRange": {
+        "start": 0.07,
+        "end": 0.43
+      },
+      "peakDb": -4.6,
+      "suggestedVolumeDb": -14
+    },
+    {
+      "id": "freesound:448274",
+      "title": "Success jingle",
+      "description": "A short bright jingle that says done or correct, a little over a second long. For a task completed, a quiz answer revealed as right, or a satisfying result.",
+      "sourceUrl": "https://cdn.freesound.org/previews/448/448274_8282364-hq.mp3",
+      "pageUrl": "https://freesound.org/people/HenryRichard/sounds/448274/",
+      "durationSeconds": 1.2,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“SFX-Success!.wav” by HenryRichard on Freesound, CC0 (no credit required).",
+      "category": "success",
+      "align": "onset",
+      "tags": [
+        "win",
+        "positive",
+        "ui"
+      ],
+      "uses": [
+        "tutorial",
+        "product",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 1.2
+      },
+      "peakDb": -9.4,
+      "suggestedVolumeDb": -7
+    },
+    {
+      "id": "freesound:648462",
+      "title": "Wrong-answer buzzer",
+      "description": "A blunt game-show buzzer about a second long. Use it for a wrong answer, a myth being busted or a mistake shown on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/648/648462_11771918-hq.mp3",
+      "pageUrl": "https://freesound.org/people/-Andreas/sounds/648462/",
+      "durationSeconds": 1.063,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“Wrong Answer” by -Andreas on Freesound, CC0 (no credit required).",
+      "category": "fail",
+      "align": "onset",
+      "tags": [
+        "buzzer",
+        "wrong",
+        "game show"
+      ],
+      "uses": [
+        "comedy",
+        "explainer",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.01,
+        "end": 1.06
+      },
+      "peakDb": -1.2,
+      "suggestedVolumeDb": -15
+    },
+    {
+      "id": "freesound:728224",
+      "title": "Cash register ka-ching",
+      "description": "A mechanical cash register ring with a bright bell. Lands on a price, a sale, a money tip or a revenue number appearing on screen.",
+      "sourceUrl": "https://cdn.freesound.org/previews/728/728224_15719741-hq.mp3",
+      "pageUrl": "https://freesound.org/people/disman/sounds/728224/",
+      "durationSeconds": 1.451,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“cash register chching” by disman on Freesound, CC0 (no credit required).",
+      "category": "cash",
+      "align": "hit",
+      "tags": [
+        "money",
+        "register",
+        "sale"
+      ],
+      "uses": [
+        "business",
+        "product",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 0.13,
+        "end": 1.43
+      },
+      "hitAt": 0.458,
+      "peakDb": 0.0,
+      "suggestedVolumeDb": -16
+    },
+    {
+      "id": "freesound:175409",
+      "title": "Sad trombone",
+      "description": "The descending wah-wah-wah of a sad trombone, about five seconds. The universal sound of a letdown: fails, disappointing reveals and comedic anticlimaxes.",
+      "sourceUrl": "https://cdn.freesound.org/previews/175/175409_1326576-hq.mp3",
+      "pageUrl": "https://freesound.org/people/kirbydx/sounds/175409/",
+      "durationSeconds": 5.205,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“wah wah sad trombone.wav” by kirbydx on Freesound, CC0 (no credit required).",
+      "category": "meme",
+      "align": "onset",
+      "tags": [
+        "fail",
+        "wah wah",
+        "cartoon"
+      ],
+      "uses": [
+        "comedy",
+        "story",
+        "outro"
+      ],
+      "sourceRange": {
+        "start": 0.24,
+        "end": 4.91
+      },
+      "peakDb": -3.2,
+      "suggestedVolumeDb": -9
+    },
+    {
+      "id": "freesound:71853",
+      "title": "Record scratch",
+      "description": "A short vinyl record scratch, under half a second. The classic stop before a freeze-frame explanation or a sudden change of mood.",
+      "sourceUrl": "https://cdn.freesound.org/previews/71/71853_1062668-hq.mp3",
+      "pageUrl": "https://freesound.org/people/ludvique/sounds/71853/",
+      "durationSeconds": 0.448,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“record_scratch.wav” by ludvique on Freesound, CC0 (no credit required).",
+      "category": "meme",
+      "align": "hit",
+      "tags": [
+        "scratch",
+        "vinyl",
+        "freeze frame"
+      ],
+      "uses": [
+        "comedy",
+        "story",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.03,
+        "end": 0.44
+      },
+      "hitAt": 0.058,
+      "peakDb": -1.3,
+      "suggestedVolumeDb": -11
+    },
+    {
+      "id": "freesound:129678",
+      "title": "Crickets",
+      "description": "Steady cricket chirps for an awkward silence after a joke falls flat or a question gets no answer. The range is six seconds; the file runs longer if a pause needs it.",
+      "sourceUrl": "https://cdn.freesound.org/previews/129/129678_2362707-hq.mp3",
+      "pageUrl": "https://freesound.org/people/FreethinkerAnon/sounds/129678/",
+      "durationSeconds": 15.577,
+      "rights": "cc0",
+      "verifiedAt": "2026-11-03",
+      "attribution": "“crickets” by FreethinkerAnon on Freesound, CC0 (no credit required).",
+      "category": "meme",
+      "align": "span",
+      "tags": [
+        "awkward silence",
+        "night",
+        "insects"
+      ],
+      "uses": [
+        "comedy",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 6.0
+      },
+      "peakDb": -16.0,
+      "suggestedVolumeDb": 0
+    },
+    {
+      "id": "myinstants:jixaw-metal-pipe-falling-sound-28270",
+      "title": "Falling metal pipe",
+      "description": "A metal pipe dropped on a hard floor: one harsh clang, then rattles that ring out for about three seconds, the slapstick crash behind countless fail memes. Land its hit on the fall, the dropped object or a sudden cut, and trim or fade the tail once the joke has landed.",
+      "sourceUrl": "https://www.myinstants.com/en/instant/jixaw-metal-pipe-falling-sound-28270/",
+      "durationSeconds": 3.173,
+      "rights": "unknown",
+      "verifiedAt": "2026-11-03",
+      "attribution": "Uploaded to MyInstants; who owns the original recording is unknown.",
+      "category": "meme",
+      "align": "hit",
+      "tags": [
+        "meme",
+        "metal",
+        "crash"
+      ],
+      "uses": [
+        "comedy",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 3.17
+      },
+      "hitAt": 0.012,
+      "peakDb": -3.4,
+      "suggestedVolumeDb": -9
+    },
+    {
+      "id": "myinstants:bruh-sound-effect-26614",
+      "title": "Bruh",
+      "description": "A single, deadpan spoken 'bruh' under a second long. A reaction beat after something ridiculous; it is speech, so leave room around dialogue.",
+      "sourceUrl": "https://www.myinstants.com/en/instant/bruh-sound-effect-26614/",
+      "durationSeconds": 0.817,
+      "rights": "unknown",
+      "verifiedAt": "2026-11-03",
+      "attribution": "Uploaded to MyInstants; who owns the original recording is unknown.",
+      "category": "meme",
+      "align": "onset",
+      "tags": [
+        "meme",
+        "voice",
+        "reaction"
+      ],
+      "uses": [
+        "comedy",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.04,
+        "end": 0.56
+      },
+      "peakDb": -2.7,
+      "suggestedVolumeDb": -9
+    },
+    {
+      "id": "myinstants:dun-dun-duuun",
+      "title": "Dun dun duuun",
+      "description": "A three-note dramatic sting in the old melodrama style, a little over two seconds. Mock-serious punctuation for a plot twist, a suspicious detail or an over-the-top reveal.",
+      "sourceUrl": "https://www.myinstants.com/en/instant/dun-dun-duuun/",
+      "durationSeconds": 2.376,
+      "rights": "unknown",
+      "verifiedAt": "2026-11-03",
+      "attribution": "Uploaded to MyInstants; who owns the original recording is unknown.",
+      "category": "meme",
+      "align": "onset",
+      "tags": [
+        "dramatic",
+        "sting",
+        "meme"
+      ],
+      "uses": [
+        "comedy",
+        "reveal",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.02,
+        "end": 2.35
+      },
+      "peakDb": -3.4,
+      "suggestedVolumeDb": -9
+    },
+    {
+      "id": "myinstants:emotional-damage-meme-74555",
+      "title": "Emotional damage",
+      "description": "The shouted 'emotional damage' catchphrase from the comedy sketch, about three seconds. A comedy reaction after a brutal comment or a painful reveal; it is speech, so place it between lines.",
+      "sourceUrl": "https://www.myinstants.com/en/instant/emotional-damage-meme-74555/",
+      "durationSeconds": 3.32,
+      "rights": "unknown",
+      "verifiedAt": "2026-11-03",
+      "attribution": "Uploaded to MyInstants; who owns the original recording is unknown.",
+      "category": "meme",
+      "align": "onset",
+      "tags": [
+        "meme",
+        "voice",
+        "reaction"
+      ],
+      "uses": [
+        "comedy",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 0.48,
+        "end": 3.31
+      },
+      "peakDb": -0.7,
+      "suggestedVolumeDb": -11
+    }
+  ]
+}

@@ -389,6 +389,14 @@ describe("Instagram analytics service", () => {
     expect(JSON.stringify(state)).not.toContain(TOKEN);
   });
 
+  it("keeps each post's own file link from the Graph media_url, through the cache, or null", async () => {
+    const VIDEO = "https://scontent-lhr8-1.cdninstagram.com/o1/v/t16/f2/m69/AQx.mp4?efg=1&oh=sig";
+    const request = api(url => url.pathname.endsWith("/media") ? json({ data: [{ ...POST, media_url: VIDEO }, { ...POST, id: "202", media_url: `https://cdninstagram.com/x.mp4?access_token=${TOKEN}` }, { ...POST, id: "203" }] }) : undefined);
+    const state = await service(request).connect(TOKEN);
+    expect(state.posts.map((post) => post.mediaUrl)).toEqual([VIDEO, null, null]);
+    expect((await service(api()).snapshot()).posts.map((post) => post.mediaUrl)).toEqual([VIDEO, null, null]);
+  });
+
   it("serializes connect, sync, and disconnect and clears cached data and credentials", async () => {
     const instance = service();
     const [connected, synced, disconnected] = await Promise.all([instance.connect(TOKEN), instance.sync(), instance.disconnect()]);

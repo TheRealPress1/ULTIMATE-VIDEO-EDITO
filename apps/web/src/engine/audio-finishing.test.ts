@@ -136,6 +136,37 @@ describe('audio finishing scene transaction', () => {
     history.undo(); expect(f.live().filter((node) => node.tag === 'scene')).toEqual([f.original]); expect(history.canUndo()).toBe(false);
     history.redo(); expect(f.live().filter((node) => node.tag === 'scene')).toHaveLength(2);
   });
+  it('keeps sound effects out of the dialogue render and the ducking group, as separate editable clips', async () => {
+    const f = fixture();
+    const music = f.create({ tag: 'audio', props: { name: 'Music', src: 'Music.wav', start: 0, volume: -12 }, children: [] }, f.original, 'project.tsx:music');
+    const whoosh = f.create({ tag: 'audio', props: { name: 'Whoosh', src: 'sfx/whoosh.mp3', start: 3.2, sourceIn: 0.02, sourceOut: 0.49, volume: -8 }, children: [{ tag: 'animation', props: { type: 'gain', duration: 0.1 }, children: [] }] }, f.original, 'project.tsx:whoosh');
+    const before = JSON.stringify([f.original.props, music.props, whoosh.props]);
+    const result = await finishSceneAudio(f.world, f.original as never, '/project', { musicIds: ['project.tsx:music'], effectIds: ['project.tsx:whoosh'] });
+    expect(result.effectCount).toBe(1);
+    expect(mocks.wav.mock.calls[0][3].excludeSources).toEqual(['project.tsx:music', 'project.tsx:whoosh']);
+    const created = f.live().find((node) => node.tag === 'scene' && node !== f.original)!;
+    const group = created.children.find((node) => node.tag === 'group')!;
+    expect(group.children.filter((node) => node.tag === 'audio').map((node) => node.props.name)).toEqual(['Music']);
+    const effect = created.children.find((node) => node.tag === 'audio' && node.props.name === 'Whoosh')!;
+    expect(effect.props).toMatchObject({ src: 'sfx/whoosh.mp3', start: 3.2, sourceIn: 0.02, sourceOut: 0.49, volume: -8 });
+    expect(effect.props.muted).toBeUndefined();
+    expect(effect.children[0]!.props).toMatchObject({ type: 'gain' });
+    expect(created.children.find((node) => node.tag === 'video')!.props.muted).toBe(true);
+    expect(result.mix).toEqual(measured);
+    expect(result.warnings.join(' ')).toMatch(/Sound effects keep their own levels/);
+    expect(JSON.stringify([f.original.props, music.props, whoosh.props])).toBe(before);
+    getEditHistory(f.world).undo();
+    expect(f.live().filter((node) => node.tag === 'scene')).toEqual([f.original]);
+  });
+  it('refuses a clip chosen as both music and effect, and an effect that is not directly in the scene', async () => {
+    const f = fixture();
+    f.create({ tag: 'audio', props: { name: 'Sting', src: 'sfx/sting.mp3', start: 1 }, children: [] }, f.original, 'project.tsx:sting');
+    await expect(finishSceneAudio(f.world, f.original as never, '/project', { musicIds: ['project.tsx:sting'], effectIds: ['project.tsx:sting'] })).rejects.toThrow('not both');
+    const group = f.create({ tag: 'group', props: { start: 0 }, children: [] }, f.original, 'project.tsx:group');
+    f.create({ tag: 'audio', props: { name: 'Nested', src: 'sfx/pop.mp3', start: 2 }, children: [] }, group, 'project.tsx:nested');
+    await expect(finishSceneAudio(f.world, f.original as never, '/project', { effectIds: ['project.tsx:nested'] })).rejects.toThrow('sound effect clips directly inside this scene');
+    expect(f.library.store).not.toHaveBeenCalled(); expect(f.editor.insertElement).not.toHaveBeenCalled();
+  });
   it('rejects stale scene or source files before storing or editing', async () => {
     const f = fixture();
     mocks.native.mockImplementation(async () => { f.clip.props.end = 15; return { input: measured, output: measured, wav: new Uint8Array([1]), warnings: [] }; });

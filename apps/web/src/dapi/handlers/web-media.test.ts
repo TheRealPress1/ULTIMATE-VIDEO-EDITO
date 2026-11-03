@@ -59,7 +59,7 @@ describe("web_media_download", () => {
   it("has main download into the open project, imports the file under web/, notes its provenance and commits it", async () => {
     const output = await webMediaDownload(args({ name: "kennedy panorama" }), context());
     const [request] = calls(MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD) as Array<{ id: string }>;
-    expect(request).toEqual({ id: expect.any(String), dir: "/projects/launch", url: downloaded.requestedUrl, prefer: "image", name: "kennedy panorama" });
+    expect(request).toEqual({ id: expect.any(String), dir: "/projects/launch", url: downloaded.requestedUrl, prefer: "image", folder: "web", name: "kennedy panorama" });
     expect(mocks.getLibrary).toHaveBeenCalledWith(session.world);
     expect(mocks.import).toHaveBeenCalledWith([downloaded.source], { folder: "web" });
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ id: image.id }), {
@@ -91,6 +91,25 @@ describe("web_media_download", () => {
       deduplicated: false,
     });
     expect(() => toolByName("web_media_download").output.parse(output)).not.toThrow();
+  });
+
+  it("asks main for the folder a catalog sound belongs in and imports it there", async () => {
+    const sound = { ...downloaded, source: "assets/sfx/short-airy-whoosh-1a2b3c4d.mp3", path: "/projects/launch/assets/sfx/short-airy-whoosh-1a2b3c4d.mp3", kind: "audio" as const, mimeType: "audio/mpeg" };
+    mocks.call.mockImplementation(async (channel: string, data: { id: string }) => {
+      if (channel === MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD) return { ...sound, id: data.id };
+      if (channel === MAIN_CHANNELS.WEB_MEDIA_COMMIT) return { creditsFile: "/projects/launch/CREDITS.md" };
+      return undefined;
+    });
+    mocks.import.mockResolvedValue({ assets: [{ id: "5f0", type: "AUDIO", path: "sfx/short-airy-whoosh-1a2b3c4d.mp3", source: sound.source, mimeType: "audio/mpeg", duration: 0.49 }], failed: [] });
+    const output = await webMediaDownload(args({ url: "https://cdn.freesound.org/previews/60/60026_71257-hq.mp3", folder: "sfx" }), context());
+    expect(calls(MAIN_CHANNELS.WEB_MEDIA_DOWNLOAD)[0]).toMatchObject({ folder: "sfx" });
+    expect(mocks.import).toHaveBeenCalledWith([sound.source], { folder: "sfx" });
+    expect(output).toMatchObject({ src: "sfx/short-airy-whoosh-1a2b3c4d.mp3", kind: "audio", durationSeconds: 0.49, deduplicated: false });
+
+    // The same bytes asked for under music/ were already in sfx/: imported from where they are.
+    mocks.import.mockClear();
+    await webMediaDownload(args({ url: "https://mirror.example/whoosh.mp3", folder: "music" }), context());
+    expect(mocks.import).toHaveBeenCalledWith([sound.source], { folder: "sfx" });
   });
 
   it("reports time-based media by the library's probe, and an asset the library already had as reused", async () => {

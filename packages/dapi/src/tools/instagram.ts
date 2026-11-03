@@ -41,6 +41,7 @@ const Post = z.object({
   mediaProductType: z.string(),
   permalink: z.string().nullable(),
   thumbnailUrl: z.string().nullable(),
+  mediaUrl: z.string().nullable().default(null).describe("the post's own video or image file as of the last sync; pass a video's to media_download to save the original into the project. Instagram's links expire after a while, and some posts (such as reels with licensed music) have none"),
   publishedAt: z.string(),
   syncedAt: z.string(),
   metrics: Metrics,

@@ -116,6 +116,13 @@ describe("shell denial guidance", () => {
     expect(shellDenial({ command: "ls", dangerouslyDisableSandbox: true })).toBe(SHELL_MESSAGES.unsandboxed);
     expect(shellDenial({ command: "  " })).toBe(SHELL_MESSAGES.empty);
   });
+
+  it("points an unsandboxed download at the media tools, not at the shell", () => {
+    // An agent asking to leave the sandbox is often after a download; the reply mustn't invite one.
+    expect(SHELL_MESSAGES.unsandboxed).toContain("`media_download` for YouTube");
+    expect(SHELL_MESSAGES.unsandboxed).toContain("`web_media_download` for openly licensed");
+    expect(SHELL_MESSAGES.unsandboxed).not.toMatch(/network downloads work/i);
+  });
 });
 
 describe("Claude project sandbox", () => {

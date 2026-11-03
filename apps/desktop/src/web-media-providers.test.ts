@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { toolByName } from "@diffusionstudio/dapi";
 import {
-  attributionLine, fileKey, interleave, isWikimediaRendition, licenseAllowed, openverseLicense, openverseUrl, parseOpenverse, parseWikimedia, plainText,
+  attributionLine, catalogLicense, fileKey, interleave, isWikimediaRendition, licenseAllowed, openverseLicense, openverseUrl, parseOpenverse, parseWikimedia, plainText,
   UNKNOWN_LICENSE, urlKey, WIKIMEDIA_WIDTHS, wikimediaLicense, wikimediaRendition, wikimediaUrl, wikimediaWidth,
 } from "./web-media-providers";
 import { OPENVERSE_AUDIO, OPENVERSE_IMAGES, WIKIMEDIA_EMPTY, WIKIMEDIA_IMAGES, WIKIMEDIA_VIDEO_V1 } from "./web-media-fixtures";
@@ -73,6 +73,16 @@ describe("license normalization", () => {
       .toBe("\"Launch\" (https://e.test/p), dedicated to the public domain under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/).");
     expect(attributionLine({ title: "Pad", fileUrl: "https://e.test/a.jpg", license: UNKNOWN_LICENSE }))
       .toBe("\"Pad\" (https://e.test/a.jpg), license not verified: confirm the rights before publishing.");
+  });
+});
+
+describe("the audio catalog's rights", () => {
+  it("names the terms of open rights, with the version a credit line gives, and nothing for the rest", () => {
+    expect(catalogLicense("cc0")).toMatchObject({ code: "cc0", name: "CC0 1.0", verified: true, attributionRequired: false });
+    expect(catalogLicense("public-domain")).toMatchObject({ code: "public-domain", verified: true, attributionRequired: false });
+    expect(catalogLicense("cc-by", "Song by Someone, licensed under CC BY 4.0.")).toMatchObject({ code: "by", name: "CC BY 4.0", url: "https://creativecommons.org/licenses/by/4.0/", attributionRequired: true });
+    expect(catalogLicense("cc-by-sa", "Chill Day by an artist, licensed CC BY-SA.")).toMatchObject({ code: "by-sa", name: "CC BY-SA", shareAlike: true, verified: true });
+    for (const rights of ["copyrighted", "royalty-free", "unknown", "cc-by-nc"]) expect(catalogLicense(rights, "CC BY 4.0"), rights).toBeNull();
   });
 });
 

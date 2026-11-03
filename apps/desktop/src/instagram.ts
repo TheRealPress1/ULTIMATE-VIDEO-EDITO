@@ -121,7 +121,7 @@ function cachedDashboard(value: unknown): InstagramDashboard | null {
       if (!at || !values) return null;
       history.push({ syncedAt: at, metrics: values });
     }
-    posts.push({ id, caption: post.caption, mediaType: post.mediaType, mediaProductType: post.mediaProductType, permalink: safeUrl(post.permalink), thumbnailUrl: safeUrl(post.thumbnailUrl, true), publishedAt, syncedAt, metrics: values, history });
+    posts.push({ id, caption: post.caption, mediaType: post.mediaType, mediaProductType: post.mediaProductType, permalink: safeUrl(post.permalink), thumbnailUrl: safeUrl(post.thumbnailUrl, true), mediaUrl: safeUrl(post.mediaUrl, true), publishedAt, syncedAt, metrics: values, history });
   }
   if (new Set(posts.map(post => post.id)).size !== posts.length) return null;
   const followerHistory: InstagramDashboard["followerHistory"] = [];
@@ -345,7 +345,7 @@ export class InstagramService {
       values.saves = insight.saved;
       values.shares = insight.shares;
       values.averageWatchTimeMs = insight.ig_reels_avg_watch_time;
-      return { id, caption: typeof row.caption === "string" ? row.caption.slice(0, 10_000) : "", mediaType: row.media_type.slice(0, 30), mediaProductType: typeof row.media_product_type === "string" ? row.media_product_type.slice(0, 30) : "", permalink: safeUrl(row.permalink), thumbnailUrl: safeUrl(row.thumbnail_url ?? (row.media_type === "IMAGE" ? row.media_url : null), true), publishedAt, syncedAt, metrics: values, history: appendHistory(oldPosts.get(id)?.history ?? [], { syncedAt, metrics: values }) };
+      return { id, caption: typeof row.caption === "string" ? row.caption.slice(0, 10_000) : "", mediaType: row.media_type.slice(0, 30), mediaProductType: typeof row.media_product_type === "string" ? row.media_product_type.slice(0, 30) : "", permalink: safeUrl(row.permalink), thumbnailUrl: safeUrl(row.thumbnail_url ?? (row.media_type === "IMAGE" ? row.media_url : null), true), mediaUrl: safeUrl(row.media_url, true), publishedAt, syncedAt, metrics: values, history: appendHistory(oldPosts.get(id)?.history ?? [], { syncedAt, metrics: values }) };
     };
     const posts: InstagramPost[] = [];
     // Bound load on the API while avoiding 25 serial round trips. The whole sync has a 45 s budget.

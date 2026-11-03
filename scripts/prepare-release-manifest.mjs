@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
+import { isEntryPoint } from './lib/entry-point.mjs';
 import { atomicJson, withVerifiedZip } from './lib/release-artifacts.mjs';
 import { compareVersions, validateReleaseManifest } from './update-feed.mjs';
 
@@ -58,4 +58,4 @@ async function main() {
   console.log(`Verified ${verified.version} (${verified.arch}); retained ${merged.releases.length} release entries. Metadata written to ${resolve(output)}.`);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();
+if (isEntryPoint(import.meta.url)) await main();

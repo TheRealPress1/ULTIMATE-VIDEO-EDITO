@@ -9,19 +9,26 @@
 
 import type { WebMediaKind, WebMediaLicense, WebMediaProvider } from "@diffusionstudio/dapi";
 
-/** Asks main to download `url` into `<dir>/assets/web/`. `id` names the job for cancelling and the commit that follows. */
+/** The library folders a download may land in: `assets/web/` unless a catalog sound belongs in `music/` or `sfx/`. */
+export type WebMediaFolder = "web" | "music" | "sfx";
+
+/** What Cutroom's curated audio catalog records about a source it ships (audio-catalog.ts): a download of that source is credited from it. */
+export type WebMediaCatalogCredit = { title: string; rights: string; attribution?: string; pageUrl?: string };
+
+/** Asks main to download `url` into `<dir>/assets/<folder>/` (default `web`). `id` names the job for cancelling and the commit that follows. */
 export type WebMediaDownloadRequest = {
   id: string;
   dir: string;
   url: string;
   name?: string;
   prefer: "image" | "video";
+  folder?: WebMediaFolder;
 };
 
 /** A file main wrote (or found already there), waiting for the renderer to import it. */
 export type WebMediaDownloaded = {
   id: string;
-  /** Project-relative, `/`-separated: `assets/web/<slug>-<sha8>.<ext>`, the library's `source`. */
+  /** Project-relative, `/`-separated: `assets/<folder>/<slug>-<sha8>.<ext>`, the library's `source`. */
   source: string;
   /** Absolute path of the file. */
   path: string;
@@ -52,7 +59,7 @@ export type WebMediaCommitResult = { creditsFile: string };
 
 /** One download as `.cutroom/web-media.json` keeps it. */
 export type WebMediaLedgerItem = {
-  /** The file: project-relative (`assets/web/…`), or absolute for a library asset outside the project with the same bytes. */
+  /** The file: project-relative (`assets/web/…`, `assets/music/…`, `assets/sfx/…`), or absolute for a library asset outside the project with the same bytes. */
   file: string;
   sha256: string;
   bytes: number;

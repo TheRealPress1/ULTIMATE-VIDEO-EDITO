@@ -116,7 +116,12 @@ export type SharedMedia = {
   title?: string;
 };
 
-const ENTITIES: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " " };
+/** The named references decoded: markup's own, and the quotes, dashes and signs titles are written with. */
+const ENTITIES: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  lsquo: "\u2018", rsquo: "\u2019", ldquo: "\u201c", rdquo: "\u201d", laquo: "\u00ab", raquo: "\u00bb",
+  ndash: "\u2013", mdash: "\u2014", hellip: "\u2026", copy: "\u00a9", reg: "\u00ae", trade: "\u2122",
+};
 
 /** HTML character references decoded, for attribute values and titles. */
 export function decodeEntities(text: string): string {

@@ -32,6 +32,20 @@ export { LOG_TAIL, LOG_MESSAGE_MAX } from "./tools/logs";
 export { FONT_LIMIT } from "./tools/fonts";
 export { generatedPath } from "./tools/generate";
 export { WEB_MEDIA_LIMIT, WEB_MEDIA_PREVIEWS } from "./tools/web-media";
+export { SOUND_ACTIONS, SOUND_ANALYZE_FIELDS } from "./tools/sound";
+export type { SoundAction } from "./tools/sound";
+export {
+  AUDIO_CATALOG_ID_PREFIXES,
+  AUDIO_CATALOG_LIST_MAX,
+  AUDIO_CATALOG_PERSONAL_BYTES,
+  AUDIO_CATALOG_PERSONAL_MAX,
+  AudioCatalogFile,
+  CATALOG_PATCH_FIELDS,
+  CatalogPatch,
+  PersonalCatalogFile,
+  SfxCategory,
+} from "./tools/audio-catalog";
+export { MEDIA_SEARCH_LIMIT, MEDIA_SEARCH_PREVIEWS, MEDIA_MAX_HEIGHTS } from "./tools/media";
 export {
   LOCAL_JOB_PREFIX,
   LOCAL_MODELS,
@@ -54,6 +68,18 @@ import type { FrameQuality as FrameQualitySchema } from "./tools/grab";
 import type { TranscriptSegment as TranscriptSegmentSchema, TranscriptWord as TranscriptWordSchema } from "./tools/transcribe";
 import type { FontFamily as FontFamilySchema } from "./tools/fonts";
 import type { WebMediaKind as WebMediaKindSchema, WebMediaLicense as WebMediaLicenseSchema, WebMediaProvider as WebMediaProviderSchema, WebMediaResult as WebMediaResultSchema } from "./tools/web-media";
+import type { MediaKind as MediaKindSchema, MediaPlatform as MediaPlatformSchema, MediaProfile as MediaProfileSchema, MediaSearchResult as MediaSearchResultSchema } from "./tools/media";
+import type {
+  AudioCatalogFile as AudioCatalogFileSchema,
+  CatalogDownload as CatalogDownloadSchema,
+  CatalogEntry as CatalogEntrySchema,
+  CatalogKind as CatalogKindSchema,
+  CatalogPatch as CatalogPatchSchema,
+  MergedCatalogEntry as MergedCatalogEntrySchema,
+  MusicCatalogEntry as MusicCatalogEntrySchema,
+  PersonalCatalogFile as PersonalCatalogFileSchema,
+  SfxCatalogEntry as SfxCatalogEntrySchema,
+} from "./tools/audio-catalog";
 import type { ToolArgs, ToolOutput, ToolResult } from "./catalog";
 
 export type LogLevel = z.output<typeof LogLevelSchema>;
@@ -72,6 +98,19 @@ export type WebMediaKind = z.output<typeof WebMediaKindSchema>;
 export type WebMediaProvider = z.output<typeof WebMediaProviderSchema>;
 export type WebMediaLicense = z.output<typeof WebMediaLicenseSchema>;
 export type WebMediaResult = z.output<typeof WebMediaResultSchema>;
+export type AudioCatalogKind = z.output<typeof CatalogKindSchema>;
+export type AudioCatalogDefaults = z.output<typeof AudioCatalogFileSchema>;
+export type AudioCatalogEntry = z.output<typeof CatalogEntrySchema>;
+export type AudioCatalogMusicEntry = z.output<typeof MusicCatalogEntrySchema>;
+export type AudioCatalogSfxEntry = z.output<typeof SfxCatalogEntrySchema>;
+export type AudioCatalogPatch = z.output<typeof CatalogPatchSchema>;
+export type AudioCatalogPersonal = z.output<typeof PersonalCatalogFileSchema>;
+export type AudioCatalogMerged = z.output<typeof MergedCatalogEntrySchema>;
+export type AudioCatalogDownload = z.output<typeof CatalogDownloadSchema>;
+export type MediaKind = z.output<typeof MediaKindSchema>;
+export type MediaPlatform = z.output<typeof MediaPlatformSchema>;
+export type MediaProfile = z.output<typeof MediaProfileSchema>;
+export type MediaSearchResult = z.output<typeof MediaSearchResultSchema>;
 
 export type OpenRequest = ToolArgs<"open">;
 export type OpenResult = ToolResult<"open">;

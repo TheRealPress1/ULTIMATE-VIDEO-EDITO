@@ -7,6 +7,7 @@ import type { GenericTool } from "./tool";
 
 import { open } from "./tools/open";
 import { skills, editingStyle } from "./tools/skills";
+import { audioCatalog } from "./tools/audio-catalog";
 import { context } from "./tools/context";
 import { capture } from "./tools/capture";
 import { check } from "./tools/check";
@@ -27,8 +28,10 @@ import { audioFinish } from "./tools/audio-finish";
 import { filmstrip } from "./tools/filmstrip";
 import { waveform } from "./tools/waveform";
 import { listen } from "./tools/listen";
+import { soundAnalyze, soundEffects } from "./tools/sound";
 import { generate, job } from "./tools/generate";
 import { webMediaSearch, webMediaDownload } from "./tools/web-media";
+import { mediaSearch, mediaDownload } from "./tools/media";
 import { fonts } from "./tools/fonts";
 import { report } from "./tools/report";
 import { appWindow } from "./tools/window";
@@ -42,6 +45,7 @@ import { instagramAccounts, instagramPosts, instagramPostAnalytics, instagramAcc
 export const catalog = [
   skills,
   editingStyle,
+  audioCatalog,
   open,
   context,
   capture,
@@ -67,10 +71,14 @@ export const catalog = [
   filmstrip,
   waveform,
   listen,
+  soundAnalyze,
+  soundEffects,
   generate,
   job,
   webMediaSearch,
   webMediaDownload,
+  mediaSearch,
+  mediaDownload,
   logs,
   screenshot,
   appWindow,
