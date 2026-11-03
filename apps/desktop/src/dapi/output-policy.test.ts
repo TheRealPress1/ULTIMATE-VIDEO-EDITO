@@ -406,6 +406,23 @@ describe("checkToolOutputs", () => {
   });
 });
 
+describe("media_download's folder", () => {
+  const none: WritePolicy = { project: null, pinned: null, home, temp: [temp] };
+
+  it("judges an absolute folder as a place a new file is made in", async () => {
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Music") }, none)).resolves.toBeUndefined();
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Music", "Cutroom", "new") }, none)).resolves.toBeUndefined();
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Library") }, none)).rejects.toThrow(WRITABLE_PLACES);
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, ".ssh") }, none)).rejects.toThrow(WRITABLE_PLACES);
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(project, ".git") }, policy)).rejects.toThrow(/off-limits/);
+  });
+
+  it("leaves a library folder to the download, which keeps it in the project", async () => {
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: "music" }, none)).resolves.toBeUndefined();
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: "b-roll/city" }, policy)).resolves.toBeUndefined();
+  });
+});
+
 describe("openRefusal", () => {
   const show = join(home, "Movies", "Existing Show");
   const footage = join(home, "Movies", "Footage");

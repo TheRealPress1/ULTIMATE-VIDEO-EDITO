@@ -4,10 +4,13 @@
 
 import { logs } from "./logs";
 import { skills, editingStyle } from "./skills";
+import { audioCatalog } from "./audio-catalog";
 import { report } from "./report";
 import { window } from "./window";
 import { instagramAccounts, instagramPosts, instagramPostAnalytics, instagramAccountInsights } from "./instagram";
 import { webMediaSearch } from "./web-media";
+import { soundAnalyze } from "./sound";
+import { mediaSearch } from "./media";
 
 import type { MainHandlers } from "../handler";
 
@@ -15,6 +18,7 @@ import type { MainHandlers } from "../handler";
 export const mainHandlers: MainHandlers = {
   skills,
   editing_style: editingStyle,
+  audio_catalog: audioCatalog,
   logs,
   report,
   window,
@@ -23,4 +27,6 @@ export const mainHandlers: MainHandlers = {
   instagram_post_analytics: instagramPostAnalytics,
   instagram_account_insights: instagramAccountInsights,
   web_media_search: webMediaSearch,
+  sound_analyze: soundAnalyze,
+  media_search: mediaSearch,
 };

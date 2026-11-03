@@ -62,6 +62,20 @@ export const UNKNOWN_LICENSE: WebMediaLicense = {
   code: "unknown", name: "Unknown license", attributionRequired: true, shareAlike: false, commercialUse: false, modificationsAllowed: false, verified: false,
 };
 
+/**
+ * The license Cutroom's curated audio catalog records as `rights`, with the
+ * version its credit line names (`CC BY 4.0`). Null for rights that name no
+ * terms to check (copyrighted, royalty-free, unknown): those stay unverified.
+ */
+export function catalogLicense(rights: string, attribution?: string): WebMediaLicense | null {
+  const version = /\bCC BY(?:-SA)?\s+(\d+\.\d+)\b/i.exec(attribution ?? "")?.[1];
+  if (rights === "cc0") return license("cc0", "1.0");
+  if (rights === "public-domain") return license("public-domain");
+  if (rights === "cc-by") return license("by", version);
+  if (rights === "cc-by-sa") return license("by-sa", version);
+  return null;
+}
+
 /** Creative Commons' canonical deed for a code and version, when the provider gives none. */
 function ccUrl(code: string, version: string | undefined): string | undefined {
   if (code === "cc0") return "https://creativecommons.org/publicdomain/zero/1.0/";

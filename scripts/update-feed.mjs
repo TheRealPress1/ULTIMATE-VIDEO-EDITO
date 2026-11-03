@@ -1,8 +1,9 @@
 // Deploy behind HTTPS. This process serves metadata only; ZIPs live on your release host.
 import { createServer } from 'node:http';
+import { realpathSync } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { isIP } from 'node:net';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const MAX_MANIFEST_BYTES = 1024 * 1024;
 
@@ -131,7 +132,16 @@ export function startUpdateFeed({ manifestPath, port = 8788, host = '127.0.0.1' 
   }).listen(port, host);
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/** Whether node was started with this file. Both paths are resolved through symlinks, since node keeps `argv[1]` as typed. */
+function startedDirectly() {
+  try {
+    return Boolean(process.argv[1]) && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+}
+
+if (startedDirectly()) {
   if (!process.env.CUTROOM_RELEASE_MANIFEST) throw new Error('Set CUTROOM_RELEASE_MANIFEST to the approved release metadata file.');
   startUpdateFeed({ manifestPath: process.env.CUTROOM_RELEASE_MANIFEST, port: Number(process.env.PORT ?? 8788) });
 }

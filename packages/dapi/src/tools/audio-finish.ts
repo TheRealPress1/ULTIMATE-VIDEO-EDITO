@@ -11,7 +11,7 @@ const Loudness = z.object({
 export const audioFinish = defineTool({
   name: "audio_finish",
   title: "Measure and finish audio",
-  description: "Local audio finishing: action measure reports integrated LUFS, true peak and loudness range for a local source path or a sceneId's complete lossless edited mix. Action finish on a path saves a unique PCM WAV derivative with two-pass loudness normalization, optional dialogue leveling and conservative noise reduction. Action finish on sceneId creates a new editable scene: selected top-level audio musicIds stay separate with adjustable group-volume ducking keyframes; the remaining dialogue mix is finished into a derivative. Original scene/media remain intact; one Undo removes the new scene. Ducking follows dialogue audio activity, not speaker recognition. The combined finished mix is measured separately and may need music gain adjustment. Legacy inspect/normalize remain sample-peak/RMS-only operations on path. All processing is local with bundled FFmpeg, no upload/API payment. Mono/stereo sources/scenes up to ten minutes and 256 MiB decoded PCM (legacy 128 MiB), source files 512 MiB. Review before export; cannot repair previously clipped detail.",
+  description: "Local audio finishing: action measure reports integrated LUFS, true peak and loudness range for a local source path or a sceneId's complete lossless edited mix. Action finish on a path saves a unique PCM WAV derivative with two-pass loudness normalization, optional dialogue leveling and conservative noise reduction. Action finish on sceneId creates a new editable scene: selected top-level audio musicIds stay separate with adjustable group-volume ducking keyframes; selected top-level effectIds (sound effects) stay separate too, unprocessed, unducked and left out of dialogue activity; the remaining dialogue mix is finished into a derivative. Original scene/media remain intact; one Undo removes the new scene. Ducking follows dialogue audio activity, not speaker recognition. The combined finished mix is measured separately and may need music gain adjustment. Legacy inspect/normalize remain sample-peak/RMS-only operations on path. All processing is local with bundled FFmpeg, no upload/API payment. Mono/stereo sources/scenes up to ten minutes and 256 MiB decoded PCM (legacy 128 MiB), source files 512 MiB. Review before export; cannot repair previously clipped detail.",
   input: z.object({
     path: AssetPath.optional(),
     sceneId: SceneId.optional().describe('measure/finish the complete edited scene instead of a source path'),
@@ -22,12 +22,16 @@ export const audioFinish = defineTool({
     levelDialogue: z.boolean().optional(),
     denoise: z.boolean().optional(),
     musicIds: z.array(z.string().min(1)).max(32).optional().describe('top-level audio clip IDs to retain as background music in scene finish; other audio becomes the finished dialogue mix'),
+    effectIds: z.array(z.string().min(1)).max(64).optional().describe('top-level audio clip IDs of sound effects to keep as they are in scene finish: not leveled or denoised with the dialogue, not ducked, and not counted as dialogue activity; never the same clip as a musicIds entry'),
     duckingDb: z.number().min(0).max(30).optional().describe('background attenuation during dialogue activity; default 12 dB'),
     activityThresholdDb: z.number().min(-70).max(-10).optional().describe('dialogue activity RMS threshold for ducking; default -42 dBFS'),
   }).superRefine((value, ctx) => {
     if (!!value.path === !!value.sceneId) ctx.addIssue({ code: 'custom', message: 'Provide exactly one local path or sceneId.' });
     if (value.sceneId && ['inspect', 'normalize'].includes(value.action)) ctx.addIssue({ code: 'custom', message: 'Scenes use measure or finish.' });
     if (value.musicIds?.length && (!value.sceneId || value.action !== 'finish')) ctx.addIssue({ code: 'custom', message: 'musicIds apply only to scene finishing.' });
+    if (value.effectIds?.length && (!value.sceneId || value.action !== 'finish')) ctx.addIssue({ code: 'custom', message: 'effectIds apply only to scene finishing.' });
+    const both = value.effectIds?.filter((id) => value.musicIds?.includes(id)) ?? [];
+    if (both.length) ctx.addIssue({ code: 'custom', path: ['effectIds'], message: `A clip is either music or a sound effect, not both: ${both.join(', ')}.` });
   }),
   output: z.object({
     action: z.enum(["inspect", "normalize", "measure", "finish"]),
@@ -47,6 +51,7 @@ export const audioFinish = defineTool({
     mixLoudness: Loudness.optional().describe('actual combined dialogue/music result after scene finishing'),
     createdSceneId: z.string().optional(),
     musicKeyframeCount: z.number().optional(),
+    effectCount: z.number().optional().describe('sound effect clips kept separate in the finished scene'),
   }),
   environment: "renderer",
   annotations: { destructiveHint: false, openWorldHint: false },

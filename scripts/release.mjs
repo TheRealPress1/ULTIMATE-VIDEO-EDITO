@@ -1,9 +1,10 @@
 // Prepare a release version without committing, tagging, pushing, or publishing.
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
+import { isEntryPoint } from './lib/entry-point.mjs';
 import { npm } from './lib/npm.mjs';
 import { stableVersion } from './lib/release-artifacts.mjs';
 import { compareVersions } from './update-feed.mjs';
@@ -40,4 +41,4 @@ function main() {
   }
   console.log('Version prepared. Run the release checks and signed build in docs/releasing.md. Git history and hosted releases are unchanged.');
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main();
+if (isEntryPoint(import.meta.url)) main();

@@ -33,10 +33,11 @@ export const advancedAudioFinish: ToolHandler<'audio_finish'> = async (args, ctx
       return { action: args.action, ...legacyFields(args.sceneId, result.measurement), inputLoudness: result.measurement, warnings: result.warnings };
     }
     const musicIds = args.musicIds?.map((id) => resolveNode(session!.world, id).get(Source)!.value);
-    const result = await finishSceneAudio(session!.world, scene, dir!, { ...args, musicIds, signal: ctx.signal, assertCurrent });
+    const effectIds = args.effectIds?.map((id) => resolveNode(session!.world, id).get(Source)!.value);
+    const result = await finishSceneAudio(session!.world, scene, dir!, { ...args, musicIds, effectIds, signal: ctx.signal, assertCurrent });
     return { action: args.action, ...legacyFields(args.sceneId, result.input), outputPath: result.outputPath,
       outputSamplePeakDb: result.dialogue.samplePeakDb, inputLoudness: result.input, outputLoudness: result.dialogue,
-      mixLoudness: result.mix, createdSceneId: result.sceneId, musicKeyframeCount: result.musicKeyframeCount, warnings: result.warnings };
+      mixLoudness: result.mix, createdSceneId: result.sceneId, musicKeyframeCount: result.musicKeyframeCount, effectCount: result.effectCount, warnings: result.warnings };
   }
   const path = args.path;
   if (!path || isUrlSource(path)) throw new DapiError('invalid-input', 'Choose a local source path or sceneId.');

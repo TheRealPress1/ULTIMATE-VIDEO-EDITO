@@ -1,0 +1,11 @@
+export type CapabilityKind = 'demuxers' | 'muxers' | 'bsfs' | 'decoders' | 'parsers';
+export const REQUIRED: Record<CapabilityKind, string[]>;
+export const CONFIGURE_FLAGS: string[];
+export type Capabilities = { demuxers: Set<string>; muxers: Set<string>; bsfs: Set<string>; decoders: Set<string> };
+export type RunTool = (file: string, args: string[]) => string;
+export function parseFormats(output: string): Set<string>;
+export function parseCodecs(output: string): Set<string>;
+export function parseBsfs(output: string): Set<string>;
+export function missingCapabilities(found: Partial<Capabilities>): string[];
+export function readCapabilities(binary: string, run?: RunTool): Capabilities;
+export function assertCapabilities(binary: string, run?: RunTool): void;

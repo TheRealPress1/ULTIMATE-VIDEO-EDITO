@@ -1,9 +1,19 @@
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
 
+/** The folder of the bundled LGPL FFmpeg build: ffmpeg, ffprobe, their source and license. yt-dlp's `--ffmpeg-location`. */
+export function resolveAudioToolsDir(appPath: string): string {
+  return join(appPath, 'dist', 'audio-tools');
+}
+
 /** The binary and corresponding source/license are included beside the desktop JavaScript. */
 export function resolveAudioToolsPath(appPath: string): string {
-  return join(appPath, 'dist', 'audio-tools', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+  return join(resolveAudioToolsDir(appPath), process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+}
+
+/** ffprobe from the same build and configuration as ffmpeg. */
+export function resolveFfprobePath(appPath: string): string {
+  return join(resolveAudioToolsDir(appPath), process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe');
 }
 
 export interface AudioToolRunOptions {

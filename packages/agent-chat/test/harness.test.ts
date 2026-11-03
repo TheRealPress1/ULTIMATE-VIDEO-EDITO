@@ -45,7 +45,9 @@ describe("collectResult", () => {
 describe("chatInstructions", () => {
   it("describes each provider's own command sandbox", () => {
     const claude = chatInstructions("/projects/demo", undefined, "claude");
-    expect(claude).toContain("sandboxed commands (including network downloads) run automatically");
+    expect(claude).toContain("sandboxed commands run automatically; sandboxed commands reach public hosts for packages and pages, not media");
+    // Claude's sandbox has network, but the permission line must not read as licence to fetch media from the shell.
+    expect(claude).not.toMatch(/network downloads/i);
     const codex = chatInstructions("/projects/demo", undefined, "codex");
     expect(codex).toContain("sandboxed commands have no network access");
     expect(codex).not.toContain("network downloads");
@@ -61,7 +63,11 @@ describe("chatInstructions", () => {
     expect(codex).toContain("Writes outside the project and temporary folders, network access from commands and requests for extra permissions are declined automatically");
     for (const text of [claude, codex]) {
       expect(text).toContain("`/projects/demo`");
-      expect(text).toContain("`web_media_search` and `web_media_download`");
+      // Platform links and licensed stock each have their own tools, and neither goes through the shell.
+      expect(text).toContain("`media_search` and `media_download` for YouTube");
+      expect(text).toContain("`web_media_search` and `web_media_download` for openly licensed");
+      expect(text).toContain("never a shell download");
+      expect(text).not.toContain("from the web use `web_media_search`");
     }
     expect(chatInstructions("/projects/demo", "Prefer captions.", "codex").endsWith("\n\nPrefer captions.")).toBe(true);
   });

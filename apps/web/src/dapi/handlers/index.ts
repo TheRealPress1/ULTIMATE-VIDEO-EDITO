@@ -23,8 +23,10 @@ import { audioFinish } from "./audio-finish";
 import { filmstrip } from "./filmstrip";
 import { waveform } from "./waveform";
 import { listen } from "./listen";
+import { soundEffects } from "./sound";
 import { generate, job } from "./generate";
 import { webMediaDownload } from "./web-media";
+import { mediaDownload } from "./media";
 
 import type { Handlers } from "../handler";
 
@@ -57,7 +59,9 @@ export const handlers: Handlers = {
   filmstrip,
   waveform,
   listen,
+  sound_effects: soundEffects,
   generate,
   job,
   web_media_download: webMediaDownload,
+  media_download: mediaDownload,
 };

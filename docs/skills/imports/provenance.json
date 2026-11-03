@@ -1,11 +1,12 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-10-25",
+  "reviewedAt": "2026-11-03",
   "notes": [
     "OpenAI skill directories were imported using the Codex skill-installer helper at the recorded commit.",
     "Upstream files are unmodified, including per-skill licenses. UVE wrappers and run.py are maintained separately.",
     "No Remotion source files or runtime are redistributed.",
-    "Live API calls, credential configuration, and Python dependency installation are not performed by installation."
+    "Live API calls, credential configuration, and Python dependency installation are not performed by installation.",
+    "earshot skills are adapted, not vendored: rewritten for Cutroom tools (sound_analyze, sound_effects, export, audio_finish, composition clips) with shell setup, scripts, forge and the cloud critique removed. The upstream MIT LICENSE is kept verbatim in each folder and the copyright notice in each adapted file; upstreamFiles records the SHA-256 of every source file they were adapted from."
   ],
   "imports": [
     {
@@ -67,6 +68,53 @@
       "sourceUrl": "https://github.com/remotion-dev/skills/tree/6c67adcd9cdbe6eb84d76342da89b225f9161cb2",
       "license": "not-declared-at-reviewed-revision",
       "redistributedFiles": []
+    },
+    {
+      "id": "earshot-listening",
+      "mode": "adapted",
+      "repository": "https://github.com/Leonxlnx/earshot",
+      "revision": "591fa3e028032e6dce56620a20e932e35667e8d8",
+      "release": "v0.4.0",
+      "sourcePath": "skills/earshot",
+      "sourceUrl": "https://github.com/Leonxlnx/earshot/tree/591fa3e028032e6dce56620a20e932e35667e8d8/skills/earshot",
+      "path": "earshot-listening",
+      "license": "MIT",
+      "licensePath": "earshot-listening/LICENSE",
+      "notice": "Copyright (c) 2026 Leon Lin",
+      "modified": true,
+      "files": {
+        "earshot-listening/LICENSE": "d9177365c7471d18ecd623ce7b8849e26ab8d7e7fea13e1fcbda62397ecb9db8"
+      },
+      "upstreamFiles": {
+        "LICENSE": "d9177365c7471d18ecd623ce7b8849e26ab8d7e7fea13e1fcbda62397ecb9db8",
+        "skills/earshot/SKILL.md": "4a68edba1ca1d120d2cc7f63bdd0ac67970cb5ba356bf8b8e4432bd0ed6714dc"
+      }
+    },
+    {
+      "id": "earshot-real-sound",
+      "mode": "adapted",
+      "repository": "https://github.com/Leonxlnx/earshot",
+      "revision": "591fa3e028032e6dce56620a20e932e35667e8d8",
+      "release": "v0.4.0",
+      "sourcePath": "skills/real-sound",
+      "sourceUrl": "https://github.com/Leonxlnx/earshot/tree/591fa3e028032e6dce56620a20e932e35667e8d8/skills/real-sound",
+      "path": "earshot-real-sound",
+      "license": "MIT",
+      "licensePath": "earshot-real-sound/LICENSE",
+      "notice": "Copyright (c) 2026 Leon Lin",
+      "modified": true,
+      "files": {
+        "earshot-real-sound/LICENSE": "d9177365c7471d18ecd623ce7b8849e26ab8d7e7fea13e1fcbda62397ecb9db8"
+      },
+      "upstreamFiles": {
+        "LICENSE": "d9177365c7471d18ecd623ce7b8849e26ab8d7e7fea13e1fcbda62397ecb9db8",
+        "skills/real-sound/SKILL.md": "4810cd9a42676d927ca3cee29933bdbf2ddb92976e869fa439f38531bbc59a0e",
+        "skills/real-sound/references/licences.md": "b3148cc87015d54ce30e0e0ac7117e1092cb3b64f034eca31e5ce8101a348374",
+        "skills/real-sound/references/process.md": "10bac9eed994ead133699e22f5010f1fcb7a426c3037959abded7b77ee69d49b",
+        "skills/real-sound/references/sound-design.md": "199c18ada0ff8a5782479bd41eb90fd2011eafa188a251a837f95b94bb5f5389",
+        "skills/real-sound/templates/SOUND_BRIEF.md": "4f4f7fb073a93764b5f2dd1c26b3ef5f86992d60c9b532cd3b2c58db8279e808",
+        "skills/real-sound/templates/cues.json": "8b4b60bef715948a3400a765937c5209ee98c3258fa35132f7b97b3d8a6ee303"
+      }
     }
   ]
 }

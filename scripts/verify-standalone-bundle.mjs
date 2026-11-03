@@ -4,10 +4,11 @@
 // Usage: node scripts/verify-standalone-bundle.mjs /path/Cutroom.app [arm64|x64] [--output report.json]
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { accessSync, closeSync, constants, lstatSync, openSync, readFileSync, readdirSync, readlinkSync, readSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import Module, { builtinModules, createRequire } from "node:module";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { assertCapabilities } from "../apps/desktop/scripts/audio-tools-capabilities.mjs";
 
 const args = process.argv.slice(2);
 const bundleArg = args.shift();
@@ -39,7 +40,7 @@ function file(path, executable = false) {
   return path;
 }
 for (const path of [
-  "package.json", "dist/main.js", "dist/preload.js", "dist/agent-host.mjs", "dist/corner_radius.node", "dist/reframe-vision", "dist/visual-vision", "dist/reference-style", "dist/playback-proxy", "dist/speaker-analysis", "dist/speaker-model.json", "dist/speaker-model-LICENSE.txt", "dist/audio-tools/ffmpeg", "dist/audio-tools/runtime.json", "dist/release-config.json", "web/index.html",
+  "package.json", "dist/main.js", "dist/preload.js", "dist/agent-host.mjs", "dist/corner_radius.node", "dist/reframe-vision", "dist/visual-vision", "dist/reference-style", "dist/playback-proxy", "dist/speaker-analysis", "dist/speaker-model.json", "dist/speaker-model-LICENSE.txt", "dist/audio-tools/ffmpeg", "dist/audio-tools/ffprobe", "dist/audio-tools/runtime.json", "dist/release-config.json", "web/index.html",
 ]) file(join(application, path));
 for (const path of [
   "cli/dapi.js", "cli/bin/dapi", "runtime/package.json", "docs/INSTRUCTIONS.md", "docs/skills/editor.md", "docs/skills/watch.md", "docs/skills/uve-web-media/SKILL.md", "docs/reference/tools/web-media.md",
@@ -51,6 +52,7 @@ file(join(resources, "speech", "whisper-cli"), true);
 file(join(application, "dist", "reframe-vision"), true);
 file(join(application, "dist", "visual-vision"), true);
 file(join(application, "dist", "audio-tools", "ffmpeg"), true);
+file(join(application, "dist", "audio-tools", "ffprobe"), true);
 const pkg = JSON.parse(readFileSync(join(application, "package.json"), "utf8"));
 assert.equal(pkg.main, "dist/main.js");
 assert.equal(plist('CFBundleIdentifier'), 'app.cutroom.editor');
@@ -61,6 +63,26 @@ const speech = JSON.parse(readFileSync(join(resources, "speech", "runtime.json")
 assert.equal(speech.platform, "darwin");
 assert.equal(speech.arch, architecture);
 checks.push("Editor, preload, agent host, CLI, docs, and local speech resources exist");
+// yt-dlp's remuxing and probing use the bundled LGPL ffmpeg and ffprobe, built together.
+const audioTools = JSON.parse(readFileSync(join(application, "dist", "audio-tools", "runtime.json"), "utf8"));
+assert.equal(audioTools.arch, architecture, "Bundled FFmpeg targets another architecture.");
+// Developer ID signing rewrites a binary's signature, so a signed release can't
+// match the build's digest; there the tools must show the build's version and
+// every capability yt-dlp and the audio tools rely on instead.
+const developerSigned = (path) => /Authority=Developer ID Application/.test(
+  spawnSync("/usr/bin/codesign", ["-dv", "--verbose=2", path], { encoding: "utf8" }).stderr ?? "");
+let signedTools = 0;
+for (const [tool, digest] of [["ffmpeg", audioTools.binarySha256], ["ffprobe", audioTools.ffprobeSha256]]) {
+  const path = join(application, "dist", "audio-tools", tool);
+  const firstLine = execFileSync(path, ["-hide_banner", "-version"], { encoding: "utf8" }).split("\n")[0];
+  assert(firstLine.startsWith(`${tool} version ${audioTools.version} `), `Bundled ${tool} reports another version: ${firstLine}`);
+  if (developerSigned(path)) { signedTools++; continue; }
+  assert.equal(createHash("sha256").update(readFileSync(path)).digest("hex"), digest, `Bundled ${tool} differs from its recorded build.`);
+}
+assertCapabilities(join(application, "dist", "audio-tools", "ffmpeg"));
+checks.push(signedTools
+  ? `Bundled LGPL ffmpeg and ffprobe (Developer ID signed) report FFmpeg ${audioTools.version} with every required capability`
+  : "Bundled LGPL ffmpeg and ffprobe match their recorded build and have every required capability");
 
 file(join(application, "dist", "speaker-analysis"), true);
 const speaker = JSON.parse(readFileSync(join(application, "dist", "speaker-model.json"), "utf8"));

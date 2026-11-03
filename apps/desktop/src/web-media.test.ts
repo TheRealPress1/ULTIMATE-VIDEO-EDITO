@@ -10,7 +10,7 @@ import { basename, join } from "node:path";
 import { gzipSync } from "node:zlib";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toolByName } from "@diffusionstudio/dapi";
-import { NO_PAGE_MEDIA, RESULT_MOVED, WebMediaService, environmentProxy, pinnedFetch, retryAfter, scutilProxy, slugFor } from "./web-media";
+import { NO_PAGE_MEDIA, RESULT_MOVED, WebMediaService, environmentProxy, notSound, pinnedFetch, platformFileMoved, platformPage, retryAfter, scutilProxy, slugFor } from "./web-media";
 import { openverseUrl, wikimediaUrl } from "./web-media-providers";
 import { PRIVATE_ADDRESS } from "./web-media-url";
 import { OPENVERSE_IMAGES, WIKIMEDIA_IMAGES } from "./web-media-fixtures";
@@ -19,7 +19,7 @@ import type { AddressInfo } from "node:net";
 import type { ToolInput } from "@diffusionstudio/dapi";
 import type { WebFetch, WebMediaOptions } from "./web-media";
 import type { ResolvedAddress } from "./web-media-url";
-import type { WebMediaLedger } from "./web-media-types";
+import type { WebMediaCatalogCredit, WebMediaFolder, WebMediaLedger } from "./web-media-types";
 
 const root = mkdtempSync(join(tmpdir(), "web-media-test-"));
 afterAll(() => rmSync(root, { recursive: true, force: true }));
@@ -33,6 +33,11 @@ const jpeg = (size = 600, seed = 1) => {
 const png = (size = 300) => {
   const out = new Uint8Array(size).fill(9);
   out.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  return out;
+};
+const mp3 = (size = 600) => {
+  const out = new Uint8Array(size).map((_, i) => (i * 13 + 3) & 255);
+  out.set([0x49, 0x44, 0x33, 0x04, 0, 0, 0, 0, 0, 0]);
   return out;
 };
 const sha = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
@@ -70,8 +75,8 @@ const service = (options: WebMediaOptions = {}) =>
 const searchArgs = (input: Partial<ToolInput<"web_media_search">> = {}) => toolByName("web_media_search").input.parse({ query: "apollo launch", ...input });
 const signal = () => new AbortController().signal;
 let sequence = 0;
-const download = (media: WebMediaService, url: string, extra: { name?: string; prefer?: "image" | "video"; signal?: AbortSignal } = {}) =>
-  media.download({ id: `job-${++sequence}`, dir: project, url, prefer: extra.prefer ?? "image", ...(extra.name ? { name: extra.name } : {}) }, extra.signal ?? signal());
+const download = (media: WebMediaService, url: string, extra: { name?: string; prefer?: "image" | "video"; signal?: AbortSignal; folder?: WebMediaFolder } = {}) =>
+  media.download({ id: `job-${++sequence}`, dir: project, url, prefer: extra.prefer ?? "image", ...(extra.name ? { name: extra.name } : {}), ...(extra.folder ? { folder: extra.folder } : {}) }, extra.signal ?? signal());
 const webFiles = () => (existsSync(join(project, "assets", "web")) ? readdirSync(join(project, "assets", "web")).sort() : []);
 const partial = () => webFiles().some((name) => name.startsWith(".dstmp-"));
 /** A file that sends its first bytes and then waits: for the caller's abort, or for `finish`. */
@@ -314,6 +319,133 @@ describe("web media download", () => {
     routes["https://blog.example/lan"] = html(`<meta property="og:image" content="http://192.168.1.20/hero.jpg">`);
     expect((await failure(download(service(), "https://blog.example/lan"))).message).toBe(`The page shares media at 192.168.1.20, but downloading it failed: ${PRIVATE_ADDRESS}`);
     expect(webFiles()).toEqual([]);
+  });
+
+  it("lands a catalog sound in the folder asked for, and records it there", async () => {
+    const media = service();
+    const bytes = mp3(900);
+    routes["https://cdn.freesound.org/previews/60/60026_71257-hq.mp3"] = file(bytes, "audio/mpeg");
+    const downloaded = await download(media, "https://cdn.freesound.org/previews/60/60026_71257-hq.mp3", { name: "Short airy whoosh", folder: "sfx" });
+    const name = `short-airy-whoosh-${sha(bytes).slice(0, 8)}.mp3`;
+    expect(downloaded).toMatchObject({ source: `assets/sfx/${name}`, path: join(project, "assets", "sfx", name), kind: "audio", deduplicated: false });
+    expect(readdirSync(join(project, "assets", "sfx"))).toEqual([name]);
+    expect(webFiles()).toEqual([]);
+    await media.commit({ id: downloaded.id, assetId: "sfx1", src: `sfx/${name}`, source: downloaded.source });
+    expect(ledger().items).toEqual([expect.objectContaining({ file: `assets/sfx/${name}`, src: `sfx/${name}`, kind: "audio" })]);
+    expect(credits()).toContain(`\`sfx/${name}\``);
+
+    // The same bytes asked for in another folder reuse the file already there.
+    routes["https://mirror.example/whoosh.mp3"] = file(bytes, "audio/mpeg");
+    const again = await download(media, "https://mirror.example/whoosh.mp3", { folder: "music" });
+    expect(again).toMatchObject({ source: `assets/sfx/${name}`, deduplicated: true });
+    expect(existsSync(join(project, "assets", "music"))).toBe(true);
+    expect(readdirSync(join(project, "assets", "music"))).toEqual([]);
+  });
+
+  it("credits a file Cutroom's audio catalog ships with the catalog's checked rights and credit line", async () => {
+    const whoosh = "https://cdn.freesound.org/previews/60/60026_71257-hq.mp3";
+    const holst = "https://upload.wikimedia.org/wikipedia/commons/8/85/Holst-_mars.ogg";
+    const shipped: Record<string, WebMediaCatalogCredit> = {
+      [whoosh]: { title: "Short airy whoosh", rights: "cc0", pageUrl: "https://freesound.org/people/qubodup/sounds/60026/", attribution: "Whoosh by qubodup on Freesound, CC0." },
+      [holst]: { title: "Mars, the Bringer of War", rights: "public-domain", pageUrl: "https://commons.wikimedia.org/wiki/File:Holst-_mars.ogg" },
+      "https://loops.example/bed.mp3": { title: "Bed", rights: "cc-by", attribution: "\"Bed\" by Someone, licensed CC BY 4.0." },
+      "https://loops.example/claimed.mp3": { title: "Claimed", rights: "copyrighted", attribution: "A commercial recording." },
+      "https://loops.example/moved": { title: "Moved", rights: "cc0" },
+    };
+    const catalogCredit = vi.fn(async (url: string) => shipped[url] ?? null);
+    const media = service({ catalogCredit });
+    routes[whoosh] = file(mp3(900), "audio/mpeg");
+    const downloaded = await download(media, whoosh, { folder: "sfx" });
+    expect(catalogCredit).toHaveBeenCalledWith(whoosh);
+    expect(downloaded).toMatchObject({
+      source: expect.stringMatching(/^assets\/sfx\/short-airy-whoosh-[0-9a-f]{8}\.mp3$/),
+      title: "Short airy whoosh",
+      pageUrl: "https://freesound.org/people/qubodup/sounds/60026/",
+      license: { code: "cc0", name: "CC0 1.0", verified: true, attributionRequired: false, commercialUse: true },
+      attribution: "Whoosh by qubodup on Freesound, CC0.",
+    });
+    expect(downloaded).not.toHaveProperty("provider");
+    await media.commit({ id: downloaded.id, assetId: "sfx1", src: downloaded.source.replace(/^assets\//, ""), source: downloaded.source });
+    expect(credits()).toContain("Credit: Whoosh by qubodup on Freesound, CC0.");
+    expect(credits()).toContain("License: CC0 1.0");
+    expect(credits()).not.toContain("not verified");
+
+    routes[holst] = file(mp3(950), "audio/mpeg");
+    expect(await download(media, holst, { folder: "music" })).toMatchObject({
+      license: { code: "public-domain", verified: true },
+      attribution: "\"Mars, the Bringer of War\" (https://commons.wikimedia.org/wiki/File:Holst-_mars.ogg), in the public domain.",
+    });
+    routes["https://loops.example/bed.mp3"] = file(mp3(960), "audio/mpeg");
+    expect((await download(media, "https://loops.example/bed.mp3", { folder: "music" })).license).toMatchObject({ code: "by", name: "CC BY 4.0", verified: true, attributionRequired: true });
+    // Rights that name no terms stay unverified, though the catalog's own credit line is kept.
+    routes["https://loops.example/claimed.mp3"] = file(mp3(970), "audio/mpeg");
+    expect(await download(media, "https://loops.example/claimed.mp3", { folder: "music" })).toMatchObject({ title: "Claimed", license: { code: "unknown", verified: false }, attribution: "A commercial recording." });
+    // An address that now serves a page: what the page shares is not the catalog's file.
+    routes["https://loops.example/moved"] = html(`<meta property="og:title" content="Something else"><meta property="og:image" content="https://loops.example/other.jpg">`);
+    routes["https://loops.example/other.jpg"] = file(jpeg(700, 5));
+    expect(await download(media, "https://loops.example/moved")).toMatchObject({ title: "Something else", license: { code: "unknown", verified: false } });
+    // Any other link, and a catalog that can't answer, change nothing.
+    routes["https://mirror.example/other.mp3"] = file(mp3(980), "audio/mpeg");
+    expect((await download(media, "https://mirror.example/other.mp3", { folder: "sfx" })).license.verified).toBe(false);
+    routes["https://mirror.example/again.mp3"] = file(mp3(990), "audio/mpeg");
+    const broken = service({ catalogCredit: async () => { throw new Error("catalog unreadable"); } });
+    expect((await download(broken, "https://mirror.example/again.mp3", { folder: "sfx" })).license.verified).toBe(false);
+  });
+
+  it("refuses a folder outside the three it knows, before any request", async () => {
+    routes["https://e.example/a.mp3"] = file(mp3(500), "audio/mpeg");
+    await expect(download(service(), "https://e.example/a.mp3", { folder: "../secrets" as WebMediaFolder })).rejects.toMatchObject({ code: "invalid-input" });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("refuses a picture in a sound folder before writing anything, such as the waveform a Freesound page shares", async () => {
+    // A Freesound sound page as it is served: a malformed og:audio, and the waveform as its picture.
+    const page = "https://freesound.org/people/qubodup/sounds/60026/";
+    const waveform = "https://cdn.freesound.org/displays/60/60026_71257_wave_bw_L.png";
+    routes[page] = html(`<meta property="og:audio" content="https://freesound.orghttps://cdn.freesound.org/previews/60/60026_71257-lq.mp3"><meta property="og:image" content="${waveform}">`);
+    routes[waveform] = file(png(400), "image/png");
+    const media = service();
+    expect(await failure(download(media, page, { folder: "sfx" }))).toMatchObject({ code: "unsupported", message: notSound("sfx") });
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([page, waveform]);
+    expect(existsSync(join(project, "assets"))).toBe(false);
+    // A direct image link in music, the same.
+    routes["https://e.example/cover.jpg"] = file(jpeg(500));
+    await expect(download(media, "https://e.example/cover.jpg", { folder: "music" })).rejects.toMatchObject({ code: "unsupported" });
+    expect(existsSync(join(project, "assets"))).toBe(false);
+    // In web, a picture is what was asked for.
+    expect(await download(media, "https://e.example/cover.jpg")).toMatchObject({ kind: "image", source: expect.stringMatching(/^assets\/web\//) });
+  });
+
+  it("points platform links to media_download instead of downloading the page's thumbnail", async () => {
+    for (const [url, site] of [
+      ["https://www.youtube.com/watch?v=XajaJYraODs", "YouTube"], ["https://youtu.be/XajaJYraODs", "YouTube"], ["https://www.tiktok.com/@a/video/123456789", "TikTok"],
+      ["https://www.instagram.com/reel/Cabcdef/", "Instagram"], ["https://x.com/a/status/123456789", "X"], ["https://vimeo.com/123456", "Vimeo"],
+      ["https://soundcloud.com/lakeyinspired/chill-day", "SoundCloud"], ["https://www.myinstants.com/en/instant/bruh-sound-effect-26614/", "MyInstants"],
+    ] as const) {
+      const error = await failure(download(service(), url));
+      expect(error, url).toMatchObject({ code: "unsupported" });
+      expect(error.message, url).toBe(platformPage(site === "X" ? "x" : site.toLowerCase()));
+      expect(error.message, url).toContain(`This is ${site === "Instagram" || site === "X" ? "an" : "a"} ${site} page. Use media_download`);
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    expect(NO_PAGE_MEDIA).toContain("media_download");
+    expect(NO_PAGE_MEDIA).not.toContain("stream through their players");
+  });
+
+  it("downloads a file on a platform's own host, such as a MyInstants MP3, but never reads one that answers with a page", async () => {
+    const boom = mp3(720);
+    routes["https://www.myinstants.com/media/sounds/vine-boom.mp3"] = file(boom, "audio/mpeg");
+    const name = `vine-boom-${sha(boom).slice(0, 8)}.mp3`;
+    expect(await download(service(), "https://www.myinstants.com/media/sounds/vine-boom.mp3", { folder: "sfx" })).toMatchObject({
+      kind: "audio", source: `assets/sfx/${name}`, sha256: sha(boom), fileUrl: "https://www.myinstants.com/media/sounds/vine-boom.mp3", license: { verified: false },
+    });
+    // A bot check (or a moved file) answers with a page: what it shares is not the sound.
+    routes["https://www.myinstants.com/media/sounds/gone.mp3"] = html(`<meta property="og:image" content="https://www.myinstants.com/media/images/og.jpg">`);
+    routes["https://www.myinstants.com/media/images/og.jpg"] = file(jpeg(500));
+    const error = await failure(download(service(), "https://www.myinstants.com/media/sounds/gone.mp3", { folder: "sfx" }));
+    expect(error).toMatchObject({ code: "unsupported", message: platformFileMoved("myinstants") });
+    expect(error.message).toContain("media_download");
+    expect(fetch.mock.calls.map(([url]) => url)).not.toContain("https://www.myinstants.com/media/images/og.jpg");
   });
 
   it("explains a page that shares nothing downloadable", async () => {
@@ -752,6 +884,15 @@ describe("web media download", () => {
     routes["https://e.example/a.jpg"] = file(jpeg());
     await expect(download(service(), "https://e.example/a.jpg")).rejects.toThrow(/leads outside the project/);
     expect(readdirSync(outside)).toEqual([]);
+  });
+
+  it("refuses an assets/web that leads into one of the project's protected folders", async () => {
+    mkdirSync(join(project, ".claude"));
+    mkdirSync(join(project, "assets"));
+    symlinkSync("../.claude", join(project, "assets", "web"));
+    routes["https://e.example/a.jpg"] = file(jpeg());
+    await expect(download(service(), "https://e.example/a.jpg")).rejects.toThrow("The project's assets/web folder leads into .claude, which Cutroom keeps off-limits to editing sessions.");
+    expect(readdirSync(join(project, ".claude"))).toEqual([]);
   });
 
   it("keeps the user's own CREDITS.md and rewrites only its section, listing files still there", async () => {

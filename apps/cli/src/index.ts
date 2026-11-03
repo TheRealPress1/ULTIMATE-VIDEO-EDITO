@@ -289,7 +289,67 @@ program
   .argument("<url>", field("web_media_download", "url"))
   .option("-n, --name <name>", field("web_media_download", "name"))
   .option("--prefer <kind>", field("web_media_download", "prefer"))
+  .option("--folder <folder>", field("web_media_download", "folder"))
   .action((url: string, opts: Omit<ToolInput<"web_media_download">, "url">) => run("web_media_download", { url, ...opts }));
+
+program
+  .command("media_search")
+  .description(describe("media_search"))
+  .argument("[query]", `${field("media_search", "query")}`)
+  .option("-P, --platform <platform>", field("media_search", "platform"))
+  .option("-c, --creator <creator>", field("media_search", "creator"))
+  .option("-l, --limit <n>", field("media_search", "limit"), numeric)
+  .option("-s, --sort <order>", field("media_search", "sort"))
+  .option("-t, --tab <tab>", field("media_search", "tab"))
+  .option("-p, --preview <n>", `${field("media_search", "preview")}; the CLI prints each thumbnail's file as the result's previewPath`, numeric)
+  .action((query: string | undefined, opts: Omit<ToolInput<"media_search">, "query">) =>
+    run("media_search", { ...(query === undefined ? {} : { query }), ...opts }),
+  );
+
+program
+  .command("media_download")
+  .description(describe("media_download"))
+  .argument("<url>", field("media_download", "url"))
+  .option("-k, --kind <kind>", field("media_download", "kind"))
+  .option("-f, --folder <folder>", `${field("media_download", "folder")}; a path starting with / or . is a folder on disk, resolved against the working directory`)
+  .option("--max-height <px>", field("media_download", "maxHeight"), numeric)
+  .option("--item <n>", field("media_download", "item"), numeric)
+  .action((url: string, opts: Omit<ToolInput<"media_download">, "url">) =>
+    run("media_download", { url, ...opts, folder: opts.folder && libraryOrDiskPath(opts.folder) }),
+  );
+
+program
+  .command("audio_catalog")
+  .alias("catalog")
+  .description(describe("audio_catalog"))
+  .addArgument(new Argument("<kind>", field("audio_catalog", "kind")).choices(toolByName("audio_catalog").input.shape.kind.options))
+  .option("-a, --action <action>", field("audio_catalog", "action"))
+  .option("--id <id>", field("audio_catalog", "id"))
+  .option("-q, --query <words>", field("audio_catalog", "query"))
+  .option("--moods <mood...>", field("audio_catalog", "moods"))
+  .option("--uses <use...>", field("audio_catalog", "uses"))
+  .option("--category <category...>", field("audio_catalog", "category"))
+  .option("--vocals <vocals...>", field("audio_catalog", "vocals"))
+  .option("--energy-min <n>", field("audio_catalog", "energyMin") || "music: the lowest energy, 1 (a quiet bed) to 5 (full intensity)", numeric)
+  .option("--energy-max <n>", field("audio_catalog", "energyMax") || "music: the highest energy, 1 (a quiet bed) to 5 (full intensity)", numeric)
+  .option("--max-duration <seconds>", field("audio_catalog", "maxDurationSeconds"), numeric)
+  .option("--rights <rights...>", field("audio_catalog", "rights"))
+  .option("--include-hidden", field("audio_catalog", "includeHidden"))
+  .option("--detail <detail>", field("audio_catalog", "detail"))
+  .option("-l, --limit <n>", field("audio_catalog", "limit"), numeric)
+  .option("--fields <json>", `${field("audio_catalog", "fields")}, as one JSON object`)
+  .option("--expected-revision <n>", field("audio_catalog", "expectedRevision"), numeric)
+  .option("--field-names <name...>", field("audio_catalog", "fieldNames"))
+  .option("--discard-damaged", field("audio_catalog", "discardDamaged"))
+  .action((kind: ToolInput<"audio_catalog">["kind"], opts: Omit<ToolInput<"audio_catalog">, "kind" | "fields" | "maxDurationSeconds"> & { fields?: string; maxDuration?: number }) => {
+    const { fields, maxDuration, ...rest } = opts;
+    return run("audio_catalog", {
+      kind,
+      ...rest,
+      ...(maxDuration === undefined ? {} : { maxDurationSeconds: maxDuration }),
+      ...(fields === undefined ? {} : { fields: json(fields, "--fields") as ToolInput<"audio_catalog">["fields"] }),
+    });
+  });
 
 program
   .command("logs")

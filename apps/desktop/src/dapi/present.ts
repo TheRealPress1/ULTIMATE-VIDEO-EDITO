@@ -66,6 +66,10 @@ export async function present(name: ToolName, args: unknown, result: unknown, po
       return presentJob(result as GenerationResult, judge);
     case "web_media_search":
       return presentWebMedia(result as ToolResult<"web_media_search">, judge);
+    case "sound_analyze":
+      return presentSound(result as ToolResult<"sound_analyze">);
+    case "media_search":
+      return presentMediaSearch(result as ToolResult<"media_search">, judge);
     default:
       return { output: result, images: [] };
   }
@@ -227,10 +231,21 @@ const PREVIEW_EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image
  */
 async function presentWebMedia({ results, warnings, previews }: ToolResult<"web_media_search">, judge: Judge): Promise<Presented> {
   if (!previews.length) return { output: { results, warnings }, images: [] };
-  const dir = await mkdtemp(join(tempDir(), "dapi-web-media-"));
-  const real = await realFolder(dir, judge, "fresh");
+  const { images, paths } = await writePreviews(previews, "dapi-web-media-", judge);
+  const shown: ToolOutput<"web_media_search"> = {
+    results: results.map((result) => (paths.has(result.index) ? { ...result, previewPath: paths.get(result.index)! } : result)),
+    warnings,
+  };
+  return { output: shown, images };
+}
+
+/** Thumbnails by result index into a fresh temp folder, inlined in result order; each written one's path, by index. */
+async function writePreviews(previews: Array<{ index: number; bytes: Uint8Array; mimeType: string }>, prefix: string, judge: Judge): Promise<{ images: WrittenImage[]; paths: Map<number, string> }> {
   const images: WrittenImage[] = [];
   const paths = new Map<number, string>();
+  if (!previews.length) return { images, paths };
+  const dir = await mkdtemp(join(tempDir(), prefix));
+  const real = await realFolder(dir, judge, "fresh");
   for (const { index, bytes, mimeType } of [...previews].sort((a, b) => a.index - b.index)) {
     const name = `${index}.${PREVIEW_EXTENSIONS[mimeType] ?? "img"}`;
     if (!(await createFile(real, name, bytes))) continue;
@@ -238,11 +253,22 @@ async function presentWebMedia({ results, warnings, previews }: ToolResult<"web_
     images.push({ path, bytes, mimeType });
     paths.set(index, path);
   }
-  const shown: ToolOutput<"web_media_search"> = {
-    results: results.map((result) => (paths.has(result.index) ? { ...result, previewPath: paths.get(result.index)! } : result)),
-    warnings,
+  return { images, paths };
+}
+
+/** Platform search thumbnails, as web media's are (see `presentWebMedia`). */
+async function presentMediaSearch({ previews, ...answer }: ToolResult<"media_search">, judge: Judge): Promise<Presented> {
+  const { images, paths } = await writePreviews(previews, "dapi-media-search-", judge);
+  const shown: ToolOutput<"media_search"> = {
+    ...answer,
+    results: answer.results.map((result) => (paths.has(result.index) ? { ...result, previewPath: paths.get(result.index)! } : result)),
   };
   return { output: shown, images };
+}
+
+/** A sound sheet's PNG is in the temp folder main made for it; the JPEG copy earshot sent along is what gets inlined. */
+function presentSound({ image, ...output }: ToolResult<"sound_analyze">): Presented {
+  return { output, images: image && output.sheet ? [{ path: output.sheet, bytes: image.bytes, mimeType: image.mimeType }] : [] };
 }
 
 /** Files of succeeded jobs saved to disk, by job id: the first poll that sees a job succeed saves them, the rest reuse the paths. */

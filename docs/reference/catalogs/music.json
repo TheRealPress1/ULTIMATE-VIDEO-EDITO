@@ -1,0 +1,1368 @@
+{
+  "version": 1,
+  "kind": "music",
+  "updated": "2026-11-03",
+  "entries": [
+    {
+      "id": "wikimedia:3432550",
+      "title": "Gymnopédie No. 1 — Erik Satie",
+      "description": "Unhurried solo piano in a slow three-beat sway: a few soft left-hand chords under a melody that seems to drift. Quiet and intimate with plenty of space, so it sits well under a reflective voice-over, an interview or a slow portrait sequence. Too still for fast cuts.",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/9/90/Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg",
+      "durationSeconds": 183.59,
+      "rights": "public-domain",
+      "verifiedAt": "2026-11-03",
+      "pageUrl": "https://commons.wikimedia.org/wiki/File:Erik_Satie_-_gymnopedies_-_la_1_ere._lent_et_douloureux.ogg",
+      "attribution": "Erik Satie, Gymnopédie No. 1, performed by Robin Alciatore for Musopen; public domain, via Wikimedia Commons.",
+      "artist": "Erik Satie",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "calm",
+        "reflective",
+        "nostalgic"
+      ],
+      "energy": 1,
+      "tags": [
+        "solo piano",
+        "classical",
+        "slow waltz",
+        "public domain"
+      ],
+      "uses": [
+        "talking-head",
+        "interview",
+        "documentary",
+        "story",
+        "background-bed"
+      ],
+      "avoid": [
+        "sports",
+        "fitness",
+        "hook"
+      ],
+      "sourceRange": {
+        "start": 1.8,
+        "end": 179.8
+      },
+      "loudnessLufs": -25.9,
+      "suggestedVolumeDb": -8
+    },
+    {
+      "id": "youtube:UfcAVejslrU",
+      "title": "Weightless — Marconi Union",
+      "description": "Eight minutes of slow ambient pads, soft chimes and a barely-there pulse that gradually slows. Written to calm, it disappears under meditation, wellness, sleep or late-night explainer footage, and its length covers a long take without a loop.",
+      "sourceUrl": "https://www.youtube.com/watch?v=UfcAVejslrU",
+      "durationSeconds": 488.94,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Marconi Union",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "calm",
+        "dreamy",
+        "reflective"
+      ],
+      "energy": 1,
+      "tags": [
+        "ambient",
+        "pads",
+        "no beat",
+        "long"
+      ],
+      "uses": [
+        "background-bed",
+        "explainer",
+        "documentary",
+        "travel"
+      ],
+      "avoid": [
+        "hook",
+        "sports",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 0.6,
+        "end": 480.1
+      },
+      "loudnessLufs": -13.9,
+      "suggestedVolumeDb": -20
+    },
+    {
+      "id": "youtube:OlaTeXX3uH8",
+      "title": "An Ending (Ascent) — Brian Eno",
+      "description": "A slow, rising synthesizer swell with a soft, hymn-like glow and no percussion at all. It feels like looking back with gratitude: right for memorial pieces, space and nature footage, or the closing minute of a documentary. Every cut should breathe with it.",
+      "sourceUrl": "https://www.youtube.com/watch?v=OlaTeXX3uH8",
+      "durationSeconds": 261.36,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Brian Eno",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "reflective",
+        "emotional",
+        "dreamy"
+      ],
+      "energy": 1,
+      "tags": [
+        "ambient",
+        "synth swell",
+        "space",
+        "remastered"
+      ],
+      "uses": [
+        "documentary",
+        "story",
+        "outro",
+        "background-bed"
+      ],
+      "avoid": [
+        "hook",
+        "comedy",
+        "fitness"
+      ],
+      "sourceRange": {
+        "start": 7.2,
+        "end": 249.6
+      },
+      "loudnessLufs": -17.8,
+      "suggestedVolumeDb": -16
+    },
+    {
+      "id": "youtube:qYcoJpqCha4",
+      "title": "Aruarian Dance — Nujabes",
+      "description": "Laid-back jazz-hop with a dusty boom-bap groove, a looping flute phrase and warm chords. Steady and unobtrusive, it is a natural bed for study, coding, cooking or explainer videos that want a relaxed, curious pace without pulling focus from the voice.",
+      "sourceUrl": "https://www.youtube.com/watch?v=qYcoJpqCha4",
+      "durationSeconds": 250.43,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Nujabes",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "curious",
+        "calm",
+        "nostalgic"
+      ],
+      "energy": 2,
+      "tags": [
+        "lo-fi",
+        "jazz hop",
+        "flute",
+        "boom bap"
+      ],
+      "uses": [
+        "explainer",
+        "tutorial",
+        "vlog",
+        "food",
+        "background-bed"
+      ],
+      "avoid": [
+        "sports",
+        "reveal"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 243.9
+      },
+      "loudnessLufs": -9.1,
+      "suggestedVolumeDb": -25
+    },
+    {
+      "id": "youtube:3HjG1Y4QpVA",
+      "title": "Chill Day — LAKEY INSPIRED",
+      "description": "A mellow lo-fi beat with a soft, swung drum groove, gentle keys and a quiet bass line. Friendly and low-key, it carries tutorials, day-in-the-life vlogs and product walk-throughs without competing with the person talking.",
+      "sourceUrl": "https://www.youtube.com/watch?v=3HjG1Y4QpVA",
+      "durationSeconds": 186.04,
+      "rights": "cc-by-sa",
+      "verifiedAt": "2026-11-03",
+      "pageUrl": "https://soundcloud.com/lakeyinspired/chill-day",
+      "attribution": "Chill Day by LAKEY INSPIRED (soundcloud.com/lakeyinspired), licensed CC BY-SA. Credit the artist; a work that adapts it must carry the same license.",
+      "artist": "LAKEY INSPIRED",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "calm",
+        "warm",
+        "curious"
+      ],
+      "energy": 2,
+      "tags": [
+        "lo-fi",
+        "chillhop",
+        "keys",
+        "creative commons"
+      ],
+      "uses": [
+        "tutorial",
+        "vlog",
+        "product",
+        "explainer",
+        "background-bed"
+      ],
+      "avoid": [
+        "sports",
+        "reveal"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 183.9
+      },
+      "loudnessLufs": -10.8,
+      "suggestedVolumeDb": -23
+    },
+    {
+      "id": "youtube:SgJ8dyD01I8",
+      "title": "Investigations — Kevin MacLeod",
+      "description": "Plucked strings tiptoe over a light rhythm with a sly, puzzle-solving mood. Good for explainers that build toward an answer, light true-crime recaps or how-it-works segments; keep it under the narration rather than in front of it.",
+      "sourceUrl": "https://www.youtube.com/watch?v=SgJ8dyD01I8",
+      "durationSeconds": 93.54,
+      "rights": "cc-by",
+      "verifiedAt": "2026-11-03",
+      "attribution": "\"Investigations\" Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 License (creativecommons.org/licenses/by/4.0/).",
+      "artist": "Kevin MacLeod",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "curious",
+        "mysterious",
+        "playful"
+      ],
+      "energy": 2,
+      "tags": [
+        "pizzicato",
+        "detective",
+        "quirky",
+        "creative commons"
+      ],
+      "uses": [
+        "explainer",
+        "story",
+        "comedy",
+        "tutorial"
+      ],
+      "avoid": [
+        "fitness",
+        "sports"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 92.2
+      },
+      "loudnessLufs": -18.7,
+      "suggestedVolumeDb": -15
+    },
+    {
+      "id": "youtube:A33PASLFngc",
+      "title": "Ukulele — Bensound",
+      "description": "Strummed ukulele, finger snaps and plucked strings over a light, skipping drum groove: plainly cheerful. Fits family vlogs, small-business promos and recipe clips; it can feel twee under a serious topic.",
+      "sourceUrl": "https://www.youtube.com/watch?v=A33PASLFngc",
+      "durationSeconds": 146.47,
+      "rights": "royalty-free",
+      "verifiedAt": "2026-11-03",
+      "pageUrl": "https://www.bensound.com/royalty-free-music/track/ukulele",
+      "attribution": "Music: Ukulele by Bensound (bensound.com). Free in online videos with this credit; download it from bensound.com for the license code its terms ask for.",
+      "artist": "Bensound",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "upbeat",
+        "playful",
+        "warm"
+      ],
+      "energy": 3,
+      "tags": [
+        "ukulele",
+        "snaps",
+        "feel-good",
+        "royalty free"
+      ],
+      "uses": [
+        "vlog",
+        "food",
+        "product",
+        "business"
+      ],
+      "avoid": [
+        "documentary",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 144.2
+      },
+      "loudnessLufs": -13.7,
+      "suggestedVolumeDb": -20
+    },
+    {
+      "id": "youtube:zwPhqU29rWQ",
+      "title": "Anywhere — Ikson",
+      "description": "A sunny, upbeat electronic track with bright synth hooks and a steady dance beat, written with travel and lifestyle vlogs in mind. Energetic enough for quick cuts and drone shots, light enough to keep under a voice at a lower level.",
+      "sourceUrl": "https://www.youtube.com/watch?v=zwPhqU29rWQ",
+      "durationSeconds": 179.91,
+      "rights": "royalty-free",
+      "verifiedAt": "2026-11-03",
+      "attribution": "Music: Anywhere by Ikson (ikson.com). Free for YouTube and social videos with this credit; other uses need an Ikson license (ikson.com/usage-policy).",
+      "artist": "Ikson",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "upbeat",
+        "warm",
+        "confident"
+      ],
+      "energy": 4,
+      "tags": [
+        "electronic",
+        "vlog",
+        "summer",
+        "royalty free"
+      ],
+      "uses": [
+        "travel",
+        "vlog",
+        "montage",
+        "fitness"
+      ],
+      "avoid": [
+        "interview",
+        "documentary"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 177.9
+      },
+      "loudnessLufs": -8.0,
+      "suggestedVolumeDb": -26
+    },
+    {
+      "id": "youtube:ocRqQcRapQQ",
+      "title": "Sunset Lover — Petit Biscuit",
+      "description": "A chiming guitar figure over a gentle melodic-house groove, with pitched vocal chops floating above. Nostalgic and golden-hour in feel: travel, summer recaps, friendship montages. The chops are wordless but still compete a little with speech.",
+      "sourceUrl": "https://www.youtube.com/watch?v=ocRqQcRapQQ",
+      "durationSeconds": 237.79,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Petit Biscuit",
+      "variant": "original",
+      "vocals": "light",
+      "moods": [
+        "warm",
+        "dreamy",
+        "nostalgic"
+      ],
+      "energy": 3,
+      "tags": [
+        "melodic house",
+        "guitar",
+        "vocal chops",
+        "golden hour"
+      ],
+      "uses": [
+        "travel",
+        "montage",
+        "vlog",
+        "story"
+      ],
+      "avoid": [
+        "interview",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 232.9
+      },
+      "loudnessLufs": -8.9,
+      "suggestedVolumeDb": -25
+    },
+    {
+      "id": "youtube:q-SPwTWQCuA",
+      "title": "Remember the Name (Instrumental) — Fort Minor",
+      "description": "The official instrumental of the 2005 anthem: a stabbing string riff over a hard hip-hop beat that keeps pushing forward, without the verses. Pure determination for training montages, sports highlights and comeback stories; it buries quiet dialogue.",
+      "sourceUrl": "https://www.youtube.com/watch?v=q-SPwTWQCuA",
+      "durationSeconds": 226.79,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Fort Minor",
+      "variant": "instrumental",
+      "vocals": "none",
+      "moods": [
+        "motivational",
+        "hype",
+        "confident"
+      ],
+      "energy": 4,
+      "tags": [
+        "hip-hop",
+        "strings",
+        "anthem",
+        "official instrumental"
+      ],
+      "uses": [
+        "sports",
+        "fitness",
+        "montage",
+        "hook"
+      ],
+      "avoid": [
+        "interview",
+        "talking-head"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 226.4
+      },
+      "loudnessLufs": -9.9,
+      "suggestedVolumeDb": -24
+    },
+    {
+      "id": "youtube:HGnpwvw3cwM",
+      "title": "'Till I Collapse (Instrumental) — Eminem",
+      "description": "A stomp-and-clap opening like a stadium chant, then a heavy, grinding beat and a looping synth riff that never lets up. The classic sound of workouts, fight build-ups and grind montages; the long, even main section cuts cleanly to any length.",
+      "sourceUrl": "https://www.youtube.com/watch?v=HGnpwvw3cwM",
+      "durationSeconds": 345.1,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Eminem",
+      "variant": "instrumental",
+      "vocals": "none",
+      "moods": [
+        "hype",
+        "aggressive",
+        "motivational"
+      ],
+      "energy": 5,
+      "tags": [
+        "hip-hop",
+        "stomp clap",
+        "workout",
+        "official instrumental"
+      ],
+      "uses": [
+        "fitness",
+        "sports",
+        "montage",
+        "hook"
+      ],
+      "avoid": [
+        "interview",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 1.3,
+        "end": 333.1
+      },
+      "sections": [
+        {
+          "label": "build",
+          "start": 1.3,
+          "end": 58.0
+        },
+        {
+          "label": "main",
+          "start": 58.0,
+          "end": 325.0
+        },
+        {
+          "label": "outro",
+          "start": 325.0,
+          "end": 333.1
+        }
+      ],
+      "loudnessLufs": -8.2,
+      "suggestedVolumeDb": -26
+    },
+    {
+      "id": "youtube:TW9d8vYrVFQ",
+      "title": "Sky High — Elektronomia",
+      "description": "Euphoric progressive house with a bright, catchy synth lead, big build-ups and a driving four-on-the-floor kick. High energy without menace: gaming highlights, tech launches and travel hyperlapses. It is released for free use in online video with credit.",
+      "sourceUrl": "https://www.youtube.com/watch?v=TW9d8vYrVFQ",
+      "durationSeconds": 238.05,
+      "rights": "royalty-free",
+      "verifiedAt": "2026-11-03",
+      "pageUrl": "https://ncs.io/skyhigh",
+      "attribution": "Elektronomia - Sky High [NCS Release]. Music provided by NoCopyrightSounds; free download and stream at ncs.io/skyhigh. NCS lets online videos use it with this credit; see ncs.io/usage-policy for anything else.",
+      "artist": "Elektronomia",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "upbeat",
+        "hype",
+        "triumphant"
+      ],
+      "energy": 5,
+      "tags": [
+        "progressive house",
+        "edm",
+        "gaming",
+        "royalty free"
+      ],
+      "uses": [
+        "sports",
+        "tech",
+        "travel",
+        "montage"
+      ],
+      "avoid": [
+        "interview",
+        "documentary"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 229.5
+      },
+      "loudnessLufs": -5.6,
+      "suggestedVolumeDb": -28
+    },
+    {
+      "id": "youtube:c56t7upa8Bk",
+      "title": "Time — Hans Zimmer",
+      "description": "A four-chord progression that begins as a hush of strings and piano and swells, layer by layer, into a towering brass and percussion climax before settling back. The definitive slow build behind a reveal, a transformation or an emotional ending, if the edit is paced to the swell.",
+      "sourceUrl": "https://www.youtube.com/watch?v=c56t7upa8Bk",
+      "durationSeconds": 275.62,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Hans Zimmer",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "cinematic",
+        "epic",
+        "emotional"
+      ],
+      "energy": 4,
+      "tags": [
+        "film score",
+        "inception",
+        "slow build",
+        "strings",
+        "brass"
+      ],
+      "uses": [
+        "reveal",
+        "story",
+        "documentary",
+        "outro"
+      ],
+      "avoid": [
+        "comedy",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.1,
+        "end": 275.0
+      },
+      "sections": [
+        {
+          "label": "intro",
+          "start": 0.1,
+          "end": 60.0
+        },
+        {
+          "label": "build",
+          "start": 60.0,
+          "end": 160.0
+        },
+        {
+          "label": "main",
+          "start": 160.0,
+          "end": 216.0
+        },
+        {
+          "label": "outro",
+          "start": 216.0,
+          "end": 275.0
+        }
+      ],
+      "loudnessLufs": -12.1,
+      "suggestedVolumeDb": -22
+    },
+    {
+      "id": "youtube:DUWTqXo4-io",
+      "title": "Sunshine (Adagio in D Minor) — John Murphy",
+      "description": "Mournful strings over a pulsing electronic undertow, climbing twice into overwhelming, end-of-the-world peaks. Trailer-grade tension and grief at once; it lifts high-stakes stories, sports epics and dramatic before-and-after reveals.",
+      "sourceUrl": "https://www.youtube.com/watch?v=DUWTqXo4-io",
+      "durationSeconds": 268.47,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "John Murphy",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "epic",
+        "tense",
+        "emotional"
+      ],
+      "energy": 4,
+      "tags": [
+        "film score",
+        "strings",
+        "trailer",
+        "crescendo"
+      ],
+      "uses": [
+        "reveal",
+        "story",
+        "sports",
+        "documentary"
+      ],
+      "avoid": [
+        "comedy",
+        "vlog"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 259.2
+      },
+      "sections": [
+        {
+          "label": "intro",
+          "start": 0.0,
+          "end": 72.0
+        },
+        {
+          "label": "build",
+          "start": 72.0,
+          "end": 124.0
+        },
+        {
+          "label": "breakdown",
+          "start": 124.0,
+          "end": 186.0
+        },
+        {
+          "label": "build",
+          "start": 186.0,
+          "end": 259.2
+        }
+      ],
+      "loudnessLufs": -15.2,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "wikimedia:427690",
+      "title": "Mars, the Bringer of War — Gustav Holst",
+      "description": "A relentless five-beat rhythm in low brass and percussion that grows into crushing, dissonant climaxes. Menacing and martial: villain intros, battle or storm footage, boss-fight energy. This concert band recording is a US government performance in the public domain.",
+      "sourceUrl": "https://upload.wikimedia.org/wikipedia/commons/8/85/Holst-_mars.ogg",
+      "durationSeconds": 477.54,
+      "rights": "public-domain",
+      "verifiedAt": "2026-11-03",
+      "pageUrl": "https://commons.wikimedia.org/wiki/File:Holst-_mars.ogg",
+      "attribution": "Gustav Holst, Mars, the Bringer of War (The Planets), performed by the United States Air Force Band; public domain, via Wikimedia Commons.",
+      "artist": "Gustav Holst",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "epic",
+        "tense",
+        "aggressive",
+        "dark"
+      ],
+      "energy": 5,
+      "tags": [
+        "classical",
+        "band",
+        "march",
+        "five-beat ostinato",
+        "public domain"
+      ],
+      "uses": [
+        "reveal",
+        "story",
+        "sports",
+        "hook"
+      ],
+      "avoid": [
+        "interview",
+        "tutorial",
+        "vlog"
+      ],
+      "sourceRange": {
+        "start": 0.5,
+        "end": 474.4
+      },
+      "loudnessLufs": -18.8,
+      "suggestedVolumeDb": -15
+    },
+    {
+      "id": "youtube:2obv0DHuhu4",
+      "title": "Stranger Things — Kyle Dixon & Michael Stein",
+      "description": "The pulsing, arpeggiated analog-synth title theme of the Netflix series: eerie, retro and recognizable within seconds. Great for spooky intros, 80s throwbacks and mystery teasers. It runs about a minute, so loop it or hand over to another track for longer sequences.",
+      "sourceUrl": "https://www.youtube.com/watch?v=2obv0DHuhu4",
+      "durationSeconds": 67.52,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Kyle Dixon & Michael Stein",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "eerie",
+        "retro",
+        "mysterious"
+      ],
+      "energy": 2,
+      "tags": [
+        "synth",
+        "arpeggio",
+        "80s",
+        "tv theme",
+        "short"
+      ],
+      "uses": [
+        "intro",
+        "hook",
+        "story",
+        "transition"
+      ],
+      "avoid": [
+        "interview",
+        "food"
+      ],
+      "sourceRange": {
+        "start": 2.7,
+        "end": 64.2
+      },
+      "loudnessLufs": -13.2,
+      "suggestedVolumeDb": -21
+    },
+    {
+      "id": "youtube:xMV6l2y67rk",
+      "title": "Intro — The xx",
+      "description": "A chiming, reverb-soaked guitar line and a muffled kick that build into a wash of wordless vocals. Moody yet hopeful, it suits cinematic openers, fashion and city-at-night montages and dramatic teasers.",
+      "sourceUrl": "https://www.youtube.com/watch?v=xMV6l2y67rk",
+      "durationSeconds": 127.92,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "The xx",
+      "variant": "original",
+      "vocals": "light",
+      "moods": [
+        "mysterious",
+        "dreamy",
+        "cinematic"
+      ],
+      "energy": 3,
+      "tags": [
+        "indie",
+        "guitar",
+        "reverb",
+        "wordless vocals"
+      ],
+      "uses": [
+        "intro",
+        "montage",
+        "hook",
+        "travel"
+      ],
+      "avoid": [
+        "tutorial",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 1.6,
+        "end": 123.6
+      },
+      "loudnessLufs": -10.2,
+      "suggestedVolumeDb": -24
+    },
+    {
+      "id": "youtube:0-jVz7Dou4Y",
+      "title": "Lux Aeterna — Clint Mansell",
+      "description": "A string quartet repeats a short, anxious figure that tightens with every pass until it feels unbearable. Pure dread and inevitability: an ominous countdown, a dramatic confrontation, or deliberately over-the-top seriousness for comedy.",
+      "sourceUrl": "https://www.youtube.com/watch?v=0-jVz7Dou4Y",
+      "durationSeconds": 234.47,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Clint Mansell",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "dark",
+        "tense",
+        "epic"
+      ],
+      "energy": 3,
+      "tags": [
+        "film score",
+        "string quartet",
+        "requiem for a dream",
+        "dread"
+      ],
+      "uses": [
+        "reveal",
+        "story",
+        "comedy",
+        "hook"
+      ],
+      "avoid": [
+        "vlog",
+        "food",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.8,
+        "end": 231.5
+      },
+      "sections": [
+        {
+          "label": "intro",
+          "start": 0.8,
+          "end": 28.0
+        },
+        {
+          "label": "main",
+          "start": 28.0,
+          "end": 158.0
+        },
+        {
+          "label": "breakdown",
+          "start": 158.0,
+          "end": 170.0
+        },
+        {
+          "label": "main",
+          "start": 170.0,
+          "end": 231.5
+        }
+      ],
+      "loudnessLufs": -15.1,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "youtube:92IlKBhKbWM",
+      "title": "River Flows in You — Yiruma",
+      "description": "Flowing solo piano built on a rippling melody over a simple, repeating chord pattern: tender, sentimental and easy to follow. Suits wedding and anniversary edits, thank-you messages and soft-spoken personal stories.",
+      "sourceUrl": "https://www.youtube.com/watch?v=92IlKBhKbWM",
+      "durationSeconds": 188.79,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Yiruma",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "romantic",
+        "emotional",
+        "calm"
+      ],
+      "energy": 2,
+      "tags": [
+        "solo piano",
+        "wedding",
+        "sentimental",
+        "original recording"
+      ],
+      "uses": [
+        "story",
+        "montage",
+        "vlog",
+        "background-bed"
+      ],
+      "avoid": [
+        "sports",
+        "comedy"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 173.4
+      },
+      "loudnessLufs": -17.1,
+      "suggestedVolumeDb": -17
+    },
+    {
+      "id": "youtube:znfYwABeSZ0",
+      "title": "Comptine d'un autre été, l'après-midi — Yann Tiersen",
+      "description": "The rolling, repetitive piano piece from Amélie, with a melancholy lilt that grows more insistent as it goes. Bittersweet and intimate: childhood memories, Paris and travel diaries, quiet moments of reflection.",
+      "sourceUrl": "https://www.youtube.com/watch?v=znfYwABeSZ0",
+      "durationSeconds": 140.73,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Yann Tiersen",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "nostalgic",
+        "emotional",
+        "reflective"
+      ],
+      "energy": 2,
+      "tags": [
+        "solo piano",
+        "amelie",
+        "paris",
+        "bittersweet"
+      ],
+      "uses": [
+        "story",
+        "travel",
+        "vlog",
+        "documentary"
+      ],
+      "avoid": [
+        "sports",
+        "fitness"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 132.7
+      },
+      "loudnessLufs": -14.9,
+      "suggestedVolumeDb": -19
+    },
+    {
+      "id": "youtube:sR2W2scFS4Y",
+      "title": "Nuvole Bianche — Ludovico Einaudi",
+      "description": "Spacious, minimalist piano circling a simple theme, rising twice to a fuller, more urgent passage before falling away. Graceful and emotional without being syrupy; strong for heartfelt documentaries, memorial videos and end-of-year recaps. Quiet, so it needs more gain than most.",
+      "sourceUrl": "https://www.youtube.com/watch?v=sR2W2scFS4Y",
+      "durationSeconds": 362.19,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Ludovico Einaudi",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "emotional",
+        "reflective",
+        "calm"
+      ],
+      "energy": 2,
+      "tags": [
+        "solo piano",
+        "minimalist",
+        "neoclassical",
+        "quiet"
+      ],
+      "uses": [
+        "documentary",
+        "story",
+        "outro",
+        "background-bed"
+      ],
+      "avoid": [
+        "comedy",
+        "sports"
+      ],
+      "sourceRange": {
+        "start": 2.9,
+        "end": 347.4
+      },
+      "sections": [
+        {
+          "label": "intro",
+          "start": 2.9,
+          "end": 33.0
+        },
+        {
+          "label": "main",
+          "start": 33.0,
+          "end": 188.0
+        },
+        {
+          "label": "breakdown",
+          "start": 188.0,
+          "end": 228.0
+        },
+        {
+          "label": "main",
+          "start": 228.0,
+          "end": 315.0
+        },
+        {
+          "label": "outro",
+          "start": 315.0,
+          "end": 347.4
+        }
+      ],
+      "loudnessLufs": -22.1,
+      "suggestedVolumeDb": -12
+    },
+    {
+      "id": "youtube:2eZVbrO6Z1M",
+      "title": "Monkeys Spinning Monkeys — Kevin MacLeod",
+      "description": "Bouncy flutes and plucked strings with a cartoonish, tiptoeing swagger, long the internet's sound of harmless mischief. Ideal for fails, pet clips, bloopers and lighthearted explainers; it turns anything serious into a joke.",
+      "sourceUrl": "https://www.youtube.com/watch?v=2eZVbrO6Z1M",
+      "durationSeconds": 126.71,
+      "rights": "cc-by",
+      "verifiedAt": "2026-11-03",
+      "attribution": "\"Monkeys Spinning Monkeys\" Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 License (creativecommons.org/licenses/by/4.0/).",
+      "artist": "Kevin MacLeod",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "comedic",
+        "playful",
+        "upbeat"
+      ],
+      "energy": 3,
+      "tags": [
+        "flutes",
+        "pizzicato",
+        "silly",
+        "creative commons"
+      ],
+      "uses": [
+        "comedy",
+        "vlog",
+        "explainer",
+        "montage"
+      ],
+      "avoid": [
+        "documentary",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 125.4
+      },
+      "loudnessLufs": -17.4,
+      "suggestedVolumeDb": -17
+    },
+    {
+      "id": "youtube:Pk9vPMurHVo",
+      "title": "Sneaky Snitch — Kevin MacLeod",
+      "description": "A tiptoeing, plucked tune with a sly, cartoon-heist feel that moves in short, playful phrases. Use it for pranks, midnight-snack moments, kids' content and quirky product teasers.",
+      "sourceUrl": "https://www.youtube.com/watch?v=Pk9vPMurHVo",
+      "durationSeconds": 136.56,
+      "rights": "cc-by",
+      "verifiedAt": "2026-11-03",
+      "attribution": "\"Sneaky Snitch\" Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 License (creativecommons.org/licenses/by/4.0/).",
+      "artist": "Kevin MacLeod",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "playful",
+        "comedic",
+        "mysterious"
+      ],
+      "energy": 2,
+      "tags": [
+        "pizzicato",
+        "sneaky",
+        "cartoon",
+        "creative commons"
+      ],
+      "uses": [
+        "comedy",
+        "vlog",
+        "story",
+        "product"
+      ],
+      "avoid": [
+        "documentary",
+        "interview"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 132.8
+      },
+      "loudnessLufs": -17.5,
+      "suggestedVolumeDb": -16
+    },
+    {
+      "id": "youtube:6hBDh3dRvLc",
+      "title": "Fluffing a Duck — Kevin MacLeod",
+      "description": "A goofy, bouncing romp with honking low winds and a deliberately clumsy swing, barely a minute long. Built for slapstick: fails, reaction punchlines, chaotic cooking attempts and comedic recaps.",
+      "sourceUrl": "https://www.youtube.com/watch?v=6hBDh3dRvLc",
+      "durationSeconds": 67.31,
+      "rights": "cc-by",
+      "verifiedAt": "2026-11-03",
+      "attribution": "\"Fluffing a Duck\" Kevin MacLeod (incompetech.com), licensed under Creative Commons: By Attribution 4.0 License (creativecommons.org/licenses/by/4.0/).",
+      "artist": "Kevin MacLeod",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "comedic",
+        "playful"
+      ],
+      "energy": 3,
+      "tags": [
+        "silly",
+        "bouncy",
+        "short",
+        "creative commons"
+      ],
+      "uses": [
+        "comedy",
+        "food",
+        "vlog",
+        "transition"
+      ],
+      "avoid": [
+        "documentary",
+        "story",
+        "interview"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 62.4
+      },
+      "loudnessLufs": -16.3,
+      "suggestedVolumeDb": -18
+    },
+    {
+      "id": "youtube:aBhrEv5Z7uc",
+      "title": "Resonance — HOME",
+      "description": "Shimmering retro synth chords over a steady drum machine, with a lead melody like a half-remembered summer. The anthem of internet nostalgia: night drives, city lights, aesthetic edits and slow-motion skate or car footage.",
+      "sourceUrl": "https://www.youtube.com/watch?v=aBhrEv5Z7uc",
+      "durationSeconds": 212.94,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "HOME",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "nostalgic",
+        "retro",
+        "dreamy"
+      ],
+      "energy": 3,
+      "tags": [
+        "synthwave",
+        "chillwave",
+        "80s",
+        "night drive"
+      ],
+      "uses": [
+        "montage",
+        "travel",
+        "vlog",
+        "intro"
+      ],
+      "avoid": [
+        "interview",
+        "tutorial"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 205.3
+      },
+      "loudnessLufs": -7.8,
+      "suggestedVolumeDb": -26
+    },
+    {
+      "id": "youtube:XajaJYraODs",
+      "title": "Blinding Lights (Instrumental) — The Weeknd",
+      "description": "The official instrumental: pounding synth-pop drums, a bright arpeggiated synth riff and an 80s-style lead line, without the vocal. Fast, glossy and nocturnal, it powers night-drive edits, fashion or fitness montages and retro-styled ads.",
+      "sourceUrl": "https://www.youtube.com/watch?v=XajaJYraODs",
+      "durationSeconds": 203.34,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "The Weeknd",
+      "variant": "instrumental",
+      "vocals": "none",
+      "moods": [
+        "retro",
+        "upbeat",
+        "confident"
+      ],
+      "energy": 4,
+      "tags": [
+        "synth-pop",
+        "80s",
+        "night drive",
+        "official instrumental"
+      ],
+      "uses": [
+        "montage",
+        "fitness",
+        "product",
+        "hook"
+      ],
+      "avoid": [
+        "interview",
+        "documentary"
+      ],
+      "sourceRange": {
+        "start": 0.8,
+        "end": 198.1
+      },
+      "loudnessLufs": -7.6,
+      "suggestedVolumeDb": -26
+    },
+    {
+      "id": "youtube:a7Wask21bew",
+      "title": "Derezzed — Daft Punk",
+      "description": "Under two minutes of gritty, arcade-like synth bass and a hammering electro beat from the TRON: Legacy soundtrack. Digital and aggressive: tech reveals, gaming intros, hacking or glitch-styled sequences.",
+      "sourceUrl": "https://www.youtube.com/watch?v=a7Wask21bew",
+      "durationSeconds": 104.12,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Daft Punk",
+      "variant": "score",
+      "vocals": "none",
+      "moods": [
+        "retro",
+        "aggressive",
+        "hype"
+      ],
+      "energy": 5,
+      "tags": [
+        "electro",
+        "tron legacy",
+        "arcade",
+        "short"
+      ],
+      "uses": [
+        "tech",
+        "hook",
+        "intro",
+        "transition"
+      ],
+      "avoid": [
+        "interview",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.3,
+        "end": 103.7
+      },
+      "loudnessLufs": -11.7,
+      "suggestedVolumeDb": -22
+    },
+    {
+      "id": "youtube:ryA6eHZNnXY",
+      "title": "Take Five — The Dave Brubeck Quartet",
+      "description": "Cool jazz in an unusual five-beat swing: an airy alto sax tune over a vamping piano and brushed drums, with a long drum solo in the middle. Sophisticated and relaxed for cafés, design and architecture pieces, or a confident brand story.",
+      "sourceUrl": "https://www.youtube.com/watch?v=ryA6eHZNnXY",
+      "durationSeconds": 324.13,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "The Dave Brubeck Quartet",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "luxurious",
+        "confident",
+        "calm"
+      ],
+      "energy": 2,
+      "tags": [
+        "jazz",
+        "saxophone",
+        "5/4",
+        "cool jazz",
+        "1959"
+      ],
+      "uses": [
+        "business",
+        "product",
+        "food",
+        "story"
+      ],
+      "avoid": [
+        "sports",
+        "fitness"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 319.3
+      },
+      "sections": [
+        {
+          "label": "intro",
+          "start": 0.0,
+          "end": 24.0
+        },
+        {
+          "label": "main",
+          "start": 24.0,
+          "end": 110.0
+        },
+        {
+          "label": "breakdown",
+          "start": 110.0,
+          "end": 262.0
+        },
+        {
+          "label": "main",
+          "start": 262.0,
+          "end": 319.3
+        }
+      ],
+      "loudnessLufs": -15.5,
+      "suggestedVolumeDb": -18
+    },
+    {
+      "id": "youtube:VD6izVzuIkU",
+      "title": "Green Onions — Booker T. & the M.G.'s",
+      "description": "A cool, greasy organ riff over a twelve-bar blues shuffle, answered by stinging guitar. Effortlessly confident: a montage of someone nailing their craft, a founder's day in the life, or retro-styled product spots.",
+      "sourceUrl": "https://www.youtube.com/watch?v=VD6izVzuIkU",
+      "durationSeconds": 174.28,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Booker T. & the M.G.'s",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "confident",
+        "retro",
+        "playful"
+      ],
+      "energy": 3,
+      "tags": [
+        "organ",
+        "soul",
+        "blues",
+        "1962",
+        "remaster"
+      ],
+      "uses": [
+        "business",
+        "product",
+        "montage",
+        "vlog"
+      ],
+      "avoid": [
+        "documentary",
+        "story"
+      ],
+      "sourceRange": {
+        "start": 0.0,
+        "end": 168.8
+      },
+      "loudnessLufs": -14.0,
+      "suggestedVolumeDb": -20
+    },
+    {
+      "id": "youtube:VZBrZV3nHAA",
+      "title": "Awake — Tycho",
+      "description": "Shimmering guitars, warm analog synths and live-sounding drums in a sunny, forward-moving instrumental. Clean and optimistic: tech product films, design-process videos, drone footage and morning-routine edits.",
+      "sourceUrl": "https://www.youtube.com/watch?v=VZBrZV3nHAA",
+      "durationSeconds": 283.56,
+      "rights": "copyrighted",
+      "verifiedAt": "2026-11-03",
+      "artist": "Tycho",
+      "variant": "original",
+      "vocals": "none",
+      "moods": [
+        "confident",
+        "upbeat",
+        "warm"
+      ],
+      "energy": 3,
+      "tags": [
+        "chillwave",
+        "guitar",
+        "analog synth",
+        "instrumental"
+      ],
+      "uses": [
+        "tech",
+        "product",
+        "travel",
+        "montage"
+      ],
+      "avoid": [
+        "comedy",
+        "interview"
+      ],
+      "sourceRange": {
+        "start": 1.7,
+        "end": 275.8
+      },
+      "loudnessLufs": -7.5,
+      "suggestedVolumeDb": -26
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import { AtomicFileWrites } from './file-writes';
 import { writeFileAtomic } from './atomic';
 import { resolveLaunchProfile } from './launch-profile';
 import { finalizePcmExport } from './export-finalization';
-import { resolveAudioToolsPath } from './audio-tools';
+import { resolveAudioToolsDir, resolveAudioToolsPath } from './audio-tools';
 import { LocalAudioFinishingService } from './audio-finishing';
 import { registerInterviewAnalysis } from './interview-analysis-ipc';
 import { registerVideoWorkflows } from './video-workflows-ipc';
@@ -24,6 +24,7 @@ import { DapiServer } from "./dapi/server";
 import { pinProject } from "./dapi/output-policy";
 import { instructions } from "./dapi/docs";
 import { EditingStyleStore } from "./editing-style";
+import { AudioCatalogStore } from "./audio-catalog";
 import { readEditingSkills } from "./editing-skills";
 import { DapiError, toolByName } from "@diffusionstudio/dapi";
 import { agentChatEndpoint, configureAgentChat, deleteProjectChats, stopAgentChat } from "./agent-chat";
@@ -45,6 +46,11 @@ import { InstagramPublishingService } from './instagram-publishing';
 import { LocalSpeechService } from "./speech";
 import { LocalReframeService } from "./reframe-analysis";
 import { configureWebMediaService } from "./web-media";
+import { configureEarshot } from "./addons/earshot";
+import { registerEarshotIpc } from "./addons/earshot/ipc";
+import { configureMediaSearch } from "./media-search";
+import { configureMediaDownloads, findInstagramMedia, mediaTools } from "./media-download";
+import { configureYtDlp, ytDlp } from "./downloader";
 import {
   compileProject,
   createProject,
@@ -217,14 +223,53 @@ function docsDir(): string | null {
 
 // Web media search (a main tool) and downloads (over IPC, for the renderer
 // tool) share one service, so a download keeps a search result's provenance.
-const webMedia = configureWebMediaService({ version: app.getVersion(), noteContent, startWrite });
+// A file Cutroom's audio catalog ships is credited with the catalog's checked rights (the store is created below, before any download runs).
+const webMedia = configureWebMediaService({ version: app.getVersion(), noteContent, startWrite, catalogCredit: (url) => audioCatalog.credit(url) });
+
+// The managed yt-dlp behind media_search and media_download (see ./downloader):
+// installed into this profile's userData on first use, never into the signed
+// app, its JavaScript runtime this binary in Node mode.
+const downloader = configureYtDlp({
+  root: join(app.getPath("userData"), "tools", "yt-dlp"),
+  ffmpegDir: resolveAudioToolsDir(app.getAppPath()),
+  appExecPath: process.execPath,
+  version: app.getVersion(),
+});
+
+// Audio intelligence (earshot): installed into this profile's userData on the
+// first sound tool call (or Settings' Install now), its worker warm while used.
+const earshotAddon = configureEarshot({ userData: app.getPath("userData"), version: app.getVersion(), noteContent, startWrite });
+
+// Platform media: media_search (a main tool) and media_download (over IPC, for
+// the renderer tool) run the managed downloader once it is configured, probe
+// with the bundled FFmpeg, and read MyInstants pages with the browser's
+// network stack. A web_media_search result handed to media_download is sent
+// back to web_media_download, which keeps its license.
+const managedDownloader = () => { try { return ytDlp(); } catch { return null; } };
+const mediaPageFetch = (url: string, init: { signal: AbortSignal; headers: Record<string, string>; redirect: "manual" }) => session.defaultSession.fetch(url, init);
+configureMediaSearch({ downloader: managedDownloader, pageFetch: mediaPageFetch, version: app.getVersion() });
+const mediaFfmpeg = resolveAudioToolsPath(app.getAppPath());
+const mediaFfprobe = join(dirname(mediaFfmpeg), process.platform === "win32" ? "ffprobe.exe" : "ffprobe");
+const mediaDownloads = configureMediaDownloads({
+  downloader: managedDownloader,
+  ...mediaTools({ ffmpeg: existsSync(mediaFfmpeg) ? mediaFfmpeg : null, ffprobe: existsSync(mediaFfprobe) ? mediaFfprobe : null }),
+  pageFetch: mediaPageFetch,
+  noteContent,
+  startWrite,
+  isWebResult: (url) => webMedia.recall(url) !== undefined,
+  instagramMedia: async (url) => findInstagramMedia(await instagramService().snapshot(), url),
+  version: app.getVersion(),
+});
 
 // The MCP server agents and the Cutroom CLI talk to. Started once the app is
 // ready; renderer tools create the window when there is none.
 const editingStyle = new EditingStyleStore(join(app.getPath("userData"), "editing-style.json"));
+// Cutroom's music and effect catalog under the user's personal layer (userData/audio-catalog, which only the app writes).
+const audioCatalog = new AudioCatalogStore({ docsDir: docsDir(), personalDir: join(app.getPath("userData"), "audio-catalog") });
 const dapi = new DapiServer({
   port: launchProfile.isolated ? 0 : undefined,
   editingStyle,
+  audioCatalog,
   version: app.getVersion(),
   logs: () => logBuffer,
   docsDir: docsDir(),
@@ -440,6 +485,10 @@ if (squirrelLaunch) {
     const window=windows.current();if(window)await flushRenderer(window);
     if(rendererBusy||openWrites.size)throw new Error('A file write started while saving. Finish it before restarting.');
   }));
+  mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_STATUS, () => downloader.details());
+  mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_CHECK, async () => { await downloader.checkNow(); return downloader.details(); });
+  mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_REINSTALL, async () => { await downloader.reinstall(); return downloader.details(); });
+  app.on("will-quit", () => downloader.dispose());
   mainBridge.handle(MAIN_CHANNELS.APP_SHOW_IN_FOLDER, ({ path }) => shell.showItemInFolder(path));
   mainBridge.handle(MAIN_CHANNELS.APP_EDITORS_LIST, () => installedEditors());
   mainBridge.handle(MAIN_CHANNELS.APP_OPEN_IN_EDITOR, ({ id, dir }) => openInEditor(id, dir));
@@ -523,6 +572,34 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_COMMIT, (request) => webMedia.commit(request));
   mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_DISCARD, ({ id }) => webMedia.discard(id));
   app.on("will-quit", () => webMedia.dispose());
+  registerEarshotIpc(earshotAddon);
+  app.on("will-quit", () => earshotAddon.dispose());
+  const mediaOwners = new Map<string, { owner: number; cancel: () => void }>();
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_DOWNLOAD, async (request, event) => {
+    if (mediaOwners.has(request.id)) throw new Error("This download is already running.");
+    const sender = event.sender;
+    const controller = new AbortController();
+    const cancel = () => controller.abort(new DapiError("canceled", "The download was canceled."));
+    mediaOwners.set(request.id, { owner: sender.id, cancel });
+    sender.once("destroyed", cancel);
+    sender.once("render-process-gone", cancel);
+    sender.once("did-start-loading", cancel);
+    try {
+      return await mediaDownloads.download(request, controller.signal);
+    } finally {
+      mediaOwners.delete(request.id);
+      sender.removeListener("destroyed", cancel);
+      sender.removeListener("render-process-gone", cancel);
+      sender.removeListener("did-start-loading", cancel);
+    }
+  });
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_CANCEL, ({ id }, event) => {
+    const work = mediaOwners.get(id);
+    if (work?.owner === event.sender.id) work.cancel();
+  });
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_COMMIT, (request) => mediaDownloads.commit(request));
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_DISCARD, ({ id }) => mediaDownloads.discard(id));
+  app.on("will-quit", () => mediaDownloads.dispose());
   const reframe = new LocalReframeService({ runtimePath: join(app.getAppPath(), "dist", "reframe-vision"), cacheDir: join(app.getPath('userData'), 'reframe-cache') });
   const reframeOwners = new Map<string, { owner: number; cancel: () => void }>();
   app.on("will-quit", () => reframe.dispose());
@@ -637,9 +714,11 @@ if (squirrelLaunch) {
     pickSaveLocation(mainWindow, dir, name, startIn, action),
   );
   // A download into the folder would only hold the move up: the renderer has let go of the project, so its result is dropped anyway.
-  mainBridge.handle(MAIN_CHANNELS.PROJECTS_SAVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); return saveProject(dir, target); });
-  mainBridge.handle(MAIN_CHANNELS.PROJECTS_MOVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); return moveProject(dir, target); });
+  mainBridge.handle(MAIN_CHANNELS.PROJECTS_SAVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); mediaDownloads.cancelDownloads(dir); earshotAddon.cancelRenders(dir); return saveProject(dir, target); });
+  mainBridge.handle(MAIN_CHANNELS.PROJECTS_MOVE, ({ dir, target }) => { webMedia.cancelDownloads(dir); mediaDownloads.cancelDownloads(dir); earshotAddon.cancelRenders(dir); return moveProject(dir, target); });
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_RENAME, ({ dir, displayName }) => renameProject(dir, displayName));
+  // A platform download into the folder would be copied half done; it stops first (and can be asked for again).
+  // Downloads keep running through a duplicate: their work folders carry the temp prefix the copy leaves out.
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_DUPLICATE, ({ dir }) => duplicateProject(dir));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_DELETE, ({ dir }) => deleteProject(dir).then(deleteProjectChats));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_COMPILE, ({ dir }) => compileProject(dir));
@@ -783,6 +862,8 @@ if (squirrelLaunch) {
     }).catch(error => console.error('[profile] Could not record isolated session:', error));
     // MCP registration and CLI installation are explicit Settings actions.
     tray.start();
+    // A newer yt-dlp, looked for at most daily and only for recent users.
+    downloader.startBackgroundChecks();
 
     // Opened by a person (Finder, Dock, Start menu): show the editor
     if (!isHiddenLaunch(process.argv)) {

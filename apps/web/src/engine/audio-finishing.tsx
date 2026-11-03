@@ -18,11 +18,13 @@ export interface FinishingMusicTrack { id: string; name: string; path: string; i
 export interface SceneAudioFinishingOptions {
   targetLufs?: number; truePeakDb?: number; levelDialogue?: boolean; denoise?: boolean;
   musicIds?: readonly string[]; duckingDb?: number; activityThresholdDb?: number;
+  /** Top-level sound effect clips: kept out of the dialogue render and its activity, outside the ducking group, as they are. */
+  effectIds?: readonly string[];
   signal?: AbortSignal; assertCurrent?: () => void; onProgress?: (message: string) => void;
 }
 export interface SceneAudioFinishingResult {
   sceneId: string; name: string; outputPath: string; input: AudioLoudnessMeasurement;
-  dialogue: AudioLoudnessMeasurement; mix?: AudioLoudnessMeasurement; musicKeyframeCount: number; warnings: string[];
+  dialogue: AudioLoudnessMeasurement; mix?: AudioLoudnessMeasurement; musicKeyframeCount: number; effectCount: number; warnings: string[];
 }
 
 export function audioFinishingMusicTracks(world: World, scene: Entity): FinishingMusicTrack[] {
@@ -96,7 +98,13 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
   const requested = new Set(options.musicIds ?? []);
   const music = tracks.filter((track) => requested.has(track.id));
   if (music.length !== requested.size) throw new Error('Choose background audio clips directly inside this scene. Nested or changed tracks need to be moved to the scene first.');
+  const effectRequested = new Set(options.effectIds ?? []);
+  const shared = [...effectRequested].filter((id) => requested.has(id));
+  if (shared.length) throw new Error(`A clip is either background music or a sound effect, not both: ${shared.join(', ')}.`);
+  const effects = tracks.filter((track) => effectRequested.has(track.id));
+  if (effects.length !== effectRequested.size) throw new Error('Choose sound effect clips directly inside this scene. Nested or changed tracks need to be moved to the scene first.');
   const musicIndices = new Set(music.map((track) => track.index));
+  const effectIndices = new Set(effects.map((track) => track.index));
   const validate = (node: AuthoredTree): void => {
     if (node.props.syncTo !== undefined) throw new Error('This scene has audio synchronization links. Bake their start times before making an independent finished version.');
     if (['html', 'htmlPaint', 'surface', 'surfacePaint', 'shaderPaint'].includes(node.tag)) throw new Error('Custom-rendered scenes need a static copy before audio finishing.');
@@ -105,8 +113,8 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
   validate(snapshot);
   assertCurrent(); await flushProjectEdits(dir); assertCurrent();
   const stats = await audioSourceStats(snapshot, library, assertCurrent);
-  options.onProgress?.('Rendering dialogue without the selected background tracks…');
-  const wav = await sceneAudioWav(world, scene, dir, { signal, excludeSources: music.map((track) => track.id) }); assertCurrent();
+  options.onProgress?.(effects.length ? 'Rendering dialogue without the selected background tracks and sound effects…' : 'Rendering dialogue without the selected background tracks…');
+  const wav = await sceneAudioWav(world, scene, dir, { signal, excludeSources: [...music, ...effects].map((track) => track.id) }); assertCurrent();
   options.onProgress?.('Leveling and measuring dialogue locally…');
   const processed = await runLocalAudioFinishing({ action: 'finish', wav, targetLufs: options.targetLufs, truePeakDb: options.truePeakDb, levelDialogue: options.levelDialogue, denoise: options.denoise }, signal); assertCurrent();
   if (!processed.wav || !processed.output) throw new Error('Audio finishing returned no complete derivative.');
@@ -118,13 +126,16 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
   await library.flush(); assertCurrent();
   const variant = cloneReframeTree(snapshot);
   const background = variant.children.filter((_node, index) => musicIndices.has(index));
-  variant.children = variant.children.filter((_node, index) => !musicIndices.has(index));
+  const soundEffects = variant.children.filter((_node, index) => effectIndices.has(index));
+  variant.children = variant.children.filter((_node, index) => !musicIndices.has(index) && !effectIndices.has(index));
   const mute = (node: AuthoredTree): void => {
     if (['audio', 'video', 'videoPaint'].includes(node.tag)) node.props.muted = true;
     node.children.forEach(mute);
   };
   variant.children.forEach(mute);
   if (background.length) variant.children.push(musicDuckingGroup(background, ducking, duration));
+  // Effects keep their own timing, volume and fades, unmuted and outside the ducking group.
+  variant.children.push(...soundEffects);
   variant.children.push({ tag: 'audio', props: { name: 'Finished dialogue', src: derivative.path, start: 0, sourceIn: 0, end: duration, volume: -sceneVolume }, children: [] });
   const name = `${String(snapshot.props.name ?? 'Scene')} · Audio finished`;
   const right = Math.max(0, ...getEntityChildren(world, root).map((node) => { const props = authoredElement(node)?.props; return Number(props?.x ?? 0) + Number(props?.width ?? 0); }).filter(Number.isFinite));
@@ -152,11 +163,12 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
   if (!sceneId) throw new Error('The saved finished scene is no longer available. Reopen the project to review it.');
   const warnings = [...processed.warnings];
   if (music.length) warnings.push('Music ducking follows audio activity in the dialogue mix, not recognized speakers. Adjust the group volume keyframes after listening.');
+  if (effects.length) warnings.push('Sound effects keep their own levels outside the dialogue processing and the ducking; check that none masks a word.');
   let mix: AudioLoudnessMeasurement | undefined;
   try {
     assertCurrent(); options.onProgress?.('Checking the finished dialogue-and-music mix…');
     mix = (await measureSceneAudio(world, created, dir, options)).measurement;
     if (mix.truePeakDb !== null && mix.truePeakDb > (options.truePeakDb ?? -1) + 0.1) warnings.push(`The combined mix reaches ${mix.truePeakDb.toFixed(1)} dBTP. Lower the music or scene volume before export.`);
   } catch (error) { warnings.push(`The finished scene is saved; final mix measurement did not complete: ${error instanceof Error ? error.message : String(error)}`); }
-  return { sceneId, name, outputPath: derivative.path, input: processed.input, dialogue: processed.output, mix, musicKeyframeCount: music.length ? ducking.length : 0, warnings };
+  return { sceneId, name, outputPath: derivative.path, input: processed.input, dialogue: processed.output, mix, musicKeyframeCount: music.length ? ducking.length : 0, effectCount: effects.length, warnings };
 }

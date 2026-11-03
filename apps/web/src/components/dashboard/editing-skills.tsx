@@ -5,6 +5,9 @@ import { MAIN_CHANNELS } from "@desktop/main-channels";
 import { mainBridge } from "@/lib/ipc";
 import { Button } from "@/components/ui/button";
 import { DashboardSurfaceSection } from "./shared";
+import { skillBadge } from "./editing-skills-data";
+
+const BADGE_TONES = { unavailable: "text-destructive", "built-in": "text-emerald-500", muted: "text-muted-foreground" } as const;
 
 export function EditingSkillsSettings() {
   const [catalog, { refetch }] = createResource(async () => window.desktop
@@ -74,9 +77,7 @@ export function EditingSkillsSettings() {
                   <div class="flex flex-col gap-2 rounded-lg border border-border p-4">
                     <div class="flex items-start justify-between gap-2">
                       <h3 class="text-sm font-medium">{skill.title}</h3>
-                      <span class={`shrink-0 text-[11px] ${!skill.available ? "text-destructive" : skill.category === "editing" ? "text-emerald-500" : "text-muted-foreground"}`}>
-                        {!skill.available ? "Unavailable" : skill.category === "editing" ? "Built in" : skill.category === "optional" ? "Optional API" : "Reference"}
-                      </span>
+                      <span class={`shrink-0 text-[11px] ${BADGE_TONES[skillBadge(skill).tone]}`}>{skillBadge(skill).label}</span>
                     </div>
                     <p class="text-xs leading-relaxed text-muted-foreground">{skill.description}</p>
                     <Show when={skill.requires.length > 0}><p class="text-xs text-muted-foreground">Requires: {skill.requires.join(" · ")}</p></Show>

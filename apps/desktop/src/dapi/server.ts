@@ -17,6 +17,7 @@ import type { AppWindow, MainContext, MainToolName } from "./handler";
 import type { WritePolicy } from "./output-policy";
 import type { RendererHost } from "./renderer-calls";
 import type { EditingStyleStore } from "../editing-style";
+import type { AudioCatalogStore } from "../audio-catalog";
 
 /**
  * The name the server introduces itself with, and so the namespace an agent
@@ -30,6 +31,8 @@ export type DapiServerDeps = {
   /** Alternate profiles use 0 for an ephemeral port; normal launches use MCP_PORT. */
   port?: number;
   editingStyle?: EditingStyleStore;
+  /** The music and effect catalog, for `audio_catalog`. */
+  audioCatalog?: AudioCatalogStore;
   version: string;
   /** The app's console buffer, for `logs` and `report`. */
   logs(): LogEntry[];
@@ -143,7 +146,7 @@ export class DapiServer {
   }
 
   private runInMain(name: MainToolName, args: unknown, signal: AbortSignal): Promise<unknown> {
-    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, project: () => this.deps.window.lastProject(), window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle };
+    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, project: () => this.deps.window.lastProject(), window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle, audioCatalog: this.deps.audioCatalog };
     // Each handler takes its own parsed args; the map's union type cannot
     // express that pairing, so the call site widens.
     return (mainHandlers[name] as (args: unknown, ctx: MainContext) => Promise<unknown>)(args, ctx);
