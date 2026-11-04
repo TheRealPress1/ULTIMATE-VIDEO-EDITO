@@ -32,6 +32,7 @@ import type { AnalysisCacheRequest, AnalysisCacheResult, AnalysisCachePut } from
 import type { PlaybackProxyRequest, PlaybackProxyJob, PlaybackProxyResult, PlaybackProxyProgress } from './playback-proxy-types';
 import type { WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest } from './web-media-types';
 import type { EarshotEventsReply, EarshotEventsRequest, EarshotStatus, SoundEffectsReply, SoundEffectsRequest } from './addons/earshot/types';
+import type { GeminiSettingsUpdate, GeminiStatus } from './gemini/types';
 import type { MediaCommitRequest, MediaCommitResult, MediaDownloaded, MediaDownloadRequest } from "./media-download-types";
 import type { AgentMemoryApply, AgentMemorySnapshot } from "./agent-memory-types";
 
@@ -106,6 +107,9 @@ export const MAIN_CHANNELS = {
   EARSHOT_REMOVE: 'earshot:remove',
   EARSHOT_EVENTS: 'earshot:events',
   EARSHOT_EVENTS_CANCEL: 'earshot:events-cancel',
+  GEMINI_STATUS: 'gemini:status',
+  GEMINI_UPDATE: 'gemini:update',
+  GEMINI_CLEAR: 'gemini:clear',
   SOUND_EFFECTS_RUN: 'sound-effects:run',
   SOUND_EFFECTS_CANCEL: 'sound-effects:cancel',
   MEDIA_DOWNLOAD: 'media:download',
@@ -341,6 +345,10 @@ export type MainRequestMap = {
   // analyze's sound events: earshot's timeline over one file, only once the add-on is ready.
   [MAIN_CHANNELS.EARSHOT_EVENTS]: { request: EarshotEventsRequest; response: EarshotEventsReply };
   [MAIN_CHANNELS.EARSHOT_EVENTS_CANCEL]: { request: { id: string }; response: void };
+  // Gemini (optional): Settings' status, a new key or model, and removing the key. The key goes in and never comes back.
+  [MAIN_CHANNELS.GEMINI_STATUS]: { request: void; response: GeminiStatus };
+  [MAIN_CHANNELS.GEMINI_UPDATE]: { request: GeminiSettingsUpdate; response: GeminiStatus };
+  [MAIN_CHANNELS.GEMINI_CLEAR]: { request: void; response: GeminiStatus };
   [MAIN_CHANNELS.SOUND_EFFECTS_RUN]: { request: SoundEffectsRequest; response: SoundEffectsReply };
   [MAIN_CHANNELS.SOUND_EFFECTS_CANCEL]: { request: { id: string }; response: void };
   // media_download: main runs the downloader into the project, the renderer imports, then commits (ledger + CREDITS.md) or discards.

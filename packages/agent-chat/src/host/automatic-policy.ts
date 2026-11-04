@@ -110,6 +110,8 @@ const SENSITIVE_IN_HOME = [
   "Library/Application Support/Claude",
   "Library/Keychains", "Library/Cookies", "Library/Messages", "Library/Mail", "Library/Safari", "Library/Accounts",
   "Library/Application Support/Cutroom/instagram",
+  // The user's own service keys (the Gemini key), encrypted but still not for an agent to copy.
+  "Library/Application Support/Cutroom/services",
   // Browser profiles hold cookies and saved passwords.
   "Library/Application Support/Google/Chrome", "Library/Application Support/Chromium",
   "Library/Application Support/Firefox", "Library/Application Support/BraveSoftware",

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { app, autoUpdater, BrowserWindow, dialog, nativeImage, session, shell } from "electron";
+import { app, autoUpdater, BrowserWindow, dialog, nativeImage, safeStorage, session, shell } from "electron";
 import { basename, dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { execFile } from 'node:child_process';
@@ -49,6 +49,8 @@ import { LocalReframeService } from "./reframe-analysis";
 import { configureWebMediaService } from "./web-media";
 import { configureEarshot } from "./addons/earshot";
 import { registerEarshotIpc } from "./addons/earshot/ipc";
+import { configureGemini } from "./gemini";
+import { registerGeminiIpc } from "./gemini/ipc";
 import { configureMediaSearch } from "./media-search";
 import { configureMediaDownloads, findInstagramMedia, mediaTools } from "./media-download";
 import { configureYtDlp, ytDlp } from "./downloader";
@@ -260,6 +262,16 @@ const mediaDownloads = configureMediaDownloads({
   isWebResult: (url) => webMedia.recall(url) !== undefined,
   instagramMedia: async (url) => findInstagramMedia(await instagramService().snapshot(), url),
   version: app.getVersion(),
+});
+
+// Gemini (optional): the user's own Google AI Studio key, encrypted by the OS
+// keychain in userData/services. ask_gemini sends media to Google only once a
+// key is saved, and Settings is the only place that saves one.
+const geminiConnection = configureGemini({
+  userData: app.getPath("userData"),
+  secureStorage: safeStorage,
+  ffmpeg: existsSync(mediaFfmpeg) ? mediaFfmpeg : null,
+  ffprobe: existsSync(mediaFfprobe) ? mediaFfprobe : null,
 });
 
 // The MCP server agents and the Cutroom CLI talk to. Started once the app is
@@ -587,6 +599,8 @@ if (squirrelLaunch) {
   app.on("will-quit", () => webMedia.dispose());
   registerEarshotIpc(earshotAddon);
   app.on("will-quit", () => earshotAddon.dispose());
+  registerGeminiIpc(geminiConnection);
+  app.on("will-quit", () => geminiConnection.dispose());
   const mediaOwners = new Map<string, { owner: number; cancel: () => void }>();
   mainBridge.handle(MAIN_CHANNELS.MEDIA_DOWNLOAD, async (request, event) => {
     if (mediaOwners.has(request.id)) throw new Error("This download is already running.");

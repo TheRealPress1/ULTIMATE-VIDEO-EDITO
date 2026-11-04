@@ -33,6 +33,7 @@ import { audioFinish } from "./tools/audio-finish";
 import { filmstrip } from "./tools/filmstrip";
 import { waveform } from "./tools/waveform";
 import { listen } from "./tools/listen";
+import { askGemini } from "./tools/gemini";
 import { soundAnalyze, soundEffects } from "./tools/sound";
 import { generate, job } from "./tools/generate";
 import { webMediaSearch, webMediaDownload } from "./tools/web-media";
@@ -81,6 +82,7 @@ export const catalog = [
   filmstrip,
   waveform,
   listen,
+  askGemini,
   soundAnalyze,
   soundEffects,
   segment,

@@ -15,7 +15,7 @@ Nothing is uploaded and no account is needed. The pack is assembled from what th
 - **Labels, on-screen text, people counts**: from the [visual index](./visual.md) when the file has been indexed. Without it, read the contact sheets.
 - **Sound events**: from the audio add-on's listening timeline ([`sound_analyze`](./sound.md) `timeline`, low detail), only when that add-on is already installed. When it is not, `analyze` starts its install in the background (about 2.4 GB, no prompt) and finishes the pack without events; a later call includes them.
 
-This is sampled evidence, not watching. Brief events between frames can be missing, and actions, identities, emotions and music are not recognized. The answer always lists its `limitations`.
+This is sampled evidence, not watching. Brief events between frames can be missing, and actions, identities, emotions and music are not recognized. The answer always lists its `limitations`. For what sampling can't tell, the user's opt-in [`ask_gemini`](./ask-gemini.md) asks Gemini, which watches and listens, at the price of uploading the media to Google; this tool never does.
 
 ## Input
 

@@ -12,6 +12,7 @@ import { AgentMemorySettings } from "./agent-memory-settings";
 import { UpdateSettings } from './update-settings';
 import { DownloaderSettings } from "./downloader-settings";
 import { AudioIntelligenceSettings } from "./audio-intelligence-settings";
+import { GeminiSettings } from "./gemini-settings";
 import { usePermissionState, type PermissionState } from "@/hooks/use-permission";
 
 import {
@@ -179,6 +180,7 @@ export function DashboardSettingsView() {
       <UpdateSettings />
       <DownloaderSettings />
       <AudioIntelligenceSettings />
+      <GeminiSettings />
       <DashboardPermissionsSection />
     </DashboardScrollView>
   );

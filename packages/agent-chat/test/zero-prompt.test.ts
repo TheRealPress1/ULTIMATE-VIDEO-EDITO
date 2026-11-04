@@ -103,6 +103,8 @@ describe("Claude: former permission-card triggers", () => {
     ["hosted generation (flux)", "mcp__cutroom__generate", { model: "flux-2-klein", prompt: "rocket launch at dawn", output: "assets/launch.png" }, allow],
     ["listen without a path", "mcp__cutroom__listen", { prompt: "Who is speaking?" }, allow],
     ["a cutroom tool unknown to the old allowlist", "mcp__cutroom__web_media_download", { url: "https://upload.wikimedia.org/a.jpg" }, allow],
+    // The user's own key in Settings is what authorizes the upload; the tool refuses until one is saved, so no card is needed.
+    ["asking Gemini about a file", "mcp__cutroom__ask_gemini", { path: "assets/footage/take.mp4", question: "How does the take feel?", send: "audio" }, allow],
     ["saving the editing style", "mcp__cutroom__editing_style", { action: "set", revision: "r1", style: {} }, allow],
     ["web search", "WebSearch", { query: "apollo 11 launch photo public domain" }, allow],
     ["web fetch", "WebFetch", { url: "https://commons.wikimedia.org/wiki/File:Apollo_11_Launch.jpg", prompt: "Find the file URL" }, allow],

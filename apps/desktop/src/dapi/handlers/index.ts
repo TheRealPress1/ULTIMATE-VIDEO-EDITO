@@ -14,6 +14,7 @@ import { webMediaSearch } from "./web-media";
 import { soundAnalyze } from "./sound";
 import { mediaSearch } from "./media";
 import { scriptLint } from "./script";
+import { askGemini } from "./gemini";
 
 import type { MainHandlers } from "../handler";
 
@@ -35,4 +36,5 @@ export const mainHandlers: MainHandlers = {
   sound_analyze: soundAnalyze,
   media_search: mediaSearch,
   script_lint: scriptLint,
+  ask_gemini: askGemini,
 };

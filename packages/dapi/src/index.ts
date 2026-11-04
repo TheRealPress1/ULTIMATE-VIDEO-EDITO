@@ -76,6 +76,7 @@ export { LOG_TAIL, LOG_MESSAGE_MAX } from "./tools/logs";
 export { FONT_LIMIT } from "./tools/fonts";
 export { generatedPath } from "./tools/generate";
 export { WEB_MEDIA_LIMIT, WEB_MEDIA_PREVIEWS } from "./tools/web-media";
+export { GEMINI_MAX_SECONDS, GEMINI_MAX_UPLOAD_BYTES, GEMINI_QUESTION_MAX, GEMINI_SENT, GEMINI_STATES, GEMINI_WAIT_SECONDS } from "./tools/gemini";
 export { SOUND_ACTIONS, SOUND_ANALYZE_FIELDS } from "./tools/sound";
 export type { SoundAction } from "./tools/sound";
 export {
