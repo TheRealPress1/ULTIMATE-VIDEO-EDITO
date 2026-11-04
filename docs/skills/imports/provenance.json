@@ -1,12 +1,13 @@
 {
   "schemaVersion": 1,
-  "reviewedAt": "2026-11-03",
+  "reviewedAt": "2026-11-04",
   "notes": [
     "OpenAI skill directories were imported using the Codex skill-installer helper at the recorded commit.",
     "Upstream files are unmodified, including per-skill licenses. UVE wrappers and run.py are maintained separately.",
     "No Remotion source files or runtime are redistributed.",
     "Live API calls, credential configuration, and Python dependency installation are not performed by installation.",
-    "earshot skills are adapted, not vendored: rewritten for Cutroom tools (sound_analyze, sound_effects, export, audio_finish, composition clips) with shell setup, scripts, forge and the cloud critique removed. The upstream MIT LICENSE is kept verbatim in each folder and the copyright notice in each adapted file; upstreamFiles records the SHA-256 of every source file they were adapted from."
+    "earshot skills are adapted, not vendored: rewritten for Cutroom tools (sound_analyze, sound_effects, export, audio_finish, composition clips) with shell setup, scripts, forge and the cloud critique removed. The upstream MIT LICENSE is kept verbatim in each folder and the copyright notice in each adapted file; upstreamFiles records the SHA-256 of every source file they were adapted from.",
+    "The fframes agent skill (MIT) informed uve-motion-graphics/references/craft.md, which restates general pacing, choreography, layout and review practice in Cutroom's own words and tools, tied to the house style. No fframes text, code or files are redistributed, and fframes itself (a Rust renderer that writes finished video files) is not part of Cutroom."
   ],
   "imports": [
     {
@@ -115,6 +116,19 @@
         "skills/real-sound/templates/SOUND_BRIEF.md": "4f4f7fb073a93764b5f2dd1c26b3ef5f86992d60c9b532cd3b2c58db8279e808",
         "skills/real-sound/templates/cues.json": "8b4b60bef715948a3400a765937c5209ee98c3258fa35132f7b97b3d8a6ee303"
       }
+    },
+    {
+      "id": "fframes-craft",
+      "mode": "reference-only",
+      "repository": "https://github.com/dmtrKovalenko/fframes",
+      "revision": "49b76066abbc95f5c77ce7755f478e0bfcefc9f2",
+      "release": "1.4.1",
+      "sourcePath": "skills/fframes-video",
+      "sourceUrl": "https://github.com/dmtrKovalenko/fframes/tree/49b76066abbc95f5c77ce7755f478e0bfcefc9f2/skills/fframes-video",
+      "license": "MIT",
+      "notice": "Copyright (c) 2025-2026 Dmitriy Kovalenko",
+      "informs": "skills/uve-motion-graphics/references/craft.md",
+      "redistributedFiles": []
     }
   ]
 }

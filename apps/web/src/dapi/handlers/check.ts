@@ -10,9 +10,11 @@ import {
 } from "@diffusionstudio/runtime";
 
 import { resolveNode } from "../lib/nodes";
+import { betweenCutsOfOneRecording, canvasBounds, inheritLook, shortVisibleStretches, stretchLayer, visibleStretches } from "@/engine/visible-stretches";
 
 import type { CheckIssue } from "@diffusionstudio/dapi";
-import type { Entity } from "koota";
+import type { Entity, World } from "koota";
+import type { Bounds, InheritedLook, StretchLayer } from "@/engine/visible-stretches";
 import type { ToolHandler } from "../handler";
 
 // Absolute frames, [start, end).
@@ -55,6 +57,10 @@ type WalkState = {
   coverage: Interval[];
   /** Frames→seconds on the checked node's own clock (capture --time's). */
   rel: (frames: number) => number;
+  /** The scene canvas the visible-stretch pass measures against; null turns it off. */
+  canvas: Bounds | null;
+  /** Full-frame candidates in paint order, for the visible-stretch pass. */
+  layers: StretchLayer[];
 };
 
 /**
@@ -64,7 +70,7 @@ type WalkState = {
  * hidden, transparent, or out of window, at which point nothing below can
  * contribute pixels (but still counts toward stats and per-node issues).
  */
-function visit(entity: Entity, window: Interval | null, depth: number, state: WalkState): void {
+function visit(world: World, entity: Entity, window: Interval | null, depth: number, state: WalkState, look: InheritedLook = { opacity: 1 }): void {
   state.nodes += 1;
   const kind = kindOf(entity);
   state.byKind[kind] = (state.byKind[kind] ?? 0) + 1;
@@ -125,10 +131,18 @@ function visit(entity: Entity, window: Interval | null, depth: number, state: Wa
     }
   }
 
-  if (visible !== null && drawsPixels(entity)) state.coverage.push(visible);
+  // What this node hands down to the layers it holds, for the visible-stretch pass.
+  const own = inheritLook(entity, look);
+  if (visible !== null && drawsPixels(entity)) {
+    state.coverage.push(visible);
+    // Visiting order is paint order: a node draws before its children, and
+    // a later sibling's subtree draws over an earlier one's.
+    const layer = state.canvas && stretchLayer(world, entity, visible, own, state.canvas, state.layers.length, stamp);
+    if (layer) state.layers.push(layer);
+  }
 
   const cache = entity.get(Cache);
-  for (const child of cache?.children ?? []) visit(child, visible, depth + 1, state);
+  for (const child of cache?.children ?? []) visit(world, child, visible, depth + 1, state, own);
   // The nodes of clip paths and masks are worth counting and checking, but
   // they add no pixels.
   const containers = [
@@ -138,7 +152,7 @@ function visit(entity: Entity, window: Interval | null, depth: number, state: Wa
   ];
   for (const container of containers) {
     for (const child of container.get(Cache)?.children ?? []) {
-      visit(child, null, depth + 1, state);
+      visit(world, child, null, depth + 1, state);
     }
   }
 }
@@ -158,7 +172,15 @@ function findGaps(window: Interval, coverage: Interval[]): Interval[] {
   return gaps.filter((gap) => gap.end - gap.start >= 1);
 }
 
-export const check: ToolHandler<"check"> = async ({ id }, ctx) => {
+/** The scene `entity` draws into: itself, or its nearest scene ancestor. */
+function sceneOf(entity: Entity): Entity | null {
+  for (let node: Entity | null = entity; node; node = getParentEntity(node)) if (node.has(Scene)) return node;
+  return null;
+}
+
+const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+export const check: ToolHandler<"check"> = async ({ id, minVisibleSeconds = 0.4 }, ctx) => {
   const { world } = ctx.requireSession();
   const target = resolveNode(world, id);
   const fps = world.get(FrameRate)?.value ?? 30;
@@ -177,8 +199,10 @@ export const check: ToolHandler<"check"> = async ({ id }, ctx) => {
   }
 
   const rel = (frames: number) => Math.round(framesToSeconds(frames - computed.start, fps) * 1000) / 1000;
-  const state: WalkState = { nodes: 0, byKind: {}, depth: 0, issues: [], coverage: [], rel };
-  visit(target, window, 0, state);
+  const scene = minVisibleSeconds > 0 ? sceneOf(target) : null;
+  const canvas = scene && canvasBounds(world, scene);
+  const state: WalkState = { nodes: 0, byKind: {}, depth: 0, issues: [], coverage: [], rel, canvas, layers: [] };
+  visit(world, target, window, 0, state);
 
   const issues: CheckIssue[] = [];
   if (window.end > window.start) {
@@ -206,6 +230,33 @@ export const check: ToolHandler<"check"> = async ({ id }, ctx) => {
       }
     }
   }
+  let visibility: { minVisibleSeconds: number; stretches: number; shortStretches: number; evaluatedLayers: number; skippedLayers: number; skipped: Array<{ node?: string; reason: string }> } | undefined;
+  if (canvas && window.end > window.start) {
+    const stretches = visibleStretches(state.layers, window);
+    const short = shortVisibleStretches(stretches, window, minVisibleSeconds * fps);
+    const skipped = state.layers.filter((layer) => layer.skipped);
+    // Each flash is its own issue, so its node and range can be fixed one by one.
+    for (const stretch of short.slice(0, 50)) {
+      const length = `${rel(computed.start + stretch.end - stretch.start)}s (${plural(Math.round(stretch.end - stretch.start), "frame")})`;
+      issues.push({
+        code: "short-visible-stretch",
+        severity: "warning",
+        node: stretch.owner?.node,
+        message: betweenCutsOfOneRecording(stretches, stretch)
+          ? `A ${length} piece of one recording between two cuts in it, under the ${minVisibleSeconds}s minimum; two jumps this close read as a stutter. Keep the pause on one side so the piece joins its neighbour, drop the piece if its words can go, or cover both cuts with one insert.`
+          : `On screen for only ${length} between two other shots, under the ${minVisibleSeconds}s minimum; it reads as a flash. Move the neighbouring edge onto the cut or at least ${minVisibleSeconds}s away from it.`,
+        ranges: [{ start: rel(stretch.start), end: rel(stretch.end) }],
+      });
+    }
+    visibility = {
+      minVisibleSeconds,
+      stretches: stretches.filter((stretch) => stretch.owner).length,
+      shortStretches: short.length,
+      evaluatedLayers: state.layers.filter((layer) => !layer.skipped).length,
+      skippedLayers: skipped.length,
+      skipped: skipped.slice(0, 20).map((layer) => ({ ...layer.node ? { node: layer.node } : {}, reason: layer.skipped! })),
+    };
+  }
   issues.push(...state.issues);
 
   return {
@@ -214,6 +265,7 @@ export const check: ToolHandler<"check"> = async ({ id }, ctx) => {
       byKind: state.byKind,
       depth: state.depth,
       duration: rel(computed.start + (window.end - window.start)),
+      ...visibility ? { visibility } : {},
     },
     issues,
   };

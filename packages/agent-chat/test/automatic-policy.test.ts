@@ -40,6 +40,7 @@ beforeAll(async () => {
     mkdir(join(home, ".aws"), { recursive: true }),
     mkdir(join(home, ".config", "gh"), { recursive: true }),
     mkdir(join(home, "Library", "Application Support", "Cutroom", "instagram"), { recursive: true }),
+    mkdir(join(home, "Library", "Application Support", "Cutroom", "services"), { recursive: true }),
   ]);
   await Promise.all([
     writeFile(join(project, "assets", "Captions 3.json"), "{}"),
@@ -50,6 +51,7 @@ beforeAll(async () => {
     writeFile(join(home, ".aws", "credentials"), "secret"),
     writeFile(join(home, ".config", "gh", "hosts.yml"), "secret"),
     writeFile(join(home, "Library", "Application Support", "Cutroom", "instagram", "token.json"), "secret"),
+    writeFile(join(home, "Library", "Application Support", "Cutroom", "services", "gemini.json"), "secret"),
     symlink(outside, join(project, "escape")),
     symlink(join(outside, "missing"), join(project, "dangling")),
     symlink(project, join(root, "alias")),
@@ -159,6 +161,7 @@ describe("read decision", () => {
       join(home, ".config", "gh", "hosts.yml"),
       join(home, ".netrc"),
       join(home, "Library", "Application Support", "Cutroom", "instagram", "token.json"),
+      join(home, "Library", "Application Support", "Cutroom", "services", "gemini.json"),
       join(home, "Library", "Keychains", "login.keychain-db"),
       "credentials-link/credentials",
     ]) expect(await read(path)).toEqual(refused(POLICY_MESSAGES.sensitive));
@@ -244,7 +247,7 @@ describe("read decision", () => {
   it("lists the same stores, in every spelling, for the shell sandbox's read denials", async () => {
     const paths = sensitiveReadPaths(home);
     const realHome = await realpath(home);
-    for (const store of [".ssh", ".aws", ".netrc", ".zsh_history", join("Library", "Keychains"), join("Library", "Application Support", "Cutroom", "instagram")]) {
+    for (const store of [".ssh", ".aws", ".netrc", ".zsh_history", join("Library", "Keychains"), join("Library", "Application Support", "Cutroom", "instagram"), join("Library", "Application Support", "Cutroom", "services")]) {
       expect(paths).toContain(join(home, store));
       expect(paths).toContain(join(realHome, store));
       if (process.platform === "darwin") expect(paths).toContain(`/System/Volumes/Data${join(realHome, store)}`);

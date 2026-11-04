@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { app, autoUpdater, BrowserWindow, dialog, nativeImage, session, shell } from "electron";
+import { app, autoUpdater, BrowserWindow, dialog, nativeImage, safeStorage, session, shell } from "electron";
 import { basename, dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { execFile } from 'node:child_process';
@@ -24,6 +24,7 @@ import { DapiServer } from "./dapi/server";
 import { pinProject } from "./dapi/output-policy";
 import { instructions } from "./dapi/docs";
 import { EditingStyleStore } from "./editing-style";
+import { agentMemoryStore, memoryDisabled, unavailableMemorySnapshot } from "./agent-memory";
 import { AudioCatalogStore } from "./audio-catalog";
 import { readEditingSkills } from "./editing-skills";
 import { DapiError, toolByName } from "@diffusionstudio/dapi";
@@ -48,6 +49,8 @@ import { LocalReframeService } from "./reframe-analysis";
 import { configureWebMediaService } from "./web-media";
 import { configureEarshot } from "./addons/earshot";
 import { registerEarshotIpc } from "./addons/earshot/ipc";
+import { configureGemini } from "./gemini";
+import { registerGeminiIpc } from "./gemini/ipc";
 import { configureMediaSearch } from "./media-search";
 import { configureMediaDownloads, findInstagramMedia, mediaTools } from "./media-download";
 import { configureYtDlp, ytDlp } from "./downloader";
@@ -261,15 +264,32 @@ const mediaDownloads = configureMediaDownloads({
   version: app.getVersion(),
 });
 
+// Gemini (optional): the user's own Google AI Studio key, encrypted by the OS
+// keychain in userData/services. ask_gemini sends media to Google only once a
+// key is saved, and Settings is the only place that saves one.
+const geminiConnection = configureGemini({
+  userData: app.getPath("userData"),
+  secureStorage: safeStorage,
+  ffmpeg: existsSync(mediaFfmpeg) ? mediaFfmpeg : null,
+  ffprobe: existsSync(mediaFfprobe) ? mediaFfprobe : null,
+});
+
 // The MCP server agents and the Cutroom CLI talk to. Started once the app is
 // ready; renderer tools create the window when there is none.
 const editingStyle = new EditingStyleStore(join(app.getPath("userData"), "editing-style.json"));
 // Cutroom's music and effect catalog under the user's personal layer (userData/audio-catalog, which only the app writes).
 const audioCatalog = new AudioCatalogStore({ docsDir: docsDir(), personalDir: join(app.getPath("userData"), "audio-catalog") });
+// What agents remember (memory) and the user's own skills, in this profile's
+// userData, written only by their tools and Settings. CUTROOM_MEMORY=0 turns
+// both off for the session.
+const memoryOff = memoryDisabled();
+const agentMemoryFile = join(app.getPath("userData"), "agent-memory", "memory.json");
+const agentSkillsDir = join(app.getPath("userData"), "agent-skills");
 const dapi = new DapiServer({
   port: launchProfile.isolated ? 0 : undefined,
   editingStyle,
   audioCatalog,
+  ...(memoryOff ? {} : { agentMemoryFile, agentSkillsDir }),
   version: app.getVersion(),
   logs: () => logBuffer,
   docsDir: docsDir(),
@@ -511,9 +531,14 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_CANCEL,({id})=>publishing.cancel(id));
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_REMOVE,({id})=>publishing.remove(id));
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_RECONCILE,({id})=>publishing.reconcile(id));
-  mainBridge.handle(MAIN_CHANNELS.EDITING_SKILLS, (args) => readEditingSkills(docsDir(), toolByName("skills").input.parse(args)));
+  mainBridge.handle(MAIN_CHANNELS.EDITING_SKILLS, (args) => readEditingSkills(docsDir(), toolByName("skills").input.parse(args), { userSkillsDir: memoryOff ? null : agentSkillsDir }));
   mainBridge.handle(MAIN_CHANNELS.EDITING_STYLE_GET, () => editingStyle.get());
   mainBridge.handle(MAIN_CHANNELS.EDITING_STYLE_SET, ({ notes, expectedRevision }) => editingStyle.set(notes, expectedRevision));
+  mainBridge.handle(MAIN_CHANNELS.MEMORY_GET, async () => memoryOff ? unavailableMemorySnapshot() : agentMemoryStore(agentMemoryFile).snapshot());
+  mainBridge.handle(MAIN_CHANNELS.MEMORY_APPLY, async (request) => {
+    if (memoryOff) throw new Error("Agent memory is turned off for this session (CUTROOM_MEMORY=0).");
+    return agentMemoryStore(agentMemoryFile).apply(request);
+  });
   registerVideoWorkflows();
   registerInterviewAnalysis();
   const visual = new LocalVisualIndexService({runtimePath:join(app.getAppPath(),'dist','visual-vision')});
@@ -574,6 +599,8 @@ if (squirrelLaunch) {
   app.on("will-quit", () => webMedia.dispose());
   registerEarshotIpc(earshotAddon);
   app.on("will-quit", () => earshotAddon.dispose());
+  registerGeminiIpc(geminiConnection);
+  app.on("will-quit", () => geminiConnection.dispose());
   const mediaOwners = new Map<string, { owner: number; cancel: () => void }>();
   mainBridge.handle(MAIN_CHANNELS.MEDIA_DOWNLOAD, async (request, event) => {
     if (mediaOwners.has(request.id)) throw new Error("This download is already running.");
@@ -852,6 +879,8 @@ if (squirrelLaunch) {
         mcpUrl: url,
         version: app.getVersion(),
         instructions: instructions(docsDir()),
+        // Each chat session renders the saved memory into its instructions when it opens or resumes.
+        memory: memoryOff ? null : { file: agentMemoryFile, editingStyleFile: join(app.getPath("userData"), "editing-style.json"), skillsDir: agentSkillsDir },
       });
       if (launchProfile.isolated) {
         await writeFileAtomic(join(launchProfile.directory, 'profile-session.json'), JSON.stringify({

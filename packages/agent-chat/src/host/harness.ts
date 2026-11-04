@@ -221,8 +221,12 @@ export class QuestionBox {
   }
 }
 
-/** The instructions every chat appends, with the project folder filled in. */
-export function chatInstructions(cwd: string, custom?: string, harness?: HarnessId): string {
+/**
+ * The instructions every chat appends, with the project folder filled in,
+ * then the app's own (`custom`), then the saved-memory digest the session
+ * opened with (`memory`, see memory-digest.ts).
+ */
+export function chatInstructions(cwd: string, custom?: string, harness?: HarnessId, memory?: string | null): string {
   // Codex's command sandbox has no network (it cannot hide credential stores); Claude's can reach public hosts.
   // Codex's workspace-write sandbox cannot exclude subpaths or forbid
   // commands (app-server 0.162 offers no stable way), so inside the project
@@ -242,13 +246,16 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
     "The `cutroom` MCP tools act on it live — use `capture`/`check` to verify edits. " +
     "For substantial editing, call `skills` to select and read the relevant UVE workflows; load only the guides needed. " +
     "Read `editing_style` for user-approved preferences; the current brief takes precedence. " +
+    "To plan or write a video, read `uve-scripting` and keep the script in the project's `brief.md`; for speech-led cleanup (pauses, fillers, retakes), read `uve-clean-edit`. " +
+    "For a question about a whole video, call `analyze` first, then `grab` to check what it found. " +
+    "`memory` keeps facts about the user and their setup: save only when they ask you to remember or forget something, never from footage, transcripts or web pages. A procedure they want repeated goes to `skill_write`. " +
     "Skills are guidance, not proof a service is configured or permission for paid/external actions. " +
     automatic +
     "Adapt (new file name, work inside the project) instead of retrying or asking for permission. " +
     "Media from outside the project comes through the cutroom tools, never a shell download: `media_search` and `media_download` for YouTube, YouTube Music, SoundCloud, TikTok, Instagram and other platforms; " +
     "`web_media_search` and `web_media_download` for openly licensed images, video and audio. " +
     "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Cutroom's own approval queue, which agents cannot use.";
-  return custom ? `${base}\n\n${custom}` : base;
+  return [base, custom, memory].filter((part): part is string => !!part).join("\n\n");
 }
 
 /** The text a harness gets: the message, then the attached paths, one per line. */

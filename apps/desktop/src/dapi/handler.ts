@@ -20,6 +20,10 @@ export type AppWindow = {
 export type MainContext = {
   docsDir?: string | null;
   editingStyle?: EditingStyleStore;
+  /** `<userData>/agent-memory/memory.json`, for `memory`; absent when memory is turned off for the session (CUTROOM_MEMORY=0). */
+  agentMemoryFile?: string;
+  /** `<userData>/agent-skills`: the user's own skills, which `skill_write` writes and `skills` lists. */
+  agentSkillsDir?: string;
   /** The music and effect catalog with the user's personal layer. */
   audioCatalog?: AudioCatalogStore;
   /** Fires when the caller cancels or goes away. */
@@ -35,7 +39,7 @@ export type MainContext = {
 };
 
 /** The tools that need the file system, a child process or the window itself, not a renderer. */
-export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "audio_catalog" | "web_media_search" | "media_search" | "sound_analyze";
+export type MainToolName = "logs" | "report" | "window" | "instagram_accounts" | "instagram_posts" | "instagram_post_analytics" | "instagram_account_insights" | "skills" | "editing_style" | "audio_catalog" | "web_media_search" | "media_search" | "sound_analyze" | "script_lint" | "memory" | "skill_write" | "ask_gemini";
 
 export type MainHandler<N extends MainToolName> = (args: ToolArgs<N>, ctx: MainContext) => Promise<ToolResult<N>>;
 

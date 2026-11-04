@@ -17,6 +17,6 @@ For a single clip at timeline start `S`, source in `I`, and speed `r`, source wo
 
 Check names, numbers, punctuation, and uncertain recognition against supplied spellings and available evidence. Do not invent inaudible words. Keep spoken meaning intact; cosmetic case or punctuation changes should not rewrite testimony. Local Whisper has no reliable speaker labels.
 
-Choose a supported preset from the [reference](../../reference/jsx/captions.md#presets), respecting the user's style. Use natural phrase grouping where the preset supports it. Do not invent unsupported caption props. Keep text legible at the delivery size and away from faces, essential graphics, and the chosen platform's interface area; safe placement depends on the actual format.
+Choose a supported preset from the [reference](../../reference/jsx/captions.md#presets), respecting the user's style. Use natural phrase grouping where the preset supports it. Do not invent unsupported caption props. Keep each caption up long enough to read: about three words a second plus a second to notice ([time on screen](../uve-motion-graphics/references/craft.md#time-on-screen)). Keep text legible at the delivery size and away from faces, essential graphics, and the chosen platform's interface area; safe placement depends on the actual format.
 
 Capture representative lines, the longest line, a speaker change, and both sides of affected cuts. Check entry/exit timing against audio when available. Report unresolved spellings or unverified audio timing instead of declaring automatic recognition perfect.

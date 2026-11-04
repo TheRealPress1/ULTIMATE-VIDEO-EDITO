@@ -3,7 +3,7 @@ export type UpdateStatus = {
   currentVersion: string;
   message: string;
   releaseName?: string;
-  /** Opens the browser's GitHub session; this is a manual installer, not an auto-update feed. */
+  /** The public GitHub releases page Settings opens; a manual installer, not an auto-update feed. The name predates public releases. */
   privateDownloadUrl?: string;
 };
 

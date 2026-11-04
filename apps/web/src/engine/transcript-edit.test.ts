@@ -127,7 +127,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	mocks.render.mockImplementation((tree) => tree);
 	mocks.audio.mockResolvedValue(new Blob(['audio']));
-	mocks.silence.mockResolvedValue([{ start: 4.2, end: 5.8 }]);
+	mocks.silence.mockResolvedValue({ silences: [{ start: 4.2, end: 5.8 }], levels: { floor: -62.5, sound: -18, threshold: -48.4 } });
 	mocks.transcript.mockResolvedValue([{ text: 'Hello um world. Next thought.', words: [
 		{ text: 'Hello', start: 1, end: 2 }, { text: 'um', start: 2.3, end: 2.6 }, { text: 'world.', start: 3, end: 4 }, { text: 'Next', start: 6, end: 7 }, { text: 'thought.', start: 8, end: 9 },
 	] }]);
@@ -218,6 +218,36 @@ describe('current timeline transcript transaction', () => {
 		await applyTranscriptEdit(f.world, '/project', f.original as never, snapshot.revision, ranges);
 		const json = await (f.library.store.mock.calls[0]![0] as Blob).text();
 		expect(json).toContain('Hello'); expect(json).not.toContain('Untrusted replacement');
+	});
+
+	it('reports the measured pause levels and folds the suggestion settings into the revision', async () => {
+		const f = fixture();
+		const first = await prepareTranscriptEdit(f.world, '/project', f.original as never);
+		expect(first.pauseDetection).toEqual({ mode: 'adaptive', minSeconds: 0.5, keepSeconds: 0.12, thresholdDb: null, frameQuantize: true, appliedThresholdDb: -48.4, noiseFloorDb: -62.5, speechDb: -18 });
+		// Explicit defaults are the same inspection, and reuse it.
+		const same = await prepareTranscriptEdit(f.world, '/project', f.original as never, { suggestions: { pauses: { minSeconds: 0.5 }, fillers: ['UM', 'uh', 'erm', 'hmm', 'uhm'] } });
+		expect(same.revision).toBe(first.revision); expect(mocks.silence).toHaveBeenCalledOnce();
+		// New filler or retake settings keep the words and the measured mix but change the revision.
+		const retakes = await prepareTranscriptEdit(f.world, '/project', f.original as never, { suggestions: { retakes: true, fillers: [] } });
+		expect(retakes.revision).not.toBe(first.revision);
+		expect(retakes.suggestions.map((item) => item.kind)).toEqual(['silence']);
+		expect(mocks.silence).toHaveBeenCalledOnce(); expect(mocks.audio).toHaveBeenCalledOnce(); expect(mocks.transcript).toHaveBeenCalledOnce();
+		await expect(applyTranscriptEdit(f.world, '/project', f.original as never, first.revision, ranges)).rejects.toThrow('expired');
+		// A new detector setting measures the mix again with it, still without re-reading the words.
+		const tight = await prepareTranscriptEdit(f.world, '/project', f.original as never, { suggestions: { pauses: { minSeconds: 0.12, keepSeconds: 0, thresholdDb: -40 } } });
+		expect(mocks.silence).toHaveBeenCalledTimes(2); expect(mocks.transcript).toHaveBeenCalledOnce();
+		expect(mocks.silence.mock.calls[1]![3]).toMatchObject({ minSilence: 0.12, padding: 0, minThreshold: -40, maxThreshold: -40 });
+		expect(tight.pauseDetection).toMatchObject({ mode: 'fixed', thresholdDb: -40, keepSeconds: 0 });
+		expect(tight.suggestions.find((item) => item.kind === 'silence')).toMatchObject({ start: 4.2, end: 5.8 });
+		await expect(applyTranscriptEdit(f.world, '/project', f.original as never, tight.revision, ranges)).resolves.toMatchObject({ duration: 9 });
+	});
+
+	it('keeps caption words usable when the pause analysis fails', async () => {
+		const f = fixture(); mocks.silence.mockRejectedValueOnce(new Error('Decode failed'));
+		const snapshot = await prepareTranscriptEdit(f.world, '/project', f.original as never);
+		expect(snapshot.pauseDetection).toBeNull();
+		expect(snapshot.suggestions.map((item) => item.kind)).toEqual(['filler']);
+		expect(snapshot.warnings).toEqual(expect.arrayContaining([expect.stringContaining('caption text'), 'Quiet-pause suggestions are unavailable: Decode failed']));
 	});
 
 	it('reuses the inspected mix only while its scene and file metadata remain unchanged', async () => {

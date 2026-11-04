@@ -64,6 +64,16 @@ export type SoundEffectsRequest =
       name?: string;
     };
 
+/**
+ * `analyze`'s sound events: earshot's `timeline` over one file (or a window
+ * of it), asked only once the add-on is ready, so it never waits on an
+ * install. `path` is a library source (project-relative), or an absolute path.
+ */
+export type EarshotEventsRequest = { id: string; dir: string | null; path: string; start?: number; end?: number };
+
+/** earshot's answer for it: its plain-language summary and its (compact) JSON. */
+export type EarshotEventsReply = { version: string; summary: string; result: Record<string, unknown> };
+
 /** The model-free audit earshot runs on every take (and on any file with `check`). */
 export type SoundAudit = {
   ok: boolean;

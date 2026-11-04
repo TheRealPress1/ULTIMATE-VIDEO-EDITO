@@ -8,7 +8,14 @@ import { join } from "node:path";
 
 import type { UtilityProcess } from "electron";
 
-type AgentChatOptions = { dataDir: string; mcpUrl: string | null; version: string; instructions?: string };
+type AgentChatOptions = {
+  dataDir: string;
+  mcpUrl: string | null;
+  version: string;
+  instructions?: string;
+  /** The saved memory, editing style and user skills each session's instructions are rendered from; null when memory is off. */
+  memory?: { file: string; editingStyleFile?: string; skillsDir?: string } | null;
+};
 
 const DEV_ORIGIN = "http://localhost:5173";
 const RESTART_DELAYS_MS = [1000, 2000, 5000, 10_000];
@@ -41,6 +48,7 @@ function spawn(): void {
         mcp: options!.mcpUrl ? { name: "cutroom", url: options!.mcpUrl } : null,
         version: options!.version,
         instructions: options!.instructions,
+        memory: options!.memory ?? null,
         allowedOrigins: app.isPackaged ? ["file://", "null"] : ["file://", "null", DEV_ORIGIN],
       },
     });

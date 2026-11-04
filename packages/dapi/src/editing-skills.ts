@@ -1,5 +1,5 @@
 /** Shared by the app, MCP catalog and both agent providers. Paths are relative to bundled docs. */
-export const EDITING_SKILL_VERSION = "1.6.0";
+export const EDITING_SKILL_VERSION = "1.7.0";
 export const EDITING_STYLE_LIMIT = 8000;
 
 export type EditingSkill = {
@@ -17,9 +17,10 @@ export type EditingSkill = {
  * service the user configures separately (its own key, SDK and account).
  * `addon`: an imported guide whose tools run on this Mac through a Cutroom
  * add-on that installs itself, with no account or key. `reference`: links to
- * outside guidance.
+ * outside guidance. `user`: a skill the user (or their agent, at their
+ * request) saved in this app's data, listed after the bundled ones.
  */
-export const EDITING_SKILL_CATEGORIES = ["editing", "optional", "addon", "reference"] as const;
+export const EDITING_SKILL_CATEGORIES = ["editing", "optional", "addon", "reference", "user"] as const;
 export type EditingSkillCategory = (typeof EDITING_SKILL_CATEGORIES)[number];
 
 /** The base guides INSTRUCTIONS.md names as `skills/<id>.md`; listed so `skills` can read them too. */
@@ -30,7 +31,7 @@ const builtIn = (id: string, title: string, description: string): EditingSkill =
   id, title, description, path: `skills/${id}/SKILL.md`, version: EDITING_SKILL_VERSION,
   category: "editing", requires: [],
 });
-const optional = (id: string, title: string, description: string, requires: string[], category: Exclude<EditingSkillCategory, "editing"> = "optional"): EditingSkill => ({
+const optional = (id: string, title: string, description: string, requires: string[], category: Exclude<EditingSkillCategory, "editing" | "user"> = "optional"): EditingSkill => ({
   id, title, description, path: `skills/imports/${id}/SKILL.md`, version: EDITING_SKILL_VERSION, category, requires,
 });
 
@@ -40,6 +41,8 @@ const AUDIO_ADDON = ["Audio intelligence add-on (installs by itself on first use
 export const EDITING_SKILLS: readonly EditingSkill[] = [
   base("editor", "Editor (start here)", "The default guide: understand the footage, build the edit in the project's JSX, and verify it before delivery."),
   base("watch", "Watch footage", "Summarize footage, find moments and quotes, and check claims about a video or audio file without editing it."),
+  builtIn("uve-scripting", "Scripting & shot plans", "Turn an idea or a draft into a filmable short-form script and shot plan in the project's brief.md, then check it with script_lint and against the recorded read."),
+  builtIn("uve-clean-edit", "Clean talking-head edit", "Cut a talking head, interview or podcast to its best takes: remove retakes, fillers and dead air at a deliberate pace, then caption and verify the joins."),
   builtIn("uve-story-selection", "Story & highlights", "Find complete moments, compare hooks and payoffs, and assemble a story grounded in source timestamps."),
   builtIn("uve-dialogue-pacing", "Dialogue pacing", "Tighten repetitions and false starts while preserving meaning, breaths, reactions and timing."),
   builtIn("uve-caption-finishing", "Caption finishing", "Generate captions from the edited scene, correct wording and check timing, line breaks and placement."),

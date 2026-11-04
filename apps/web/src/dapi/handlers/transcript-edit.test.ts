@@ -12,14 +12,14 @@ const target = { name: 'scene' };
 const revision = 'a'.repeat(64);
 const result = { sceneId: 'scene', duration: 5, previousDuration: 10, clipCount: 2, captionPath: 'Edited.json', checkpointId: 'checkpoint' };
 const context = (signal = new AbortController().signal): ToolContext => ({ signal, session: () => active, requireSession: () => active, app: { openProject: vi.fn() } });
-const input = { id: 'scene', refreshTranscript: false, wordOffset: 0, wordLimit: 1 };
+const input = { id: 'scene', refreshTranscript: false, wordOffset: 0, wordLimit: 1, retakes: false };
 beforeEach(() => {
 	vi.resetAllMocks();
 	session = { world: {}, project: { dir: () => '/project' } } as EditorSession; active = session;
 	mocks.scene.mockReturnValue(target); mocks.apply.mockResolvedValue(result);
 	mocks.inspect.mockResolvedValue({ revision, sceneId: 'scene', sceneName: 'Scene', duration: 10, frameRate: 30, transcriptSource: 'captions', warnings: [], words: [
 		{ id: 'a', text: 'First', start: 1, end: 2, segment: 0 }, { id: 'b', text: 'Second', start: 6, end: 7, segment: 1 },
-	], passages: [{ id: 'one', start: 0, end: 5, text: 'First', wordIds: ['a'] }, { id: 'two', start: 5, end: 10, text: 'Second', wordIds: ['b'] }], suggestions: [{ id: 'pause', kind: 'silence', start: 3, end: 5, text: 'Quiet pause' }] });
+	], passages: [{ id: 'one', start: 0, end: 5, text: 'First', wordIds: ['a'] }, { id: 'two', start: 5, end: 10, text: 'Second', wordIds: ['b'] }], suggestions: [{ id: 'pause', kind: 'silence', start: 3, end: 5, text: 'Quiet pause' }], pauseDetection: null });
 });
 
 describe('timeline transcript handlers', () => {
@@ -31,6 +31,11 @@ describe('timeline transcript handlers', () => {
 		expect(first.suggestions[0]!.id).toBe('pause');
 		const next = await transcriptEditInspect({ ...input, wordOffset: 1 }, context());
 		expect(next.suggestions[0]!.id).toBe('pause'); expect(next.nextWordOffset).toBeNull();
+	});
+	it('passes the pause, filler and retake settings to the inspection', async () => {
+		const pauses = { minSeconds: 0.12, keepSeconds: 0, frameQuantize: true };
+		await transcriptEditInspect({ ...input, pauses, fillers: ['like'], retakes: true }, context());
+		expect(mocks.inspect).toHaveBeenCalledWith(session.world, '/project', target, expect.objectContaining({ suggestions: { pauses, fillers: ['like'], retakes: true } }));
 	});
 	it('passes trusted revision and ordered retained ranges into the shared engine', async () => {
 		const ctx = context(), ranges = [{ start: 5, end: 10 }];

@@ -175,6 +175,41 @@ describe('rendered quality review lifecycle', () => {
     expect(mocks.disposeInput).toHaveBeenCalledOnce();
   });
 
+  it('reviews pauses with caller thresholds under their own saved-section key', async () => {
+    const f = fixture();
+    mocks.hasAudio.mockReturnValue(true);
+    mocks.pcm.mockResolvedValue(new Blob());
+    // Steady tone at 8 kHz with half a second of digital silence at 4 s.
+    const samples = new Float32Array(80000).fill(.1);
+    samples.fill(0, 32000, 36000);
+    mocks.buffers.mockImplementation(async function* () {
+      yield { timestamp: 0, buffer: { sampleRate: 8000, numberOfChannels: 1, length: samples.length, getChannelData: () => samples } };
+    });
+    const keys = () => mocks.ipc.mock.calls.filter(([channel]) => channel === 'cache-get').map(([, data]) => JSON.parse(data.key));
+    const standard = await reviewScene(f.world, f.scene, '/project');
+    expect(standard.findings.filter((finding) => finding.code === 'audio-silence')).toEqual([]);
+    const tight = await reviewScene(f.world, f.scene, '/project', { pauses: { thresholdDb: -45, minSeconds: .25 } });
+    expect(tight.findings.filter((finding) => finding.code === 'audio-silence').map((finding) => [finding.time, finding.end])).toEqual([[4, 4.5]]);
+    const [first, second] = keys();
+    expect(first).toHaveLength(7);
+    expect(second).toEqual([...first, -45, .25]);
+  });
+
+  it('lists every residual pause of a tight review separately instead of one span over the speech between them', async () => {
+    const f = fixture();
+    mocks.hasAudio.mockReturnValue(true);
+    mocks.pcm.mockResolvedValue(new Blob());
+    const samples = new Float32Array(80000).fill(.1);
+    for (const at of [1, 2.5, 4]) samples.fill(0, at * 8000, (at + .3) * 8000);
+    mocks.buffers.mockImplementation(async function* () {
+      yield { timestamp: 0, buffer: { sampleRate: 8000, numberOfChannels: 1, length: samples.length, getChannelData: () => samples } };
+    });
+    const report = await reviewScene(f.world, f.scene, '/project', { pauses: { thresholdDb: -45, minSeconds: .25 } });
+    const pauses = report.findings.filter((finding) => finding.code === 'audio-silence');
+    expect(pauses.map((finding) => [finding.time, finding.end].map((time) => Math.round(time! * 1000) / 1000))).toEqual([[1, 1.3], [2.5, 2.8], [4, 4.3]]);
+    expect(pauses.every((finding) => /for 0\.30s/.test(finding.message))).toBe(true);
+  });
+
   it('classifies generated caption text on its Caption entity while ignoring styling children', async () => {
     const f = fixture();
     const computed = { start: 0, end: 300, visibility: 1, opacity: 1, width: 320 };

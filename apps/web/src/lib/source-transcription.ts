@@ -11,7 +11,8 @@ export async function transcribeSource(asset: Extract<Asset, { type: 'AUDIO' | '
   check();
   const full = !options.window || (options.window.start === 0 && options.window.end === asset.duration);
   const local = !/^[a-z][a-z\d+.-]*:/i.test(asset.source) && !asset.source.startsWith('\\\\');
-  const request = options.dir && full && local && !options.language ? { dir: options.dir, source: asset.source, duration: asset.duration } : undefined;
+  // The footage index and its saved sections hold the fast model's detected-language transcript only.
+  const request = options.dir && full && local && !options.language && options.quality !== 'accurate' ? { dir: options.dir, source: asset.source, duration: asset.duration } : undefined;
   const cached = request ? await requestFootage(MAIN_CHANNELS.FOOTAGE_INDEX_GET, request, options.signal) : undefined;
   check();
   if (cached?.transcript) return cached.transcript;

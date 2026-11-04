@@ -1,6 +1,6 @@
 # listen
 
-Inspect speech in a local audio/video window with the bundled Whisper engine. No media is uploaded, and no upstream audio account is needed. This tool returns transcription evidence; it does not perform full semantic audio analysis.
+Inspect speech in a local audio/video window with the bundled Whisper engine. No media is uploaded, and no upstream audio account is needed. This tool returns transcription evidence; it does not perform full semantic audio analysis. For tone, music and how a voice sounds, the user's opt-in [`ask_gemini`](./ask-gemini.md) asks Gemini about the sound, at the price of uploading it to Google; this tool never does.
 
 | | |
 | --- | --- |

@@ -2,6 +2,10 @@
 export const SPEECH_SAMPLE_RATE = 16_000;
 export const SPEECH_MAX_SECONDS = 7_200;
 export const SPEECH_MODEL_BYTES = 147_951_465;
+/** About what the accurate model (whisper.cpp large-v3-turbo) downloads, once, when a call first asks for it. */
+export const SPEECH_ACCURATE_MODEL_BYTES = 1_624_555_275;
+/** fast: Whisper base, the default. accurate: Whisper large-v3-turbo, fetched only on an explicit request. */
+export type SpeechQuality = "fast" | "accurate";
 export type SpeechWord = { text: string; start: number; end: number };
 export type SpeechSegment = { text: string; speaker?: string; words: SpeechWord[] };
 export type SpeechResult = { segments: SpeechSegment[] };
@@ -20,4 +24,6 @@ export type SpeechStatus = {
   modelName: string;
   downloadBytes: number;
   error: string | null;
+  /** The larger model a transcription may ask for with quality "accurate"; never downloaded otherwise. */
+  accurate?: { modelName: string; downloadBytes: number; downloaded: boolean };
 };

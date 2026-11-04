@@ -8,7 +8,7 @@ import { SPEECH_MAX_SECONDS, SPEECH_SAMPLE_RATE } from '@desktop/speech-types';
 import { mergeSpeechChunks, speechChunks, SPEECH_CHUNK_MAX_SECONDS, type SpeechChunk } from '@desktop/speech-chunks';
 import { mainBridge } from './ipc';
 import { requestFootage } from './footage-cache';
-import type { SpeechProgress, SpeechSegment } from '@desktop/speech-types';
+import type { SpeechProgress, SpeechQuality, SpeechSegment } from '@desktop/speech-types';
 import type { FootageChunkRequest, FootageChunksResult } from '@desktop/footage-types';
 
 export const MAX_TRANSCRIPTION_SECONDS = SPEECH_MAX_SECONDS;
@@ -27,6 +27,8 @@ export interface LocalTranscriptionOptions {
   signal?: AbortSignal;
   onProgress?: ProgressListener;
   language?: string;
+  /** fast (Whisper base, the default) or accurate (Whisper large-v3-turbo, downloaded on its first request). */
+  quality?: SpeechQuality;
   /** Source seconds; returned word times remain source-relative. */
   window?: { start: number; end: number };
   /** Original asset duration, including silent video tails and delayed audio. */
@@ -79,10 +81,14 @@ export async function transcribeLocally(audio: Blob, options: LocalTranscription
     const duration = options.cache?.duration ?? options.sourceDuration ?? Math.max(0, audioEnd - origin);
     check();
     if (![duration, origin, audioFirst, audioEnd].every(Number.isFinite) || duration <= 0) throw new Error('This file has no readable audio to transcribe.');
-    if (duration > MAX_TRANSCRIPTION_SECONDS) throw new Error('Local transcription supports recordings up to two hours.');
     const from = options.window?.start ?? 0, to = Math.min(options.window?.end ?? duration, duration);
+    // The limit is on what one call decodes: a window of a longer recording is fine.
+    if (to - from > MAX_TRANSCRIPTION_SECONDS) {
+      throw new Error(options.window ? 'Local transcription supports windows up to two hours.' : 'Local transcription supports recordings up to two hours; transcribe a longer one in windows.');
+    }
     const windows = speechChunks(duration, from, to); total = windows.length;
     if (options.cache && (from !== 0 || to !== duration)) throw new Error('Persistent speech sections require the full source window.');
+    if (options.cache && options.quality === 'accurate') throw new Error('Persistent speech sections are kept for the fast model only.');
     let saved: FootageChunksResult | undefined;
     if (options.cache) { saved = await requestFootage(MAIN_CHANNELS.FOOTAGE_INDEX_CHUNKS_GET, options.cache, signal); check(); }
     const results: { window: SpeechChunk; segments: SpeechSegment[] }[] = [];
@@ -109,7 +115,7 @@ export async function transcribeLocally(audio: Blob, options: LocalTranscription
         await conversion.execute(); check(); conversion = undefined;
         if (!target.buffer?.byteLength || target.buffer.byteLength > MAX_WAV_BYTES) throw new Error('This speech section could not be prepared within its memory limit.');
         nativeStarted = true;
-        const request = mainBridge.call(MAIN_CHANNELS.SPEECH_TRANSCRIBE, { id, audio: new Uint8Array(target.buffer), ...(language ? { language } : {}) });
+        const request = mainBridge.call(MAIN_CHANNELS.SPEECH_TRANSCRIBE, { id, audio: new Uint8Array(target.buffer), ...(language ? { language } : {}), ...(options.quality === 'accurate' ? { quality: options.quality } : {}) });
         const result = await Promise.race([request, aborted]); nativeStarted = false; check();
         const shift = trimStart - origin;
         segments = result.segments.map(segment => ({ text: segment.text, words: segment.words.map(word => ({ text: word.text, start: word.start + shift, end: Math.min(trimEnd - origin, word.end + shift) })).filter(word => word.end > word.start) })).filter(segment => segment.words.length);

@@ -62,6 +62,11 @@ export type AgentHostOptions = {
   env: Promise<HostEnv>;
   mcp: McpConfig | null;
   instructions?: string;
+  /**
+   * The saved-memory digest for a session's instructions, read when the
+   * session opens or resumes; null when there is none (see memory-digest.ts).
+   */
+  memoryDigest?: () => Promise<string | null>;
   version: string;
   /** How long a session outlives its last turn. */
   idleMs?: number;
@@ -758,12 +763,13 @@ export class AgentHost {
     };
     let session: HarnessSession | undefined;
     try {
+      const memory = await this.memoryDigest();
       session = await harness.open({
         cwd: chat.meta.cwd,
         model,
         resume: chat.meta.resume ? confirmedResume(chat.meta.resume, chat.meta.harness) : undefined,
         mcp: this.options.mcp,
-        instructions: chatInstructions(chat.meta.cwd, this.options.instructions, chat.meta.harness),
+        instructions: chatInstructions(chat.meta.cwd, this.options.instructions, chat.meta.harness, memory),
         env,
         emit,
         onResume,
@@ -779,6 +785,17 @@ export class AgentHost {
       if (current()) chat.sessionGeneration += 1;
       await session?.close().catch(() => {});
       throw error;
+    }
+  }
+
+  /** Never stands in a session's way: a digest that can't be read is left out, and said so in the log only. */
+  private async memoryDigest(): Promise<string | null> {
+    if (!this.options.memoryDigest) return null;
+    try {
+      return await this.options.memoryDigest();
+    } catch (error) {
+      this.log(`saved memory left out of a session: ${(error as Error).message}`);
+      return null;
     }
   }
 

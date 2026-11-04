@@ -19,7 +19,7 @@ on:
         required: false
         type: string
       private_download_url:
-        description: 'Private GitHub repository releases page (optional; opened using the browser login)'
+        description: 'Public GitHub releases page that Settings opens for manual downloads (optional)'
         required: false
         type: string
 permissions:

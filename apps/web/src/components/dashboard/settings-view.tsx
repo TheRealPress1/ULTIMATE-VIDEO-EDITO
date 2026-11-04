@@ -8,9 +8,11 @@ import { toast } from "somoto";
 import { Button } from "@/components/ui/button";
 import { InstagramConnection } from "./instagram-connection";
 import { EditingSkillsSettings } from "./editing-skills";
+import { AgentMemorySettings } from "./agent-memory-settings";
 import { UpdateSettings } from './update-settings';
 import { DownloaderSettings } from "./downloader-settings";
 import { AudioIntelligenceSettings } from "./audio-intelligence-settings";
+import { GeminiSettings } from "./gemini-settings";
 import { usePermissionState, type PermissionState } from "@/hooks/use-permission";
 
 import {
@@ -173,10 +175,12 @@ export function DashboardSettingsView() {
   return (
     <DashboardScrollView>
       <EditingSkillsSettings />
+      <AgentMemorySettings />
       <InstagramConnection />
       <UpdateSettings />
       <DownloaderSettings />
       <AudioIntelligenceSettings />
+      <GeminiSettings />
       <DashboardPermissionsSection />
     </DashboardScrollView>
   );

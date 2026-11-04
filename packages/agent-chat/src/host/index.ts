@@ -14,8 +14,10 @@ import { CodexHarness } from "./codex";
 import { DEFAULT_ORIGINS, startServer } from "./server";
 import { ChatStore } from "./store";
 import { CheckpointStore } from "./checkpoints";
+import { readMemoryDigest } from "./memory-digest";
 
 import type { Harness, McpConfig } from "./harness";
+import type { MemorySources } from "./memory-digest";
 
 export type AgentHostConfig = {
   /** default "127.0.0.1" */
@@ -32,6 +34,8 @@ export type AgentHostConfig = {
   mcp: McpConfig | null;
   /** appended to each harness's system/developer prompt */
   instructions?: string;
+  /** Cutroom's saved memory, rendered after `instructions` whenever a session opens or resumes; null or absent for none. */
+  memory?: MemorySources | null;
   version: string;
   /** Where uploaded attachments are written; default a folder in the system temp dir. */
   uploadDir?: string;
@@ -59,6 +63,7 @@ export async function createAgentHost(config: AgentHostConfig): Promise<RunningA
     env,
     mcp: config.mcp,
     instructions: config.instructions,
+    memoryDigest: config.memory ? () => readMemoryDigest(config.memory) : undefined,
     version: config.version,
     uploadDir: config.uploadDir,
     log,
@@ -92,4 +97,6 @@ export { ClaudeHarness } from "./claude";
 export { CodexHarness } from "./codex";
 export { hydrateEnv, inheritedEnv, which, resolveBinary, killTree } from "./env";
 export type { Harness, HarnessSession, McpConfig, ResumeCursor, OpenOptions } from "./harness";
+export { readMemoryDigest } from "./memory-digest";
+export type { MemorySources } from "./memory-digest";
 export type { HostEnv } from "./env";

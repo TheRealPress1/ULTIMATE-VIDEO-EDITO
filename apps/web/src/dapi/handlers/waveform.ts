@@ -8,8 +8,8 @@ import { dataUrlToBytes } from "../lib/png";
 
 import type { ToolHandler } from "../handler";
 
-export const waveform: ToolHandler<"waveform"> = async ({ path, start, end, scale }, ctx) => {
+export const waveform: ToolHandler<"waveform"> = async ({ path, start, end, scale, silence }, ctx) => {
   const asset = await resolveAsset(ctx, path);
-  const { dataUrl, ...rest } = await waveformAsset(asset, { start, end, scale });
+  const { dataUrl, ...rest } = await waveformAsset(asset, { start, end, scale, silence });
   return { png: dataUrlToBytes(dataUrl), ...rest };
 };

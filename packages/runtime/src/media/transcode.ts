@@ -24,7 +24,7 @@ const RULER_HEIGHT_IN_TOKENS = 1;
 const AUDIO_WAVEFORM_HEIGHT_IN_TOKENS = 6;
 const AUDIO_COLUMN_WIDTH_IN_TOKENS = 6;
 const WAVEFORM_SAMPLE_WIDTH = 2; // pixels per peak; wider = less noisy
-const SILENCE_THRESHOLD = 12; // peak value (0-255) at/below which audio counts as silent
+const SILENCE_THRESHOLD = 12; // peak value (0-255) at/below which audio counts as silent, about -53 dBFS
 const SILENCE_MIN_SECONDS = 0.4;
 const AUDIO_RULER_FRAME_RATE = 30;
 
@@ -59,11 +59,39 @@ export type RenderedPreview = {
 
 export type RenderedWaveform = RenderedPreview & {
 	silences: Array<{ start: number; end: number }>;
+	/** The peak level, in dBFS, at or below which the audio counted as silent. */
+	silenceThresholdDb: number;
+	/** The shortest stretch, in seconds, that counted as a silence. */
+	silenceMinSeconds: number;
 };
 
 export type TimeWindow = { start?: number; end?: number };
 
 export type PreviewOptions = TimeWindow & { scale?: number };
+
+/** What counts as silent on a waveform: a peak level in dBFS and a minimum length in seconds. */
+export type SilenceSearch = { thresholdDb?: number; minSeconds?: number };
+
+export type WaveformOptions = PreviewOptions & { silence?: SilenceSearch };
+
+// Peaks are stored as 255 * sqrt(|sample|) (see downsampleAudio), so a level
+// in dBFS maps onto that scale through its linear amplitude.
+export function peakForDecibels(db: number): number {
+	return 255 * Math.sqrt(10 ** (db / 20));
+}
+
+export function decibelsForPeak(peak: number): number {
+	return 40 * Math.log10(peak / 255);
+}
+
+/** The peak threshold and minimum length a silence search resolves to. */
+export function resolveSilenceSearch(search?: SilenceSearch): { threshold: number; minSeconds: number; thresholdDb: number } {
+	const { thresholdDb, minSeconds = SILENCE_MIN_SECONDS } = search ?? {};
+	assert(thresholdDb === undefined || (Number.isFinite(thresholdDb) && thresholdDb <= 0), `silence.thresholdDb must be a level in dBFS (got ${thresholdDb}).`);
+	assert(Number.isFinite(minSeconds) && minSeconds > 0, `silence.minSeconds must be a positive number of seconds (got ${minSeconds}).`);
+	const threshold = thresholdDb === undefined ? SILENCE_THRESHOLD : peakForDecibels(thresholdDb);
+	return { threshold, minSeconds, thresholdDb: Math.round((thresholdDb ?? decibelsForPeak(SILENCE_THRESHOLD)) * 10) / 10 };
+}
 
 const MIN_SCALE = 0.25;
 const MAX_SCALE = 4;
@@ -188,19 +216,20 @@ async function renderFilmstrip(asset: VideoAsset, input: Input, window: TimeWind
 
 // Render the audio track of a video or audio file as a loudness-over-time
 // waveform with a timestamp ruler and silent stretches highlighted.
-export async function waveformAsset(asset: Asset, options?: PreviewOptions): Promise<RenderedWaveform> {
+export async function waveformAsset(asset: Asset, options?: WaveformOptions): Promise<RenderedWaveform> {
 	assert(asset.type === "VIDEO" || asset.type === "AUDIO", "The waveform needs a video or audio asset.");
+	const silence = resolveSilenceSearch(options?.silence);
 	const blob = await getAssetFile(asset);
 	const scale = resolveScale(options?.scale);
 	const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(blob) });
 	try {
-		return await renderWaveform(asset, input, options, scale);
+		return await renderWaveform(asset, input, options, scale, silence);
 	} finally {
 		input.dispose();
 	}
 }
 
-async function renderWaveform(asset: VideoAsset | AudioAsset, input: Input, window: TimeWindow | undefined, scale: number): Promise<RenderedWaveform> {
+async function renderWaveform(asset: VideoAsset | AudioAsset, input: Input, window: TimeWindow | undefined, scale: number, silence: ReturnType<typeof resolveSilenceSearch>): Promise<RenderedWaveform> {
 	const audioTrack = await input.getPrimaryAudioTrack();
 	assert(audioTrack, "No audio track found, so no waveform can be rendered.");
 	assert(
@@ -241,7 +270,7 @@ async function renderWaveform(asset: VideoAsset | AudioAsset, input: Input, wind
 	const peaksPerSecond = Math.round(columnWidthInPixels / secondsPerColumn / WAVEFORM_SAMPLE_WIDTH);
 	const audioPeaks = await downsampleAudio(audioTrack, { peaksPerSecond, range: [windowStart, windowStart + duration] });
 
-	const silentSpans = findSilentSpans(audioPeaks, peaksPerSecond);
+	const silentSpans = findSilentSpans(audioPeaks, peaksPerSecond, silence.threshold, silence.minSeconds);
 	const silences = silentSpans.map((span) => ({
 		start: windowStart + span.start / peaksPerSecond,
 		end: windowStart + span.end / peaksPerSecond,
@@ -266,7 +295,7 @@ async function renderWaveform(asset: VideoAsset | AudioAsset, input: Input, wind
 		startOffset: windowStart,
 	});
 
-	return { dataUrl: await toPngDataUrl(canvas), silences };
+	return { dataUrl: await toPngDataUrl(canvas), silences, silenceThresholdDb: silence.thresholdDb, silenceMinSeconds: silence.minSeconds };
 }
 
 type WaveformLayout = {
@@ -278,13 +307,13 @@ type WaveformLayout = {
 };
 
 // Scan the peaks for runs at/below the silence threshold that last at least
-// SILENCE_MIN_SECONDS, returned as [start, end) peak-index spans.
-function findSilentSpans(audioPeaks: Uint8ClampedArray, peaksPerSecond: number): Array<{ start: number; end: number }> {
-	const minSilencePeaks = Math.round(SILENCE_MIN_SECONDS * peaksPerSecond);
+// `minSeconds`, returned as [start, end) peak-index spans.
+export function findSilentSpans(audioPeaks: Uint8ClampedArray, peaksPerSecond: number, threshold = SILENCE_THRESHOLD, minSeconds = SILENCE_MIN_SECONDS): Array<{ start: number; end: number }> {
+	const minSilencePeaks = Math.max(1, Math.round(minSeconds * peaksPerSecond));
 	const silentSpans: Array<{ start: number; end: number }> = [];
 	let runStart = -1;
 	for (let i = 0; i <= audioPeaks.length; i++) {
-		const silent = i < audioPeaks.length && audioPeaks[i] <= SILENCE_THRESHOLD;
+		const silent = i < audioPeaks.length && audioPeaks[i] <= threshold;
 		if (silent && runStart === -1) {
 			runStart = i;
 		} else if (!silent && runStart !== -1) {

@@ -17,7 +17,7 @@ import type { MissingProjectChoice, SaveAction } from "./projects";
 import type { InstagramDashboard } from "./instagram-types";
 import type { CollectProjectResult, RelinkProjectMediaResult } from "./project-portability";
 import type { ProjectVersion, ProjectVersionInspection } from "./project-versions";
-import type { SpeechProgress, SpeechResult, SpeechStatus } from "./speech-types";
+import type { SpeechProgress, SpeechQuality, SpeechResult, SpeechStatus } from "./speech-types";
 import type { FootageIndexPutRequest, FootageIndexRequest, FootageIndexResult, FootageChunkRequest, FootageChunkPutRequest, FootageChunksResult } from "./footage-types";
 import type { ReframeAnalysisRequest, ReframeAnalysisResult, ReframeAnalysisProgress } from "./reframe-types";
 import type { VisualIndexRequest, VisualIndexJob, VisualIndexResult, VisualProgress } from './visual-types';
@@ -31,8 +31,10 @@ import type { SpeakerAnalysisRequest, SpeakerAnalysisResult, SpeakerAnalysisProg
 import type { AnalysisCacheRequest, AnalysisCacheResult, AnalysisCachePut } from './analysis-cache-types';
 import type { PlaybackProxyRequest, PlaybackProxyJob, PlaybackProxyResult, PlaybackProxyProgress } from './playback-proxy-types';
 import type { WebMediaCommitRequest, WebMediaCommitResult, WebMediaDownloaded, WebMediaDownloadRequest } from './web-media-types';
-import type { EarshotStatus, SoundEffectsReply, SoundEffectsRequest } from './addons/earshot/types';
+import type { EarshotEventsReply, EarshotEventsRequest, EarshotStatus, SoundEffectsReply, SoundEffectsRequest } from './addons/earshot/types';
+import type { GeminiSettingsUpdate, GeminiStatus } from './gemini/types';
 import type { MediaCommitRequest, MediaCommitResult, MediaDownloaded, MediaDownloadRequest } from "./media-download-types";
+import type { AgentMemoryApply, AgentMemorySnapshot } from "./agent-memory-types";
 
 export const MAIN_WIRE = {
   REQUEST: "main:request",
@@ -66,6 +68,8 @@ export const MAIN_CHANNELS = {
   EDITING_SKILLS: "editing:skills",
   EDITING_STYLE_GET: "editing:style-get",
   EDITING_STYLE_SET: "editing:style-set",
+  MEMORY_GET: "memory:get",
+  MEMORY_APPLY: "memory:apply",
   FOOTAGE_INDEX_GET: "footage:index-get",
   FOOTAGE_INDEX_PUT: "footage:index-put",
   FOOTAGE_INDEX_CHUNKS_GET: 'footage:chunks-get',
@@ -101,6 +105,11 @@ export const MAIN_CHANNELS = {
   EARSHOT_STATUS: 'earshot:status',
   EARSHOT_INSTALL: 'earshot:install',
   EARSHOT_REMOVE: 'earshot:remove',
+  EARSHOT_EVENTS: 'earshot:events',
+  EARSHOT_EVENTS_CANCEL: 'earshot:events-cancel',
+  GEMINI_STATUS: 'gemini:status',
+  GEMINI_UPDATE: 'gemini:update',
+  GEMINI_CLEAR: 'gemini:clear',
   SOUND_EFFECTS_RUN: 'sound-effects:run',
   SOUND_EFFECTS_CANCEL: 'sound-effects:cancel',
   MEDIA_DOWNLOAD: 'media:download',
@@ -298,6 +307,9 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.EDITING_SKILLS]: { request: ToolArgs<"skills">; response: ToolOutput<"skills"> };
   [MAIN_CHANNELS.EDITING_STYLE_GET]: { request: void; response: EditingStyle };
   [MAIN_CHANNELS.EDITING_STYLE_SET]: { request: { notes: string; expectedRevision: number }; response: EditingStyle };
+  // Settings → What agents remember: the saved memory, and the user's edits, pause switch and restores.
+  [MAIN_CHANNELS.MEMORY_GET]: { request: void; response: AgentMemorySnapshot };
+  [MAIN_CHANNELS.MEMORY_APPLY]: { request: AgentMemoryApply; response: AgentMemorySnapshot };
   [MAIN_CHANNELS.FOOTAGE_INDEX_GET]: { request: FootageIndexRequest; response: FootageIndexResult };
   [MAIN_CHANNELS.FOOTAGE_INDEX_PUT]: { request: FootageIndexPutRequest; response: FootageIndexResult };
   [MAIN_CHANNELS.FOOTAGE_INDEX_CANCEL]: { request: {id:string}; response: void };
@@ -330,6 +342,13 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.EARSHOT_STATUS]: { request: void; response: EarshotStatus };
   [MAIN_CHANNELS.EARSHOT_INSTALL]: { request: void; response: EarshotStatus };
   [MAIN_CHANNELS.EARSHOT_REMOVE]: { request: void; response: EarshotStatus };
+  // analyze's sound events: earshot's timeline over one file, only once the add-on is ready.
+  [MAIN_CHANNELS.EARSHOT_EVENTS]: { request: EarshotEventsRequest; response: EarshotEventsReply };
+  [MAIN_CHANNELS.EARSHOT_EVENTS_CANCEL]: { request: { id: string }; response: void };
+  // Gemini (optional): Settings' status, a new key or model, and removing the key. The key goes in and never comes back.
+  [MAIN_CHANNELS.GEMINI_STATUS]: { request: void; response: GeminiStatus };
+  [MAIN_CHANNELS.GEMINI_UPDATE]: { request: GeminiSettingsUpdate; response: GeminiStatus };
+  [MAIN_CHANNELS.GEMINI_CLEAR]: { request: void; response: GeminiStatus };
   [MAIN_CHANNELS.SOUND_EFFECTS_RUN]: { request: SoundEffectsRequest; response: SoundEffectsReply };
   [MAIN_CHANNELS.SOUND_EFFECTS_CANCEL]: { request: { id: string }; response: void };
   // media_download: main runs the downloader into the project, the renderer imports, then commits (ledger + CREDITS.md) or discards.
@@ -350,7 +369,7 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.PROJECTS_FLUSH_RESULT]: { request: {id: string; error?: string}; response: void };
   [MAIN_CHANNELS.SPEECH_STATUS]: { request: void; response: SpeechStatus };
   [MAIN_CHANNELS.SPEECH_TRANSCRIBE]: {
-    request: { id: string; audio: Uint8Array; language?: string };
+    request: { id: string; audio: Uint8Array; language?: string; quality?: SpeechQuality };
     response: SpeechResult;
   };
   [MAIN_CHANNELS.SPEECH_CANCEL]: { request: { id: string }; response: void };

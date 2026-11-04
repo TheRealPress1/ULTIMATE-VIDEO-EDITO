@@ -4,9 +4,9 @@ import { constants, createReadStream } from "node:fs";
 import { access, chmod, lstat, mkdir, mkdtemp, open, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseWhisperTranscript } from "./speech-transcript";
-import { SPEECH_MODEL_BYTES, SPEECH_SAMPLE_RATE } from "./speech-types";
+import { SPEECH_ACCURATE_MODEL_BYTES, SPEECH_MODEL_BYTES, SPEECH_SAMPLE_RATE } from "./speech-types";
 import { SPEECH_CHUNK_MAX_SECONDS } from "./speech-chunks";
-import type { SpeechProgress, SpeechResult, SpeechStatus } from "./speech-types";
+import type { SpeechProgress, SpeechQuality, SpeechResult, SpeechStatus } from "./speech-types";
 
 const MODEL = {
   url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
@@ -15,6 +15,19 @@ const MODEL = {
 };
 const MODEL_NAME = "Whisper Base";
 const MODEL_FILENAME = "ggml-base.bin";
+// The larger model, fetched only when a transcription asks for quality
+// "accurate". Pinned by the SHA-1 whisper.cpp publishes for it (models/README.md
+// of the pinned v1.9.5 source); its exact size is not pinned, so the download is
+// bounded instead and the hash decides.
+const ACCURATE_MODEL = {
+  url: "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+  bytes: SPEECH_ACCURATE_MODEL_BYTES,
+  sha1: "4af2b29d7ec73d781377bfd1758ca957a807e941",
+};
+const ACCURATE_MODEL_NAME = "Whisper Large v3 Turbo";
+const ACCURATE_MODEL_FILENAME = "ggml-large-v3-turbo.bin";
+const ACCURATE_MAX_BYTES = 1_900_000_000;
+const ACCURATE_SIZE_NOTE = "about 1.6 GB";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PCM_BYTES_PER_SECOND = SPEECH_SAMPLE_RATE * 2;
 const MAX_METADATA_BYTES = 1_048_576;
@@ -24,6 +37,24 @@ const CANCELLED = "Transcription cancelled.";
 const INVALID_AUDIO = "Local transcription requires a valid 16 kHz mono PCM16 WAV file.";
 const DOWNLOAD_FAILED = "The speech model could not be downloaded. Check your connection and try again.";
 const MODEL_DAMAGED = "The speech model download is incomplete or damaged. Try transcribing again.";
+const ACCURATE_DOWNLOAD_FAILED = `The accurate speech model (${ACCURATE_SIZE_NOTE}) could not be downloaded. Check your connection and try again, or transcribe with quality "fast".`;
+const ACCURATE_DAMAGED = `The accurate speech model download (${ACCURATE_SIZE_NOTE}) is incomplete or damaged. Try again, or transcribe with quality "fast".`;
+
+/** One Whisper model: where it comes from, how it is checked, and what a failure says. */
+type ModelSpec = {
+  name: string;
+  filename: string;
+  url: string;
+  /** The exact size when `exact`; otherwise about what it downloads, under `maxBytes`. */
+  bytes: number;
+  exact: boolean;
+  maxBytes: number;
+  digest: { algorithm: "sha256" | "sha1"; value: string };
+  downloading: string;
+  failed: string;
+  damaged: string;
+  timeoutMs: number;
+};
 
 export type LocalSpeechServiceOptions = {
   runtimePath: string;
@@ -31,11 +62,13 @@ export type LocalSpeechServiceOptions = {
   fetch?: typeof globalThis.fetch;
   /** Alternate small model metadata is useful for isolated service tests. */
   model?: { url: string; bytes: number; sha256: string };
+  /** The same for the accurate model; `bytes` is its expected size, and the digest decides. */
+  accurateModel?: { url: string; bytes: number; sha1?: string; sha256?: string };
   runTimeoutMs?: number;
   downloadTimeoutMs?: number;
   killGraceMs?: number;
 };
-export type SpeechRequest = { id: string; audio: Uint8Array; language?: string };
+export type SpeechRequest = { id: string; audio: Uint8Array; language?: string; quality?: SpeechQuality };
 type ActiveTask = { id: string; controller: AbortController };
 
 function wavDuration(audio: Uint8Array): number {
@@ -91,30 +124,50 @@ function fingerprint(info: Awaited<ReturnType<typeof lstat>>): string {
 export class LocalSpeechService {
   private readonly options: LocalSpeechServiceOptions;
   private readonly request: typeof globalThis.fetch;
-  private readonly model: typeof MODEL;
+  private readonly models: Record<SpeechQuality, ModelSpec>;
   private active: ActiveTask | null = null;
-  private verifiedModel: string | null = null;
+  /** Each model file's stat fingerprint once its digest has been checked, by path. */
+  private readonly verified = new Map<string, string>();
   private disposed = false;
 
   constructor(options: LocalSpeechServiceOptions) {
     this.options = options;
     this.request = options.fetch ?? globalThis.fetch;
-    this.model = options.model ?? MODEL;
-    if (!Number.isSafeInteger(this.model.bytes) || this.model.bytes <= 0
-      || !/^[a-f0-9]{64}$/i.test(this.model.sha256)) throw new Error("Invalid local speech model configuration.");
+    const base = options.model ?? MODEL;
+    if (!Number.isSafeInteger(base.bytes) || base.bytes <= 0
+      || !/^[a-f0-9]{64}$/i.test(base.sha256)) throw new Error("Invalid local speech model configuration.");
+    const accurate: NonNullable<LocalSpeechServiceOptions["accurateModel"]> = options.accurateModel ?? ACCURATE_MODEL;
+    const accurateDigest = accurate.sha256 !== undefined ? { algorithm: "sha256" as const, value: accurate.sha256 }
+      : accurate.sha1 !== undefined ? { algorithm: "sha1" as const, value: accurate.sha1 } : null;
+    if (!Number.isSafeInteger(accurate.bytes) || accurate.bytes <= 0 || accurate.bytes > ACCURATE_MAX_BYTES || !accurateDigest
+      || !(accurateDigest.algorithm === "sha256" ? /^[a-f0-9]{64}$/i : /^[a-f0-9]{40}$/i).test(accurateDigest.value)) {
+      throw new Error("Invalid local speech model configuration.");
+    }
+    this.models = {
+      fast: { name: MODEL_NAME, filename: MODEL_FILENAME, url: base.url, bytes: base.bytes, exact: true, maxBytes: base.bytes,
+        digest: { algorithm: "sha256", value: base.sha256 }, downloading: "Downloading the speech model for offline use…",
+        failed: DOWNLOAD_FAILED, damaged: MODEL_DAMAGED, timeoutMs: options.downloadTimeoutMs ?? 10 * 60_000 },
+      accurate: { name: ACCURATE_MODEL_NAME, filename: ACCURATE_MODEL_FILENAME, url: accurate.url, bytes: accurate.bytes, exact: false,
+        maxBytes: ACCURATE_MAX_BYTES, digest: accurateDigest,
+        downloading: `Downloading the accurate speech model (${ACCURATE_SIZE_NOTE}, once) for offline use…`,
+        failed: ACCURATE_DOWNLOAD_FAILED, damaged: ACCURATE_DAMAGED, timeoutMs: options.downloadTimeoutMs ?? 90 * 60_000 },
+    };
   }
 
-  private get modelPath(): string { return join(this.options.dataDir, "models", MODEL_FILENAME); }
+  private modelPath(model: ModelSpec): string { return join(this.options.dataDir, "models", model.filename); }
 
   async status(): Promise<SpeechStatus> {
     const available = !this.disposed && await this.runtimeAvailable();
-    const modelDownloaded = await this.modelAvailable();
+    const modelDownloaded = await this.modelAvailable(this.models.fast);
+    const accurate = this.models.accurate;
     return {
       available,
       modelDownloaded,
       modelName: MODEL_NAME,
-      downloadBytes: this.model.bytes,
+      downloadBytes: this.models.fast.bytes,
       error: available ? null : "The local speech engine is unavailable in this build of Cutroom.",
+      // Present on disk is enough here: its digest is checked before each use, not on every status read.
+      accurate: { modelName: accurate.name, downloadBytes: accurate.bytes, downloaded: await this.modelPresent(accurate) },
     };
   }
 
@@ -134,6 +187,9 @@ export class LocalSpeechService {
     const duration = wavDuration(input.audio);
     const language = input.language ?? "auto";
     if (typeof language !== "string" || !LANGUAGES.has(language)) throw new Error("Choose a supported transcription language.");
+    const quality = input.quality ?? "fast";
+    if (quality !== "fast" && quality !== "accurate") throw new Error("Choose fast or accurate transcription quality.");
+    const model = this.models[quality];
     const task: ActiveTask = { id: input.id, controller: new AbortController() };
     this.active = task;
     const signal = task.controller.signal;
@@ -150,11 +206,11 @@ export class LocalSpeechService {
       temporaryDirectory = await mkdtemp(join(this.options.dataDir, "transcription-"));
       const wavPath = join(temporaryDirectory, "audio.wav");
       await writeFile(wavPath, input.audio, { mode: 0o600, flag: "wx", signal });
-      await this.ensureModel(signal, (value) => progress("downloading", value, "Downloading the speech model for offline use…"));
+      await this.ensureModel(model, signal, (value) => progress("downloading", value, model.downloading));
       signal.throwIfAborted();
       const outputBase = join(temporaryDirectory, "transcript");
       progress("transcribing", 0, "Transcribing on your Mac…");
-      await this.run(task, ["-m", this.modelPath, "-f", wavPath, "-l", language, "-ojf", "-pp", "-of", outputBase],
+      await this.run(task, ["-m", this.modelPath(model), "-f", wavPath, "-l", language, "-ojf", "-pp", "-of", outputBase],
         (value) => progress("transcribing", value, "Transcribing on your Mac…"));
       signal.throwIfAborted();
       const outputPath = `${outputBase}.json`;
@@ -184,48 +240,62 @@ export class LocalSpeechService {
     } catch { return false; }
   }
 
-  private async modelAvailable(signal?: AbortSignal): Promise<boolean> {
+  private sizeFits(model: ModelSpec, size: number): boolean {
+    return model.exact ? size === model.bytes : size > 0 && size <= model.maxBytes;
+  }
+
+  /** A file of a plausible size where the model goes; its digest is not checked. */
+  private async modelPresent(model: ModelSpec): Promise<boolean> {
+    const info = await lstat(this.modelPath(model)).catch(() => null);
+    return !!info?.isFile() && this.sizeFits(model, info.size);
+  }
+
+  private async modelAvailable(model: ModelSpec, signal?: AbortSignal): Promise<boolean> {
+    const path = this.modelPath(model);
     try {
-      const info = await lstat(this.modelPath);
-      if (!info.isFile() || info.size !== this.model.bytes) { this.verifiedModel = null; return false; }
+      const info = await lstat(path);
+      if (!info.isFile() || !this.sizeFits(model, info.size)) { this.verified.delete(path); return false; }
       const key = fingerprint(info);
-      if (this.verifiedModel === key) return true;
-      const hash = createHash("sha256");
-      for await (const chunk of createReadStream(this.modelPath, { signal })) hash.update(chunk);
-      const unchanged = fingerprint(await lstat(this.modelPath)) === key;
-      if (!unchanged || hash.digest("hex") !== this.model.sha256.toLowerCase()) { this.verifiedModel = null; return false; }
-      this.verifiedModel = key;
+      if (this.verified.get(path) === key) return true;
+      const hash = createHash(model.digest.algorithm);
+      for await (const chunk of createReadStream(path, { signal })) hash.update(chunk);
+      const unchanged = fingerprint(await lstat(path)) === key;
+      if (!unchanged || hash.digest("hex") !== model.digest.value.toLowerCase()) { this.verified.delete(path); return false; }
+      this.verified.set(path, key);
       return true;
     } catch {
       signal?.throwIfAborted();
-      this.verifiedModel = null;
+      this.verified.delete(path);
       return false;
     }
   }
 
-  private async ensureModel(signal: AbortSignal, progress: (value: number) => void): Promise<void> {
-    if (await this.modelAvailable(signal)) return;
+  private async ensureModel(model: ModelSpec, signal: AbortSignal, progress: (value: number) => void): Promise<void> {
+    if (await this.modelAvailable(model, signal)) return;
     signal.throwIfAborted();
     const modelDir = join(this.options.dataDir, "models");
     await mkdir(modelDir, { recursive: true, mode: 0o700 });
     await chmod(modelDir, 0o700);
-    const temporaryPath = join(modelDir, `.${MODEL_FILENAME}.${randomUUID()}.part`);
+    const modelPath = this.modelPath(model);
+    const temporaryPath = join(modelDir, `.${model.filename}.${randomUUID()}.part`);
     const downloadController = new AbortController();
     const timeout = setTimeout(() => downloadController.abort(new Error("The speech model download timed out. Try again.")),
-      this.options.downloadTimeoutMs ?? 10 * 60_000);
+      model.timeoutMs);
     timeout.unref();
     const downloadSignal = AbortSignal.any([signal, downloadController.signal]);
     let file: Awaited<ReturnType<typeof open>> | null = null;
     let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
     try {
       progress(0);
-      const response = await this.request(this.model.url, { signal: downloadSignal, redirect: "follow" });
-      if (!response.ok || !response.body) throw new Error(DOWNLOAD_FAILED);
+      const response = await this.request(model.url, { signal: downloadSignal, redirect: "follow" });
+      if (!response.ok || !response.body) throw new Error(model.failed);
       const length = response.headers.get("content-length");
-      if (length !== null && (!/^\d+$/.test(length) || Number(length) !== this.model.bytes)) throw new Error(MODEL_DAMAGED);
+      if (length !== null && (!/^\d+$/.test(length) || !this.sizeFits(model, Number(length)))) throw new Error(model.damaged);
+      // The size the progress counts against: the server's when it says, the expected one otherwise.
+      const expected = length !== null && !model.exact ? Number(length) : model.bytes;
       reader = response.body.getReader();
       file = await open(temporaryPath, "wx", 0o600);
-      const hash = createHash("sha256");
+      const hash = createHash(model.digest.algorithm);
       let received = 0;
       let reported = -1;
       while (true) {
@@ -233,24 +303,25 @@ export class LocalSpeechService {
         const { done, value } = await reader.read();
         if (done) break;
         received += value.byteLength;
-        if (received > this.model.bytes) throw new Error(MODEL_DAMAGED);
+        if (received > model.maxBytes) throw new Error(model.damaged);
         hash.update(value);
         await file.writeFile(value);
-        const percentage = Math.floor(received / this.model.bytes * 100);
-        if (percentage !== reported) { reported = percentage; progress(received / this.model.bytes); }
+        const fraction = Math.min(1, received / expected);
+        const percentage = Math.floor(fraction * 100);
+        if (percentage !== reported) { reported = percentage; progress(fraction); }
       }
       downloadSignal.throwIfAborted();
-      if (received !== this.model.bytes || hash.digest("hex") !== this.model.sha256.toLowerCase()) throw new Error(MODEL_DAMAGED);
+      if (!this.sizeFits(model, received) || hash.digest("hex") !== model.digest.value.toLowerCase()) throw new Error(model.damaged);
       await file.sync();
       await file.close();
       file = null;
-      await rename(temporaryPath, this.modelPath);
-      this.verifiedModel = fingerprint(await lstat(this.modelPath));
+      await rename(temporaryPath, modelPath);
+      this.verified.set(modelPath, fingerprint(await lstat(modelPath)));
       progress(1);
     } catch (error) {
       downloadSignal.throwIfAborted();
-      if (error instanceof Error && [MODEL_DAMAGED, DOWNLOAD_FAILED].includes(error.message)) throw error;
-      throw new Error(DOWNLOAD_FAILED);
+      if (error instanceof Error && [model.damaged, model.failed].includes(error.message)) throw error;
+      throw new Error(model.failed);
     } finally {
       clearTimeout(timeout);
       downloadController.abort();

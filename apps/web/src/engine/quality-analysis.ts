@@ -45,8 +45,45 @@ export function mergeQualityFindings(findings: QualityFinding[], gap: number, li
   return result.slice(0, limit);
 }
 
-export function inspectAudioSamples(channels: Float32Array[], sampleRate: number, joins: number[] = []): QualityFinding[] {
+/** RMS level in dBFS (per 50 ms block) and the length a quiet stretch needs before it is reported. */
+export type AudioPauseThresholds = { thresholdDb: number; minSeconds: number };
+export const DEFAULT_PAUSE_THRESHOLDS: Readonly<AudioPauseThresholds> = { thresholdDb: -60, minSeconds: 1 };
+
+export function resolvePauseThresholds(value: Partial<AudioPauseThresholds> = {}): AudioPauseThresholds {
+  const thresholdDb = value.thresholdDb ?? DEFAULT_PAUSE_THRESHOLDS.thresholdDb, minSeconds = value.minSeconds ?? DEFAULT_PAUSE_THRESHOLDS.minSeconds;
+  if (!Number.isFinite(thresholdDb) || thresholdDb < -70 || thresholdDb > -20) throw new Error('The pause threshold must be between -70 and -20 dBFS.');
+  if (!Number.isFinite(minSeconds) || minSeconds < .1 || minSeconds > 5) throw new Error('The minimum pause must be between 0.1 and 5 seconds.');
+  return { thresholdDb, minSeconds };
+}
+
+/** Pieces of one quiet stretch closer than this rejoin: one louder 50 ms block inside it, or the seam between two review sections. */
+export const PAUSE_JOIN_SECONDS = .075;
+
+/** Worded from the stretch's final span, so a pause rejoined across a seam reports its whole length. */
+function silenceMessage({ thresholdDb, minSeconds }: AudioPauseThresholds, seconds: number): string {
+  return thresholdDb === DEFAULT_PAUSE_THRESHOLDS.thresholdDb && minSeconds === DEFAULT_PAUSE_THRESHOLDS.minSeconds
+    ? 'Very quiet audio for at least one second; confirm this pause is intentional.'
+    : `Audio below ${thresholdDb} dBFS for ${seconds.toFixed(2)}s (reporting from ${minSeconds}s); confirm this pause is intentional.`;
+}
+
+/**
+ * Whole-report grouping. Repeated visual, layout and click findings within
+ * `gap` collapse into one span, but every quiet pause stays its own finding:
+ * only pieces of the same pause rejoin, so the speech between two pauses is
+ * never reported as silence.
+ */
+export function mergeReportFindings(findings: QualityFinding[], gap: number, pauses: Partial<AudioPauseThresholds> = {}, limit = 2000): QualityFinding[] {
+  const thresholds = resolvePauseThresholds(pauses);
+  const silences = mergeQualityFindings(findings.filter(f => f.code === 'audio-silence'), PAUSE_JOIN_SECONDS, Infinity)
+    .map(f => ({ ...f, message: silenceMessage(thresholds, (f.end ?? f.time) - f.time) }));
+  const rest = mergeQualityFindings(findings.filter(f => f.code !== 'audio-silence'), gap, Infinity);
+  return [...rest, ...silences].sort((a, b) => a.time - b.time).slice(0, limit);
+}
+
+export function inspectAudioSamples(channels: Float32Array[], sampleRate: number, joins: number[] = [], pauses: Partial<AudioPauseThresholds> = {}): QualityFinding[] {
   if (!channels.length || !Number.isFinite(sampleRate) || sampleRate < 8000 || channels.some(c => c.length !== channels[0]!.length)) throw new Error('Invalid audio for review.');
+  const thresholds = resolvePauseThresholds(pauses), { thresholdDb, minSeconds } = thresholds;
+  const quiet = 10 ** (thresholdDb / 20);
   const findings: QualityFinding[] = [], count = channels[0]!.length;
   const block = Math.round(sampleRate * .05);
   let silentStart: number | undefined;
@@ -57,11 +94,11 @@ export function inspectAudioSamples(channels: Float32Array[], sampleRate: number
       square += value * value; peak = Math.max(peak, Math.abs(value)); n++;
     }
     if (peak >= .999) findings.push({ code:'audio-clipping',severity:'warning',message:'Samples reach full scale; listen for distortion.',time:offset/sampleRate,evidence:'audio' });
-    const silent = Math.sqrt(square / Math.max(1,n)) < .001;
+    const silent = Math.sqrt(square / Math.max(1,n)) < quiet;
     if (silent && silentStart === undefined) silentStart = offset / sampleRate;
     if ((!silent || offset + block >= count) && silentStart !== undefined) {
       const end = Math.min(count, offset + (silent ? block : 0)) / sampleRate;
-      if (end - silentStart >= 1) findings.push({code:'audio-silence',severity:'warning',message:'Very quiet audio for at least one second; confirm this pause is intentional.',time:silentStart,end,evidence:'audio'});
+      if (end - silentStart >= minSeconds - 1e-9) findings.push({code:'audio-silence',severity:'warning',message:'',time:silentStart,end,evidence:'audio'});
       silentStart = undefined;
     }
   }
@@ -70,5 +107,5 @@ export function inspectAudioSamples(channels: Float32Array[], sampleRate: number
     const jump = Math.max(...channels.map(c => Math.abs(c[i]! - c[i-1]!)));
     if (jump > .2) findings.push({code:'audio-join',severity:'warning',message:'A sample discontinuity occurs at a clip boundary; listen for a click and add a short fade if needed.',time,evidence:'audio'});
   }
-  return mergeQualityFindings(findings,.075);
+  return mergeQualityFindings(findings,PAUSE_JOIN_SECONDS).map(f => f.code === 'audio-silence' ? { ...f, message: silenceMessage(thresholds, (f.end ?? f.time) - f.time) } : f);
 }

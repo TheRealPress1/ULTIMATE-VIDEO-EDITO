@@ -8,6 +8,34 @@ import type { z } from "zod";
 export { defineTool } from "./tool";
 export { EDITING_SKILLS, EDITING_SKILL_VERSION, EDITING_STYLE_LIMIT } from "./editing-skills";
 export type { EditingSkill, EditingStyle } from "./editing-skills";
+export { BRIEF_BEATS, BRIEF_FILE, BRIEF_MARKER, BRIEF_VERSION, SHOT_PLAN_COLUMNS, beatKind, formatScriptLine, formatScriptLines, parseBrief, parseNotes, parseScript, parseTargetSeconds, replaceScript, splitSentences } from "./brief";
+export type { Brief, BriefBeat, BriefGoal, BriefNotes, BriefScriptLine } from "./brief";
+export {
+  DEFAULT_STALE_PHRASES,
+  SCRIPT_LINT_CODES,
+  SCRIPT_LINT_DEFAULT_WPM,
+  SCRIPT_LINT_NOTE,
+  countWords,
+  lintScript,
+  profileHints,
+  scriptOf,
+  voiceStats,
+} from "./script-lint";
+export type { ScriptLintCode, ScriptLintOptions, ScriptLintReport, VoiceSample, WpmSource } from "./script-lint";
+export { SCRIPT_READ_FILE, SCRIPT_READ_TEXT_MAX } from "./tools/script";
+export { MEMORY_SAFETY_MESSAGES, USER_SKILL_DIGEST_MAX, renderMemoryDigest, scanMemoryText } from "./memory-safety";
+export type { MemoryDigestDocument, MemoryDigestOptions, MemorySafetyCategory, MemoryScan, MemoryScanMode } from "./memory-safety";
+export {
+  MEMORY_BATCH_MAX,
+  MEMORY_ENTRY_ID,
+  MEMORY_ENTRY_MAX,
+  MEMORY_HISTORY_MAX,
+  MEMORY_LIMITS,
+  MEMORY_TARGETS,
+  MemoryDocument as MemoryDocumentSchema,
+} from "./tools/memory";
+export type { MemoryTarget } from "./tools/memory";
+export { RESERVED_SKILL_PREFIX, USER_SKILL_FOLDERS, USER_SKILL_ID, USER_SKILL_LIMITS } from "./tools/skill-write";
 export type { Tool, GenericTool, Environment } from "./tool";
 
 export { catalog, tools, toolByName, isToolName } from "./catalog";
@@ -27,11 +55,28 @@ export type { ToolJsonSchemas } from "./json-schema";
 export { DAPI_WIRE } from "./ipc";
 export type { DapiCall, DapiCancel, DapiReply } from "./ipc";
 export { FRAME_CAP } from "./tools/grab";
+export { ACCURATE_MODEL_DOWNLOAD, TRANSCRIBE_MODELS, TRANSCRIBE_QUALITIES } from "./tools/transcribe";
+export type { TranscribeQuality } from "./tools/transcribe";
+export {
+  ANALYZE_DEPTHS,
+  ANALYZE_FOCUS,
+  ANALYZE_FRAME_BUDGET,
+  ANALYZE_JOB_SECONDS,
+  ANALYZE_MAX_SECONDS,
+  ANALYZE_PROMPT_MAX,
+  ANALYZE_SECTION_LIMIT,
+  ANALYZE_STATUS_WAIT_SECONDS,
+} from "./tools/analyze";
+export type { AnalyzeDepth, AnalyzeFocus } from "./tools/analyze";
+export { SEGMENT_DEFAULT_WAIT_SECONDS, SEGMENT_MAX_WAIT_SECONDS, flattenSegmentJob, segmentRequest } from "./tools/segment";
+export type { SegmentAnswer } from "./tools/segment";
+export { CONTEXT_JOB_LIMIT } from "./tools/context";
 export { ISSUE_LOG_TAIL } from "./tools/report";
 export { LOG_TAIL, LOG_MESSAGE_MAX } from "./tools/logs";
 export { FONT_LIMIT } from "./tools/fonts";
 export { generatedPath } from "./tools/generate";
 export { WEB_MEDIA_LIMIT, WEB_MEDIA_PREVIEWS } from "./tools/web-media";
+export { GEMINI_MAX_SECONDS, GEMINI_MAX_UPLOAD_BYTES, GEMINI_QUESTION_MAX, GEMINI_SENT, GEMINI_STATES, GEMINI_WAIT_SECONDS } from "./tools/gemini";
 export { SOUND_ACTIONS, SOUND_ANALYZE_FIELDS } from "./tools/sound";
 export type { SoundAction } from "./tools/sound";
 export {
@@ -80,6 +125,7 @@ import type {
   PersonalCatalogFile as PersonalCatalogFileSchema,
   SfxCatalogEntry as SfxCatalogEntrySchema,
 } from "./tools/audio-catalog";
+import type { MemoryDocument as MemoryDocumentShape, MemoryEntry as MemoryEntrySchema } from "./tools/memory";
 import type { ToolArgs, ToolOutput, ToolResult } from "./catalog";
 
 export type LogLevel = z.output<typeof LogLevelSchema>;
@@ -111,6 +157,8 @@ export type MediaKind = z.output<typeof MediaKindSchema>;
 export type MediaPlatform = z.output<typeof MediaPlatformSchema>;
 export type MediaProfile = z.output<typeof MediaProfileSchema>;
 export type MediaSearchResult = z.output<typeof MediaSearchResultSchema>;
+export type MemoryDocument = z.output<typeof MemoryDocumentShape>;
+export type MemoryEntry = z.output<typeof MemoryEntrySchema>;
 
 export type OpenRequest = ToolArgs<"open">;
 export type OpenResult = ToolResult<"open">;
@@ -142,3 +190,7 @@ export type GenerationEstimate = Extract<ToolResult<"generate">, { credits: numb
 export type JobRequest = ToolArgs<"job">;
 export type FontsRequest = ToolArgs<"fonts">;
 export type ReportRequest = ToolArgs<"report">;
+export type AnalyzeRequest = ToolArgs<"analyze">;
+export type AnalyzeResult = ToolResult<"analyze">;
+export type SegmentRequest = ToolArgs<"segment">;
+export type ContextJob = NonNullable<ToolResult<"context">["jobs"]>[number];

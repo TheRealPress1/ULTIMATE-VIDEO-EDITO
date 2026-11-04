@@ -155,8 +155,9 @@ program
   .command("check")
   .description(`${describe("check")} Exits 1 when an error-severity issue is found.`)
   .argument("<id>", field("check", "id"))
-  .action(async (id: string) => {
-    const output = await call("check", { id }).catch(appError);
+  .option("--min-visible-seconds <seconds>", field("check", "minVisibleSeconds"), numeric)
+  .action(async (id: string, opts: { minVisibleSeconds?: number }) => {
+    const output = await call("check", { id, ...opts }).catch(appError);
     console.log(JSON.stringify(output));
     if (output.issues.some((issue) => issue.severity === "error")) process.exitCode = 1;
   });
@@ -172,6 +173,10 @@ program
   .description(describe("transcribe"))
   .argument("<path>", field("transcribe", "path"))
   .option("-o, --output <path>", field("transcribe", "output"))
+  .option("-s, --start <time>", field("transcribe", "start"))
+  .option("-e, --end <time>", field("transcribe", "end"))
+  .option("-l, --language <code>", field("transcribe", "language"))
+  .option("-q, --quality <quality>", field("transcribe", "quality"))
   .action((ref: string, opts: Omit<ToolInput<"transcribe">, "path">) =>
     run("transcribe", { path: assetPath(ref), ...opts, output: opts.output && resolve(opts.output) }),
   );
@@ -217,8 +222,13 @@ program
   .option("-e, --end <time>", field("waveform", "end"))
   .option("-x, --scale <factor>", field("waveform", "scale"), numeric)
   .option("-o, --output <path>", field("waveform", "output"))
-  .action((ref: string, opts: Omit<ToolInput<"waveform">, "path">) =>
-    run("waveform", { path: assetPath(ref), ...opts, output: opts.output && resolve(opts.output) }),
+  .option("--silence-db <db>", toolByName("waveform").input.shape.silence.unwrap().shape.thresholdDb.description ?? "", numeric)
+  .option("--silence-min <seconds>", toolByName("waveform").input.shape.silence.unwrap().shape.minSeconds.description ?? "", numeric)
+  .action((ref: string, { silenceDb, silenceMin, ...opts }: Omit<ToolInput<"waveform">, "path" | "silence"> & { silenceDb?: number; silenceMin?: number }) =>
+    run("waveform", {
+      path: assetPath(ref), ...opts, output: opts.output && resolve(opts.output),
+      ...(silenceDb !== undefined || silenceMin !== undefined ? { silence: { thresholdDb: silenceDb, minSeconds: silenceMin } } : {}),
+    }),
   );
 
 program

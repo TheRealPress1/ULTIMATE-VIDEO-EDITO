@@ -6,7 +6,9 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./memory-safety": "./src/memory-safety.ts",
+    "./editing-skills": "./src/editing-skills.ts"
   },
   "scripts": {
     "check": "tsc --noEmit",
