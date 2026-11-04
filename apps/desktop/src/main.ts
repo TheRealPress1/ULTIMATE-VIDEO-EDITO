@@ -598,9 +598,9 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.WEB_MEDIA_DISCARD, ({ id }) => webMedia.discard(id));
   app.on("will-quit", () => webMedia.dispose());
   registerEarshotIpc(earshotAddon);
-  app.on("will-quit", () => earshotAddon.dispose());
   registerGeminiIpc(geminiConnection);
-  app.on("will-quit", () => geminiConnection.dispose());
+  // One listener for both: Node warns when `app` has more than ten, and a listener of its own tipped it over.
+  app.on("will-quit", () => { earshotAddon.dispose(); geminiConnection.dispose(); });
   const mediaOwners = new Map<string, { owner: number; cancel: () => void }>();
   mainBridge.handle(MAIN_CHANNELS.MEDIA_DOWNLOAD, async (request, event) => {
     if (mediaOwners.has(request.id)) throw new Error("This download is already running.");
