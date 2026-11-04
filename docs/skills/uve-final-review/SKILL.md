@@ -15,7 +15,7 @@ Use `quality_review` to inspect rendered samples and audio observations. Treat i
 
 Choose captures deliberately: both sides of changed cuts, first and last visible frames, title entrances/holds/exits, longest caption lines, overlaps, and motion extremes. Batch nearby positions. `capture` times are relative to the workarea's first frame; convert a scene time by subtracting the workarea start. A frame outside that workarea may capture successfully but is not part of its export. See [capture](../../reference/tools/capture.md).
 
-Inspect the images, rather than treating a successful capture call as visual approval. Check crop, legibility, missing media, unintended gaps, layers, and consistency with the reference. Contact sheets are useful for coverage; request fewer frames per sheet for fine text or alignment decisions.
+For a motion-graphics or social piece, also work through the [review list in motion craft](../uve-motion-graphics/references/craft.md#review). Inspect the images, rather than treating a successful capture call as visual approval. Check crop, legibility, missing media, unintended gaps, layers, and consistency with the reference. Contact sheets are useful for coverage; request fewer frames per sheet for fine text or alignment decisions.
 
 Review the sound on a rendered draft, not on frames. `audio_finish` with `action: "measure"` and the `sceneId` gives the lossless mix's integrated LUFS, true peak and loudness range. Then export a temporary review draft, with an explicit `path` such as `/tmp/<project>-review-v1.mp4` (a draft needs no request; the delivery file does), and run `sound_analyze` on that file:
 

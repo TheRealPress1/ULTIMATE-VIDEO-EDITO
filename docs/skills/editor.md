@@ -16,7 +16,7 @@ Use `skills` with `action: "list"` to see the bundled skill library, and `action
 - [Music](./uve-music/SKILL.md): choose, fetch, trim and mix music, including an exact song or its instrumental.
 - [Sound effects](./uve-sfx/SKILL.md): time sparing effects to visible events and keep them out of ducking.
 - [Personal style](./uve-personal-style/SKILL.md): apply the creator's approved preferences.
-- [Motion graphics](./uve-motion-graphics/SKILL.md): create editable titles, overlays, and deterministic animation.
+- [Motion graphics](./uve-motion-graphics/SKILL.md): create editable titles, overlays, and deterministic animation; its craft page covers pacing, choreography and a design review list.
 - [Web images & media](./uve-web-media/SKILL.md): find and download licensed web images, video, and audio, build a timeline of visuals from a script, and retime it to a recorded voice.
 - [Performance insights](./uve-performance-insights/SKILL.md): turn available Instagram observations into testable edit variants.
 - [Final review](./uve-final-review/SKILL.md): inspect a substantial edit against the brief.
