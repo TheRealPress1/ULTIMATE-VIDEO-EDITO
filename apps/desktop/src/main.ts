@@ -24,6 +24,7 @@ import { DapiServer } from "./dapi/server";
 import { pinProject } from "./dapi/output-policy";
 import { instructions } from "./dapi/docs";
 import { EditingStyleStore } from "./editing-style";
+import { agentMemoryStore, memoryDisabled, unavailableMemorySnapshot } from "./agent-memory";
 import { AudioCatalogStore } from "./audio-catalog";
 import { readEditingSkills } from "./editing-skills";
 import { DapiError, toolByName } from "@diffusionstudio/dapi";
@@ -266,10 +267,17 @@ const mediaDownloads = configureMediaDownloads({
 const editingStyle = new EditingStyleStore(join(app.getPath("userData"), "editing-style.json"));
 // Cutroom's music and effect catalog under the user's personal layer (userData/audio-catalog, which only the app writes).
 const audioCatalog = new AudioCatalogStore({ docsDir: docsDir(), personalDir: join(app.getPath("userData"), "audio-catalog") });
+// What agents remember (memory) and the user's own skills, in this profile's
+// userData, written only by their tools and Settings. CUTROOM_MEMORY=0 turns
+// both off for the session.
+const memoryOff = memoryDisabled();
+const agentMemoryFile = join(app.getPath("userData"), "agent-memory", "memory.json");
+const agentSkillsDir = join(app.getPath("userData"), "agent-skills");
 const dapi = new DapiServer({
   port: launchProfile.isolated ? 0 : undefined,
   editingStyle,
   audioCatalog,
+  ...(memoryOff ? {} : { agentMemoryFile, agentSkillsDir }),
   version: app.getVersion(),
   logs: () => logBuffer,
   docsDir: docsDir(),
@@ -511,9 +519,14 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_CANCEL,({id})=>publishing.cancel(id));
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_REMOVE,({id})=>publishing.remove(id));
   mainBridge.handle(MAIN_CHANNELS.INSTAGRAM_QUEUE_RECONCILE,({id})=>publishing.reconcile(id));
-  mainBridge.handle(MAIN_CHANNELS.EDITING_SKILLS, (args) => readEditingSkills(docsDir(), toolByName("skills").input.parse(args)));
+  mainBridge.handle(MAIN_CHANNELS.EDITING_SKILLS, (args) => readEditingSkills(docsDir(), toolByName("skills").input.parse(args), { userSkillsDir: memoryOff ? null : agentSkillsDir }));
   mainBridge.handle(MAIN_CHANNELS.EDITING_STYLE_GET, () => editingStyle.get());
   mainBridge.handle(MAIN_CHANNELS.EDITING_STYLE_SET, ({ notes, expectedRevision }) => editingStyle.set(notes, expectedRevision));
+  mainBridge.handle(MAIN_CHANNELS.MEMORY_GET, async () => memoryOff ? unavailableMemorySnapshot() : agentMemoryStore(agentMemoryFile).snapshot());
+  mainBridge.handle(MAIN_CHANNELS.MEMORY_APPLY, async (request) => {
+    if (memoryOff) throw new Error("Agent memory is turned off for this session (CUTROOM_MEMORY=0).");
+    return agentMemoryStore(agentMemoryFile).apply(request);
+  });
   registerVideoWorkflows();
   registerInterviewAnalysis();
   const visual = new LocalVisualIndexService({runtimePath:join(app.getAppPath(),'dist','visual-vision')});
@@ -852,6 +865,8 @@ if (squirrelLaunch) {
         mcpUrl: url,
         version: app.getVersion(),
         instructions: instructions(docsDir()),
+        // Each chat session renders the saved memory into its instructions when it opens or resumes.
+        memory: memoryOff ? null : { file: agentMemoryFile, editingStyleFile: join(app.getPath("userData"), "editing-style.json"), skillsDir: agentSkillsDir },
       });
       if (launchProfile.isolated) {
         await writeFileAtomic(join(launchProfile.directory, 'profile-session.json'), JSON.stringify({

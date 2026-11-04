@@ -10,9 +10,9 @@
 
 import { ALL_FORMATS, AudioSampleSink, BlobSource, Input } from 'mediabunny';
 
-import { Envelope, findSilences } from './detect';
+import { Envelope, measureSilences } from './detect';
 
-import type { SilenceOptions, Span } from './detect';
+import type { SilenceMeasurement, SilenceOptions, Span } from './detect';
 
 export interface SilenceRequest {
 	file: Blob;
@@ -22,7 +22,13 @@ export interface SilenceRequest {
 	options: SilenceOptions;
 }
 
-export type SilenceResponse = { silences: Span[] | null } | { error: string };
+/**
+ * `levels` is what the decision was drawn from, in dBFS: the noise floor, the
+ * sound, and the threshold between them (null when the recording had no
+ * contrast to cut on). Absent when there was no audio track.
+ */
+export type SilenceLevels = { floor: number | null; sound: number | null; threshold: number | null };
+export type SilenceResponse = { silences: Span[] | null; levels?: SilenceLevels } | { error: string };
 
 // The app's lib is the DOM's, so the worker scope is narrowed by hand.
 const scope = self as unknown as {
@@ -32,14 +38,19 @@ const scope = self as unknown as {
 
 scope.onmessage = async ({ data }) => {
 	try {
-		scope.postMessage({ silences: await detect(data) });
+		const measured = await detect(data);
+		if (!measured) scope.postMessage({ silences: null });
+		else {
+			const { silences, ...levels } = measured;
+			scope.postMessage({ silences, levels });
+		}
 	} catch (error) {
 		scope.postMessage({ error: error instanceof Error ? error.message : String(error) });
 	}
 };
 
 /** The silences between `start` and `end` of the file's primary audio track, or null when it has none. */
-async function detect({ file, start, end, options }: SilenceRequest): Promise<Span[] | null> {
+async function detect({ file, start, end, options }: SilenceRequest): Promise<SilenceMeasurement | null> {
 	const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(file) });
 	try {
 		const track = await input.getPrimaryAudioTrack();
@@ -62,7 +73,7 @@ async function detect({ file, start, end, options }: SilenceRequest): Promise<Sp
 		}
 		envelope.flush();
 
-		return findSilences(envelope, options);
+		return measureSilences(envelope, options);
 	} finally {
 		input.dispose();
 	}

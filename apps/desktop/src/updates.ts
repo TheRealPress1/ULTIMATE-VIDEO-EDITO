@@ -16,14 +16,15 @@ type UpdateOptions = {
   verifySignature: () => Promise<boolean>;
 };
 
+/** The public GitHub releases page Settings opens for manual installs (`privateDownloadUrl` is the field's historical name). */
 function parsePrivateDownloadUrl(value: unknown): string | null {
   if (value === undefined || value === null) return null;
-  if (typeof value !== 'string') throw new Error('Invalid private downloads configuration.');
+  if (typeof value !== 'string') throw new Error('Invalid releases page configuration.');
   const url = new URL(value);
   const path = url.pathname.replace(/\/$/, '');
   if (url.protocol !== 'https:' || url.hostname !== 'github.com' || url.username || url.password
     || url.port || url.search || url.hash || !/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/releases(?:\/latest)?$/.test(path)) {
-    throw new Error('Private downloads must use a GitHub releases page without credentials or query parameters.');
+    throw new Error('The releases page must be a GitHub releases page without credentials or query parameters.');
   }
   url.pathname = path;
   return url.href;

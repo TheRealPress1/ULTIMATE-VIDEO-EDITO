@@ -2,14 +2,14 @@
 name: uve-final-review
 description: Review a completed or substantially changed UVE edit against the brief, checking structure, cut points, captions, framing, sound on a draft export, and stated verification limits.
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
 ---
 
 # Final review
 
 Scale review to what changed. A small text correction needs a focused check; a new sequence or reframing pass needs review of the affected timeline. Review the current saved composition, not an earlier source listing or an imagined final result.
 
-Run `check` on each affected scene and resolve relevant errors. Structural checks cannot assess story, sound quality, every caption, or all visual frames. Read the brief and compare the actual opening, sequence, ending, duration, and format with the requested result. Verify that omitted context has not changed the meaning of a statement.
+Run `check` on each affected scene and resolve relevant errors. A `short-visible-stretch` warning is a shot on screen for under 0.4 s between two others, which reads as a flash; fix it as its message says, or say why it stays (see [visible stretches](../../reference/tools/check.md#visible-stretches)). Structural checks cannot assess story, sound quality, every caption, or all visual frames. Read the brief and compare the actual opening, sequence, ending, duration, and format with the requested result. Verify that omitted context has not changed the meaning of a statement.
 
 Use `quality_review` to inspect rendered samples and audio observations. Treat its dark-frame, border, caption-layout, clipping, quiet-pause and join findings as prompts to inspect. Its times are scene-relative; its report states sample coverage and limitations. It does not verify lip-sync or editorial quality. See [rendered review](../../reference/tools/quality-review.md).
 

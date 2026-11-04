@@ -25,13 +25,13 @@ function updateFeed(value) {
 }
 
 function privateDownload(value) {
-  const canonical = publicHttpsUrl(value, 'Private downloads');
+  const canonical = publicHttpsUrl(value, 'The releases page');
   const url = new URL(canonical);
   const segments = url.pathname.replace(/\/$/, '').split('/').slice(1);
   if (url.hostname !== 'github.com' || segments.length < 3 || segments.length > 4 ||
       segments[2] !== 'releases' || (segments.length === 4 && segments[3] !== 'latest') ||
       segments.slice(0, 2).some(segment => !/^[A-Za-z0-9_.-]+$/.test(segment) || segment === '.' || segment === '..')) {
-    throw new Error('Private downloads must point to a GitHub repository releases page or its releases/latest page.');
+    throw new Error('The releases page must point to a GitHub repository releases page or its releases/latest page.');
   }
   url.pathname = `/${segments.join('/')}`;
   return url.href;

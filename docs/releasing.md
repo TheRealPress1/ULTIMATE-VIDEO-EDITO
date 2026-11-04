@@ -2,7 +2,7 @@
 
 UVE uses Developer ID signing and Apple notarization for macOS releases. The app and DMG receive separate notarization tickets, including stapled tickets for offline installation. Signing, notarization, or Gatekeeper failure stops packaging.
 
-The current distribution choice is **private GitHub releases**. The app opens the private downloads page in the browser, using the owner's GitHub session. These are manual installer updates: download the DMG, quit Cutroom after saving, and replace the application in Applications. Projects and the existing application profile live outside the bundle. No GitHub token is embedded in the app and no private credential is passed to a public update feed.
+The current distribution choice is **public GitHub releases**: the repository and its releases are public, so anyone can download an installer without an account. **Settings → App updates** opens the releases page in the browser. These are manual installer updates: download the DMG, quit Cutroom after saving, and replace the application in Applications. Projects and the existing application profile live outside the bundle. No GitHub token or other credential is embedded in the app or its release configuration.
 
 ## Build a signed release
 
@@ -16,7 +16,7 @@ Set release configuration in your local shell or CI secret store:
 - `CUTROOM_NOTARY_PROFILE`: the name of an existing `notarytool` Keychain profile
 - Alternatively, `APPLE_ID` and `APPLE_PASSWORD` (an app-specific password) can replace that profile. Keep credentials out of files and chat.
 - Optional `CUTROOM_SIGN_KEYCHAIN` and `CUTROOM_NOTARY_KEYCHAIN`: explicit Keychain paths; omit for the normal search list/iCloud Keychain.
-- For private downloads, `CUTROOM_PRIVATE_DOWNLOAD_URL=https://github.com/OWNER/REPOSITORY/releases/latest`. Only credential-free GitHub releases page URLs are accepted.
+- For the releases page that Settings opens, `CUTROOM_PRIVATE_DOWNLOAD_URL=https://github.com/OWNER/REPOSITORY/releases/latest` (the variable keeps its original name). Only credential-free GitHub releases page URLs are accepted.
 - Optional `UVE_INSTAGRAM_AUTH_URL`: the HTTPS origin of the deployed Instagram authorization service. Its Meta app secret stays on that server.
 
 Run:
@@ -44,15 +44,15 @@ node scripts/verify-macos-release.mjs --app apps/desktop/out/Cutroom-darwin-arm6
 
 The first checks bundled native dependencies, local speech/speaker models, web assets, compiler modules and the bundled CLI with a system-only PATH. The second extracts a private snapshot of the ZIP and mounts a private snapshot of the DMG read-only, verifies actual bundle versions and code-signature hashes agree, checks the expected Developer ID team, hardened runtime, stapled tickets and Gatekeeper acceptance, then records SHA-256 and sizes. It rejects unsafe ZIP paths/symlinks and changing artifacts.
 
-## Publish privately
+## Publish a release
 
-Keep the repository private. Upload the verified DMG, ZIP, checksums and release notes to a draft GitHub release; compare uploaded asset sizes/digests with the local verification report before publishing that release. A private repository's collaborators can access its releases, so retain only the intended accounts. Publishing a private release does not make the repository or installers public.
+The repository is public, and so is everything attached to a published release. Upload the verified DMG, ZIP, checksums and release notes to a draft GitHub release; compare uploaded asset sizes/digests with the local verification report before publishing that release. Before publishing, read the notes and asset list once more: nothing in them may carry a credential, a Keychain profile name, a signing identity file, or a user's project media.
 
-The current private downloads page is `https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/releases/latest`. Its **Open private downloads** button does not claim to check for or install an update automatically. Private in-app updating needs an authenticated service and short-lived download authorization; a private GitHub asset URL alone is not an anonymous Squirrel feed. Do not bake a personal access token into a release.
+The current releases page is `https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/releases/latest`. The **Open releases page** button in Settings only opens it; it does not check for or install an update. Automatic in-app updating needs an update feed (below), which the current release does not configure. Never bake a personal access token or any other credential into a release: public assets need none, and anything in the bundle can be read by everyone who downloads it.
 
 ## Optional automatic update hosting
 
-When an appropriate host is available, build with `CUTROOM_UPDATE_FEED_URL` pointing to its public HTTPS feed and `CUTROOM_UPDATE_FEED_TYPE=default` (version-aware endpoint) or `json` (static Squirrel manifest). Feed URLs may contain `{platform}` and `{arch}` path placeholders, and must not contain credentials, query parameters or fragments. This optional public-host path is not activated in the private release.
+When an appropriate host is available, build with `CUTROOM_UPDATE_FEED_URL` pointing to its public HTTPS feed and `CUTROOM_UPDATE_FEED_TYPE=default` (version-aware endpoint) or `json` (static Squirrel manifest). Feed URLs may contain `{platform}` and `{arch}` path placeholders, and must not contain credentials, query parameters or fragments. This optional feed is not activated in the current release.
 
 Generate metadata only from a signed, stapled ZIP:
 
@@ -74,13 +74,13 @@ For configured automatic updates, **Check & download update** verifies the insta
 
 ## CI and installation acceptance
 
-The manual **Build signed macOS release** workflow imports a Developer ID P12 into a temporary Keychain, runs checks, builds/signs/notarizes the app and DMG, verifies the exact artifacts and uploads private workflow artifacts. It does not publish a release or mutate update feeds. Required secrets and optional feed/private-download inputs are declared in `.github/workflows/build-macos-release.yml`. It requires an Apple Silicon macOS runner and cleans up the temporary Keychain.
+The manual **Build signed macOS release** workflow imports a Developer ID P12 into a temporary Keychain, runs checks, builds/signs/notarizes the app and DMG, verifies the exact artifacts and uploads them as workflow artifacts. It does not publish a release or mutate update feeds. Required secrets and optional feed/releases-page inputs are declared in `.github/workflows/build-macos-release.yml`. It runs only when started by hand, so in the public repository the signing secrets never reach a fork's pull request; keep them in repository secrets, never in the workflow file or a commit. It requires an Apple Silicon macOS runner and cleans up the temporary Keychain.
 
-The workflow is provided in the source tree; cloud builds require pushing that source and configuring its repository secrets. The first private release was built locally with the existing macOS Keychain profile. Its GitHub release contains installer artifacts; publishing it does not upload the development source or activate cloud builds.
+The workflow is provided in the source tree; cloud builds require configuring its repository secrets. Releases so far were built locally with the existing macOS Keychain profile. A GitHub release carries installer artifacts only; publishing one does not activate cloud builds.
 
 For same-machine release QA, launch the packaged executable with `--user-data-dir=/absolute/separate/profile`. The profile must not overlap the normal Cutroom data directory. An alternate profile has separate recents, storage, logs and caches; it skips global protocol/CLI/agent registration changes and uses a separate loopback MCP port. Its `profile-session.json` records the test instance and endpoint. Use disposable project copies for editing/export checks.
 
-A fresh profile proves storage isolation and bundled dependencies on this machine. It is not a clean-Mac test. Final clean-machine acceptance still requires a second Mac/user environment without the development checkout, Homebrew or Node: download the private DMG through GitHub, drag the app into Applications, launch under Gatekeeper without bypasses, import/edit/caption/export a disposable project, relaunch it and verify the output. Keep that result separate from same-machine QA.
+A fresh profile proves storage isolation and bundled dependencies on this machine. It is not a clean-Mac test. Final clean-machine acceptance still requires a second Mac/user environment without the development checkout, Homebrew or Node: download the DMG from the public releases page, drag the app into Applications, launch under Gatekeeper without bypasses, import/edit/caption/export a disposable project, relaunch it and verify the output. Keep that result separate from same-machine QA.
 
 ## Export timing and color
 

@@ -13,9 +13,9 @@ function current(ctx: ToolContext, id: string) {
 	return { session, dir, scene: requireScene(session.world, id, 'edit transcript', 'transcript editing changes a complete scene timeline'), assertCurrent };
 }
 
-export const transcriptEditInspect: ToolHandler<'transcript_edit_inspect'> = async ({ id, refreshTranscript, wordOffset, wordLimit }, ctx) => {
+export const transcriptEditInspect: ToolHandler<'transcript_edit_inspect'> = async ({ id, refreshTranscript, wordOffset, wordLimit, pauses, fillers, retakes }, ctx) => {
 	const { session, dir, scene, assertCurrent } = current(ctx, id);
-	const snapshot = await prepareTranscriptEdit(session.world, dir, scene, { refreshTranscript, signal: ctx.signal, assertCurrent });
+	const snapshot = await prepareTranscriptEdit(session.world, dir, scene, { refreshTranscript, signal: ctx.signal, assertCurrent, suggestions: { pauses, fillers, retakes } });
 	assertCurrent();
 	const words = snapshot.words.slice(wordOffset, wordOffset + wordLimit);
 	const visible = new Set(words.map((word) => word.id));

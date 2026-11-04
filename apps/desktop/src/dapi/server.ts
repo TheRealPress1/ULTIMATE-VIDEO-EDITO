@@ -33,6 +33,10 @@ export type DapiServerDeps = {
   editingStyle?: EditingStyleStore;
   /** The music and effect catalog, for `audio_catalog`. */
   audioCatalog?: AudioCatalogStore;
+  /** Saved agent memory (`memory`); omitted when memory is off for the session. */
+  agentMemoryFile?: string;
+  /** The user's own skills (`skill_write`, and `skills` lists them). */
+  agentSkillsDir?: string;
   version: string;
   /** The app's console buffer, for `logs` and `report`. */
   logs(): LogEntry[];
@@ -146,7 +150,7 @@ export class DapiServer {
   }
 
   private runInMain(name: MainToolName, args: unknown, signal: AbortSignal): Promise<unknown> {
-    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, project: () => this.deps.window.lastProject(), window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle, audioCatalog: this.deps.audioCatalog };
+    const ctx: MainContext = { signal, logs: this.deps.logs, version: this.deps.version, project: () => this.deps.window.lastProject(), window: this.deps.window, docsDir: this.deps.docsDir, editingStyle: this.deps.editingStyle, audioCatalog: this.deps.audioCatalog, agentMemoryFile: this.deps.agentMemoryFile, agentSkillsDir: this.deps.agentSkillsDir };
     // Each handler takes its own parsed args; the map's union type cannot
     // express that pairing, so the call site widens.
     return (mainHandlers[name] as (args: unknown, ctx: MainContext) => Promise<unknown>)(args, ctx);

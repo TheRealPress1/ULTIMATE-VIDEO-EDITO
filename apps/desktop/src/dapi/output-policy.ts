@@ -102,6 +102,7 @@ const OUTPUT_KINDS: Partial<Record<string, OutputKind>> = {
   waveform: "fresh",
   transcribe: "fresh",
   generate: "numbered",
+  segment: "numbered",
 };
 
 /** What `capture` and `grab` name their images (`08s10f.png`, `0f-08s10f.png`). */
@@ -408,7 +409,8 @@ export async function checkToolOutputs(tool: string, args: unknown, policy: Writ
   const { output, path, dir, model, folder } = args as Record<string, unknown>;
   const checks: Array<Promise<string | null>> = [];
   if (typeof output === "string") {
-    const library = tool === "generate" && localPath(output) && !looksAbsolute(output);
+    // generate's and segment's relative outputs are library paths (segment's mask is a local job's file, as generate's are).
+    const library = (tool === "generate" || tool === "segment") && localPath(output) && !looksAbsolute(output);
     if (!library) checks.push(writeRefusal(output, outputKind(tool), policy));
     else if (policy.project) checks.push(writeRefusal(output, "numbered", { ...policy, base: join(policy.project, "assets") }));
   }

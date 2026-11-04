@@ -13,6 +13,9 @@ import { screenshot } from "./screenshot";
 import { probe } from "./probe";
 import { grab } from "./grab";
 import { transcribe } from "./transcribe";
+import { analyze } from "./analyze";
+import { scriptReadCompare } from "./script-read";
+import { segment } from "./segment";
 import { footageIndex, footageSearch, footageCut } from "./footage";
 import { visualIndex, visualSearch, visualStatus } from './visual';
 import { transcriptEditInspect,transcriptEditApply } from './transcript-edit';
@@ -43,6 +46,8 @@ export const handlers: Handlers = {
   probe,
   grab,
   transcribe,
+  analyze,
+  script_read_compare: scriptReadCompare,
   footage_index: footageIndex,
   footage_search: footageSearch,
   footage_cut: footageCut,
@@ -62,6 +67,7 @@ export const handlers: Handlers = {
   sound_effects: soundEffects,
   generate,
   job,
+  segment,
   web_media_download: webMediaDownload,
   media_download: mediaDownload,
 };

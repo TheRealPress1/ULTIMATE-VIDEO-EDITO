@@ -12,7 +12,7 @@ import { localModels } from "./models";
 import type { World } from "koota";
 import type { Accessor } from "solid-js";
 import type { JobErrorCode } from "@diffusionstudio/api-contract";
-import type { GenerateRequest, GenerationEstimate, GenerationResult, LocalModelId } from "@diffusionstudio/dapi";
+import type { ContextJob, GenerateRequest, GenerationEstimate, GenerationResult, LocalModelId } from "@diffusionstudio/dapi";
 import type { ToolContext } from "../handler";
 import type { Destination } from "../lib/outputs";
 import type { EditorSession } from "../session";
@@ -126,6 +126,34 @@ export function localJob(id: string, cancel: boolean): GenerationResult {
     end(entry.job, "canceled", { code: "CANCELED", message: "Canceled." });
   }
   return present(entry);
+}
+
+/** Ended jobs stay listed for context this long. */
+const RECENT_MS = 10 * 60_000;
+
+const ROW_STATES: Record<Status, ContextJob["state"]> = { queued: "queued", running: "running", succeeded: "done", failed: "failed", canceled: "canceled" };
+
+/** Local jobs for context: running ones and ones that ended in the last few minutes, newest first. */
+export function localJobRows(now = Date.now()): ContextJob[] {
+  return [...jobs.values()]
+    .filter(({ job }) => !hasEnded(job) || (job.completedAt !== null && now - Date.parse(job.completedAt) <= RECENT_MS))
+    .sort((a, b) => Date.parse(b.job.createdAt) - Date.parse(a.job.createdAt))
+    .map(({ job }) => {
+      const video = job.request.video as { path?: unknown } | undefined;
+      const size = typeof job.request.size === "string" ? job.request.size : undefined;
+      const src = job.assets[0]?.src;
+      return {
+        id: job.id,
+        kind: "segment" as const,
+        model: size ? `${job.model}-${size}` : job.model,
+        state: ROW_STATES[job.status],
+        ...(hasEnded(job) ? {} : { phase: job.phase }),
+        progress: job.status === "succeeded" ? 1 : job.progress,
+        ...(typeof video?.path === "string" ? { path: video.path } : {}),
+        ...(typeof src === "string" ? { src } : {}),
+        ...(job.error && job.status !== "succeeded" ? { error: job.error.message } : {}),
+      };
+    });
 }
 
 function present({ job, target, image }: Entry): GenerationResult {

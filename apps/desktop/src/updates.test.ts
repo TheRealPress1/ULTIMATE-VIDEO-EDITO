@@ -191,7 +191,7 @@ describe('signed release updates', () => {
     }
   });
 
-  it('allows only credential-free GitHub releases pages for private downloads', () => {
+  it('allows only credential-free GitHub releases pages for the downloads link', () => {
     for (const privateDownloadUrl of [
       'http://github.com/owner/repo/releases', 'https://github.com.evil.test/owner/repo/releases',
       'https://user:secret@github.com/owner/repo/releases', 'https://github.com/owner/repo/releases?token=secret',

@@ -3,7 +3,7 @@
 Cutroom exposes one set of tools, reachable two ways:
 
 - **MCP.** The running app serves an MCP server at `http://127.0.0.1:43127/mcp` (Streamable HTTP). A connected agent gets every tool in `tools/list`, with the descriptions on these pages and its input and output as JSON Schema 2020-12, and instructions that give the path of these docs in the installed app. A client that can only spawn a stdio server can bridge to the URL with a generic proxy such as `mcp-remote`.
-- **CLI.** `cutroom`, the command-line client shipped with the app, wraps many tools as commands for shells, scripts and CI. The others are MCP-only, with — in the CLI column below: `skills` and `editing_style`, the scene and footage tools (`quality_review`, `visual_*`, `transcript_edit_*`, `footage_*`, `reference_*`, `reframe`, `captions` and `audio_finish`) and the sound tools (`sound_analyze`, `sound_effects`). `cutroom <command> --help` prints the same description and the same field help.
+- **CLI.** `cutroom`, the command-line client shipped with the app, wraps many tools as commands for shells, scripts and CI. The others are MCP-only, with — in the CLI column below: `skills`, `skill_write`, `editing_style` and `memory`, the script tools (`script_lint`, `script_read_compare`), the scene and footage tools (`analyze`, `segment`, `quality_review`, `visual_*`, `transcript_edit_*`, `footage_*`, `reference_*`, `reframe`, `captions` and `audio_finish`) and the sound tools (`sound_analyze`, `sound_effects`). `cutroom <command> --help` prints the same description and the same field help.
 
 Both validate against the same schemas and return the same result, so each tool is documented once, on its own page. The same write rules hold for every client — in-app chats, other MCP clients and the CLI alike: tools write anywhere in the open project and temporary folders, elsewhere only new files in Desktop, Documents, Downloads, Movies, Music or Pictures, and `open` makes a folder the project only where that is allowed (see [`open`](./open.md)). The catalog behind all three (server, CLI, these pages) lives in `packages/dapi`.
 
@@ -36,6 +36,7 @@ Every tool runs inside the app, so the app has to be running. Over MCP that is a
 | [`context`](./context.md) | `cutroom context` | App context |
 | [`capture`](./capture.md) | `cutroom capture` | Capture frames |
 | [`check`](./check.md) | `cutroom check` | Check structure |
+| [`analyze`](./analyze.md) | — | One timestamped evidence pack for a whole video: speech, sampled frames, on-screen text, silences, sound events |
 | [`quality_review`](./quality-review.md) | — | Inspect rendered frame and audio observations |
 | [`visual_index`, `visual_search`, `visual_status`](./visual.md) | — | Index and search visual B-roll evidence |
 | [`transcript_edit_inspect`, `transcript_edit_apply`](./transcript-edit.md) | — | Review and apply text-based timeline edits |
@@ -48,7 +49,11 @@ Every tool runs inside the app, so the app has to be running. Over MCP that is a
 | [`transcribe`](./transcribe.md) | `cutroom transcribe` | Transcribe speech |
 | [`captions`](./captions.md) | — | Caption the edited scene locally |
 | [`skills`](./skills.md) | — | List and read shared editing workflows |
+| [`skill_write`](./skills.md) | — | Save, change or archive the user's own skills |
 | [`editing_style`](./skills.md) | — | Read or save approved style preferences |
+| [`memory`](./memory.md) | — | What agents remember about the user and their setup, across chats and projects |
+| [`script_lint`](./script.md) | — | Check a script's spoken length, opener and lines against the brief |
+| [`script_read_compare`](./script.md) | — | Line a recorded read or a multi-take shoot up against the script |
 | [`audio_catalog`](./audio-catalog.md) | `cutroom audio_catalog` | List curated music and sound effects; save the user's picks |
 | [`audio_finish`](./audio-finish.md) | — | Measure loudness and true peak; finish dialogue and duck music |
 | [`sound_analyze`](./sound.md) | — | Hear music and sound effects with local models: describe, match, rank, find, measure, and check sync to picture |
@@ -58,6 +63,7 @@ Every tool runs inside the app, so the app has to be running. Over MCP that is a
 | [`listen`](./listen.md) | `cutroom listen` | Inspect local speech evidence |
 | [`generate`](./generate.md) | `cutroom generate` | Generate media |
 | [`job`](./job.md) | `cutroom job` | Generation job |
+| [`segment`](./segment.md) | — | Mask and track an object in footage with local SAM 2.1 |
 | [`web_media_search`](./web-media.md) | `cutroom web_media_search` | Search openly licensed web images, video and audio |
 | [`web_media_download`](./web-media.md) | `cutroom web_media_download` | Download web media into the project, with credits |
 | [`media_search`](./media.md) | `cutroom media_search` | Search YouTube, YouTube Music, SoundCloud and other platforms |
@@ -75,12 +81,15 @@ Every tool runs inside the app, so the app has to be running. Over MCP that is a
 How the surface is divided:
 
 - **The project loop.** [`open`](./open.md) a folder, edit its JSX, [`context`](./context.md) for what the source cannot say, [`capture`](./capture.md) and [`check`](./check.md) to verify, [`export`](./export.md) a delivery file when asked (a review draft to a temporary folder needs no request).
+- **Understanding a whole video.** [`analyze`](./analyze.md) gathers speech, frames picked at visual changes, on-screen text, silences and (once the audio add-on is ready) sound events into one timeline of timestamped sections, for an agent to interpret; long files run as a job. Confirm what a decision rests on with [`grab`](./grab.md) or [`listen`](./listen.md).
 - **Media inspection** ([`probe`](./probe.md), [`grab`](./grab.md), [`transcribe`](./transcribe.md), [`filmstrip`](./filmstrip.md), [`waveform`](./waveform.md), [`listen`](./listen.md)): a file by path, without adding it to the project. Absolute paths work with or without an open project; library paths (`b-roll/clip.mp4`) need one. `listen` accepts local media only; other inspection tools may also accept URLs.
-- **Generation.** [`generate`](./generate.md) runs a model on this machine for free — [`sam-2.1`](./segment.md) segments and tracks an object in footage, making the mask file a `<mask src>` names — or, only where hosted generation is configured, a model of the Cutroom API (images, video, music, speech, and tools such as upscaling) on the account's credits; without that service hosted models fail at once. With `estimate`, it only prices the request. Poll [`job`](./job.md) until it has ended, and its files are saved into the library or a directory. The models and their fields are in [models.md](../models.md).
+- **Generation.** [`generate`](./generate.md) runs a model on this machine for free — [`sam-2.1`](./segment.md) segments and tracks an object in footage, making the mask file a `<mask src>` names, and [`segment`](./segment.md) is the direct way to call it — or, only where hosted generation is configured, a model of the Cutroom API (images, video, music, speech, and tools such as upscaling) on the account's credits; without that service hosted models fail at once. With `estimate`, it only prices the request. Poll [`job`](./job.md) until it has ended, and its files are saved into the library or a directory. The models and their fields are in [models.md](../models.md).
 - **Web media.** [`web_media_search`](./web-media.md) finds openly licensed images, video and audio on Openverse and Wikimedia Commons, with license terms and thumbnails; [`web_media_download`](./web-media.md) saves a result or a user's link into the project's `assets/web/` (or `music`/`sfx`), imports it, and credits it in `CREDITS.md`. This is how to get licensed photos, B-roll, music and sound.
 - **Platform media.** [`media_search`](./media.md) searches YouTube, YouTube Music, SoundCloud and MyInstants, and lists a creator's latest uploads on other platforms; [`media_download`](./media.md) saves a video's audio (the default) or picture and sound from those sites into the library (`assets/music/`, `assets/footage/` or a chosen folder) and credits its source. Rights are not verified. The app runs its own managed downloader, so nothing needs installing and agents never run one in the shell.
 - **Music and sound effects.** [`audio_catalog`](./audio-catalog.md) lists a curated, tagged catalog of music and effects merged with the user's saved picks; each entry names the download call that fetches it. [`sound_effects`](./sound.md) renders effects from a bank of 252 original, code-made sounds into `assets/sfx/`. The [music](../../skills/uve-music/SKILL.md) and [sound effects](../../skills/uve-sfx/SKILL.md) skills cover choosing, timing and mixing.
 - **Hearing sound.** [`sound_analyze`](./sound.md) runs earshot's CLAP and AudioSet models on this Mac: what a file sounds like, whether it matches a description or has vocals, its best moments, exact loudness, and a draft export's sync to its cuts and cues. It hears sounds and music, not words (that is [`listen`](./listen.md)). Both sound tools run through an add-on that installs itself on the first call, with no prompt (about 2.4 GB, Apple silicon only); **Settings → Audio intelligence** shows it and **Remove** frees the space.
+- **Scripts.** [`script_lint`](./script.md) runs fixed checks on a script in the project's [`brief.md`](../brief.md) or inline text; [`script_read_compare`](./script.md) aligns a recording to it line by line. The [scripting skill](../../skills/uve-scripting/SKILL.md) uses both.
+- **Memory and the user's skills.** [`memory`](./memory.md) holds short notes on who the user is and their setup; [`skill_write`](./skills.md) keeps procedures they want repeated, which [`skills`](./skills.md) lists with category `user`. Both are stored in the app's data, change only through these tools, and refuse credentials and instructions aimed at agents. Settings shows both.
 - **What a declaration may name.** [`fonts`](./fonts.md).
 - **The app and the machine.** [`logs`](./logs.md), [`screenshot`](./screenshot.md), [`window`](./window.md), [`report`](./report.md).
 - **Instagram analytics.** [Four read-only tools](./instagram.md) inspect saved account and post metrics without an open project. Connect an account in **Settings → Instagram** and sync in the app first.

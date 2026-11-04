@@ -7,6 +7,9 @@ import type { GenericTool } from "./tool";
 
 import { open } from "./tools/open";
 import { skills, editingStyle } from "./tools/skills";
+import { memory } from "./tools/memory";
+import { skillWrite } from "./tools/skill-write";
+import { scriptLint, scriptReadCompare } from "./tools/script";
 import { audioCatalog } from "./tools/audio-catalog";
 import { context } from "./tools/context";
 import { capture } from "./tools/capture";
@@ -18,6 +21,8 @@ import { screenshot } from "./tools/screenshot";
 import { probe } from "./tools/probe";
 import { grab } from "./tools/grab";
 import { transcribe } from "./tools/transcribe";
+import { analyze } from "./tools/analyze";
+import { segment } from "./tools/segment";
 import { footageIndex, footageSearch, footageCut } from "./tools/footage";
 import { visualIndex, visualSearch, visualStatus } from './tools/visual';
 import { transcriptEditInspect,transcriptEditApply } from './tools/transcript-edit';
@@ -46,6 +51,10 @@ export const catalog = [
   skills,
   editingStyle,
   audioCatalog,
+  memory,
+  skillWrite,
+  scriptLint,
+  scriptReadCompare,
   open,
   context,
   capture,
@@ -55,6 +64,7 @@ export const catalog = [
   probe,
   grab,
   transcribe,
+  analyze,
   footageIndex,
   footageSearch,
   footageCut,
@@ -73,6 +83,7 @@ export const catalog = [
   listen,
   soundAnalyze,
   soundEffects,
+  segment,
   generate,
   job,
   webMediaSearch,

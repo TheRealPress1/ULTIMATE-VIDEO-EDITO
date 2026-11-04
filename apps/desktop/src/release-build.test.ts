@@ -76,7 +76,7 @@ describe('macOS release build settings', () => {
     }
   });
 
-  it('bakes a private GitHub releases link into signed and development configurations', () => {
+  it('bakes the GitHub releases link into signed and development configurations', () => {
     for (const env of [{}, releaseEnv]) {
       expect(resolveReleaseSettings({ ...env, CUTROOM_PRIVATE_DOWNLOAD_URL: 'https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/releases/latest/' }, 'darwin').releaseConfig.privateDownloadUrl)
         .toBe('https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/releases/latest');
@@ -85,7 +85,7 @@ describe('macOS release build settings', () => {
       .toBe('https://github.com/owner/repo/releases');
   });
 
-  it.each(['https://downloads.example.com/owner/repo/releases', 'https://github.com/owner/repo', 'https://github.com/owner/repo/releases/download/file.dmg', 'https://github.com/owner/repo/releases/latest?token=secret', 'https://user:secret@github.com/owner/repo/releases', 'https://github.com/owner/repo/releases#fragment', 'https://github.com/owner/%2e%2e/releases', 'https://github.com/owner/repo/releases/other'])('rejects an invalid private download page: %s', (url) => {
+  it.each(['https://downloads.example.com/owner/repo/releases', 'https://github.com/owner/repo', 'https://github.com/owner/repo/releases/download/file.dmg', 'https://github.com/owner/repo/releases/latest?token=secret', 'https://user:secret@github.com/owner/repo/releases', 'https://github.com/owner/repo/releases#fragment', 'https://github.com/owner/%2e%2e/releases', 'https://github.com/owner/repo/releases/other'])('rejects an invalid releases page: %s', (url) => {
     expect(() => resolveReleaseSettings({ CUTROOM_PRIVATE_DOWNLOAD_URL: url }, 'darwin')).toThrow();
   });
 

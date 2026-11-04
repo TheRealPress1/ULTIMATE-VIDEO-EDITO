@@ -9,7 +9,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { DapiError, generatedPath } from "@diffusionstudio/dapi";
+import { DapiError, flattenSegmentJob, generatedPath } from "@diffusionstudio/dapi";
 import { tempPathFor } from "../atomic";
 import { assertWritable, outputKind } from "./output-policy";
 
@@ -70,6 +70,10 @@ export async function present(name: ToolName, args: unknown, result: unknown, po
       return presentSound(result as ToolResult<"sound_analyze">);
     case "media_search":
       return presentMediaSearch(result as ToolResult<"media_search">, judge);
+    case "analyze":
+      return presentAnalysis(result as ToolResult<"analyze">, judge);
+    case "segment":
+      return presentSegment(result as ToolResult<"segment">, (args as ToolArgs<"segment">).preview === true, judge);
     default:
       return { output: result, images: [] };
   }
@@ -217,9 +221,27 @@ async function presentScreenshot(result: ToolResult<"screenshot">, output: strin
 async function presentTranscript(transcript: ToolResult<"transcribe">, output: string | undefined, judge: Judge): Promise<Presented> {
   const text = JSON.stringify(transcript, null, 2);
   const path = await writeSingle(output, `dapi-transcript-${randomUUID()}.json`, text, outputKind("transcribe"), judge);
-  const words = transcript.segments.reduce((sum, segment) => sum + segment.words.length, 0);
-  const presented: ToolOutput<"transcribe"> = { path, segments: transcript.segments.length, words };
+  const { segments, ...meta } = transcript;
+  const words = segments.reduce((sum, segment) => sum + segment.words.length, 0);
+  const presented: ToolOutput<"transcribe"> = { path, segments: segments.length, words, ...meta };
   return { output: presented, images: [] };
+}
+
+/** An analysis's contact sheets go to a fresh temp folder, inlined in order when few and small enough; each sheet's path replaces its bytes. */
+async function presentAnalysis({ sheets, ...answer }: ToolResult<"analyze">, judge: Judge): Promise<Presented> {
+  if (!sheets?.length) return { output: answer, images: [] };
+  const { images, paths } = await writePreviews(sheets.map(({ index, bytes, mimeType }) => ({ index, bytes, mimeType })), "dapi-analyze-", judge);
+  const shown: ToolOutput<"analyze"> = {
+    ...answer,
+    sheets: sheets.flatMap(({ bytes: _bytes, mimeType: _mimeType, ...sheet }) => (paths.has(sheet.index) ? [{ ...sheet, path: paths.get(sheet.index)! }] : [])),
+  };
+  return { output: shown, images };
+}
+
+/** A segment call's job, presented as `job` presents it (its picture and any file bound for disk written), then flattened. */
+async function presentSegment(result: GenerationResult, preview: boolean, judge: Judge): Promise<Presented> {
+  const { output, images } = await presentJob(result, judge);
+  return { output: flattenSegmentJob(output as GenerationResult["job"], preview), images };
 }
 
 const PREVIEW_EXTENSIONS: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };

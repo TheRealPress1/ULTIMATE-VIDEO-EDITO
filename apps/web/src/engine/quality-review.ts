@@ -10,7 +10,7 @@ import { analyzePcm } from '@/dapi/lib/audio-finish';
 import { flushProjectEdits } from '@/projects/edits';
 import { mainBridge } from '@/lib/ipc';
 import { MAIN_CHANNELS } from '@desktop/main-channels';
-import { inspectAudioSamples, inspectFramePixels, mergeQualityFindings, reviewFrames, type QualityFinding } from './quality-analysis';
+import { DEFAULT_PAUSE_THRESHOLDS, PAUSE_JOIN_SECONDS, inspectAudioSamples, inspectFramePixels, mergeQualityFindings, mergeReportFindings, resolvePauseThresholds, reviewFrames, type AudioPauseThresholds, type QualityFinding } from './quality-analysis';
 import { inspectTextLayout } from './quality-layout';
 
 export type QualityReport = {
@@ -49,6 +49,8 @@ async function cachePut(request: AnalysisCacheRequest, fingerprint: string, chun
 /** Isolated rendered observations in bounded, restartable sections. Originals remain read-only. */
 export async function reviewScene(world: World, scene: Entity, dir: string, options: {
   signal?: AbortSignal; audio?: boolean; onProgress?: (message: string) => void; assertCurrent?: () => void;
+  /** Quiet-pause thresholds for the audio pass; the defaults report a second below -60 dBFS. */
+  pauses?: AudioPauseThresholds;
 } = {}): Promise<QualityReport> {
   if (running) throw new Error('A quality review is already running.');
   if (!isScene(scene)) throw new Error('Choose a complete scene for review.');
@@ -92,7 +94,10 @@ export async function reviewScene(world: World, scene: Entity, dir: string, opti
     const boundaries = nodes.flatMap(node=>{const c=node.get(Computed);return c?[c.start,c.end]:[];});
     const audioBoundaries = nodes.filter(node=>isAudibleMedia(node,capture!.node)).flatMap(node=>{const c=node.get(Computed);return c?[c.start/fps,c.end/fps]:[];});
     const includeAudio = options.audio !== false && hasAudio(world,scene);
-    const cacheRequest = { dir, key: JSON.stringify([CACHE_ENGINE,before.fingerprint,sceneId,fps,start,end,includeAudio]), sources: [...sourceStats.keys()] };
+    const pauses = resolvePauseThresholds(options.pauses);
+    // Default thresholds keep the original key, so sections saved before they existed stay reusable.
+    const custom = includeAudio && (pauses.thresholdDb !== DEFAULT_PAUSE_THRESHOLDS.thresholdDb || pauses.minSeconds !== DEFAULT_PAUSE_THRESHOLDS.minSeconds);
+    const cacheRequest = { dir, key: JSON.stringify([CACHE_ENGINE,before.fingerprint,sceneId,fps,start,end,includeAudio,...custom?[pauses.thresholdDb,pauses.minSeconds]:[]]), sources: [...sourceStats.keys()] };
     options.onProgress?.('Checking saved review sections…');
     const cached = await cacheGet(cacheRequest, signal); current();
     const checkpointed = /^[a-f0-9]{64}$/.test(cached?.fingerprint ?? '') && !!cached?.chunks;
@@ -135,14 +140,14 @@ export async function reviewScene(world: World, scene: Entity, dir: string, opti
             if (Math.abs(pcm.frames / pcm.sampleRate - (audioEnd-audioStart)) > Math.max(0.05,1/fps)) throw new Error('The rendered audio section was incomplete. Run review again.');
             const channels=Array.from({length:pcm.channels},()=>new Float32Array(pcm.frames));
             for(const block of pcm.blocks)block.channels.forEach((values,i)=>channels[i]!.set(values,block.frame));
-            for(const finding of inspectAudioSamples(channels,pcm.sampleRate,audioBoundaries.map(time=>time-audioStart))) {
+            for(const finding of inspectAudioSamples(channels,pcm.sampleRate,audioBoundaries.map(time=>time-audioStart),pauses)) {
               const time=audioStart+finding.time,finish=finding.end===undefined?undefined:audioStart+finding.end;
               if(time>=to/fps || (finish??time)<from/fps)continue;
               local.push({...finding,time:Math.max(from/fps,time),...(finish===undefined?{}:{end:Math.min(to/fps,finish)})});
             }
           } finally {signal.removeEventListener('abort',abort);input.dispose();}
         }
-        chunk={start:from/fps,end:to/fps,sampledFrames:frames.length,findings:mergeQualityFindings(local,.075,1000),audioReviewed:includeAudio};
+        chunk={start:from/fps,end:to/fps,sampledFrames:frames.length,findings:mergeQualityFindings(local,PAUSE_JOIN_SECONDS,1000),audioReviewed:includeAudio};
         if (checkpointed) { await unchanged(); await cachePut(cacheRequest,cached.fingerprint,key,chunk,signal); current(); }
       }
       sampledFrames+=chunk.sampledFrames;findings.push(...chunk.findings);
@@ -151,6 +156,6 @@ export async function reviewScene(world: World, scene: Entity, dir: string, opti
     const limitations=['Sampled frames can miss brief problems between samples. Dark shots and borders may be intentional.','Layout checks flag potential clipping; review styling and captions visually.','Lip-sync, speaker identity, narrative quality, and HDR mastering are not measured.',`Review covers ${count} bounded section${count===1?'':'s'}${resumed?`; reused ${resumed} completed section${resumed===1?'':'s'}`:''}. Audio overlaps section joins by one second.`];
     if(findings.length>2000)limitations.push('The report is limited to 2,000 grouped observations. Review shorter workareas to inspect additional findings.');
     return {sceneId,fingerprint:before.fingerprint,createdAt:new Date().toISOString(),duration,sampledFrames,
-      findings:mergeQualityFindings(findings,Math.max(2,duration/Math.max(1,sampledFrames/2)),2000),limitations,audioReviewed:includeAudio};
+      findings:mergeReportFindings(findings,Math.max(2,duration/Math.max(1,sampledFrames/2)),pauses,2000),limitations,audioReviewed:includeAudio};
   } finally {capture?.dispose();running=false;}
 }

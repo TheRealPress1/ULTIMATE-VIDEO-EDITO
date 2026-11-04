@@ -10,14 +10,16 @@ import { getDocumentEditor, isPendingSource } from './editor';
 import { getEditHistory } from './history';
 import { encodeSceneAudio } from './scene-audio';
 import { editPlayhead } from './timing';
+import { pauseSilenceOptions } from './silence/detect';
 import { detectTranscriptEditSilences } from './transcript-edit-silence';
-import { planTranscriptEdit, timelineWords, transcriptPassages, transcriptSuggestions } from './transcript-edit-plan';
+import { planTranscriptEdit, resolveSuggestionOptions, timelineWords, transcriptPassages, transcriptSuggestions } from './transcript-edit-plan';
 import type { Entity, World } from 'koota';
 import type { Asset, AssetLibrary, Transcript } from '@diffusionstudio/assets';
 import type { AuthoredTree } from '@diffusionstudio/reconciler';
-import type { TimelineRange, TranscriptEditLayer, TranscriptEditSnapshot } from './transcript-edit-plan';
+import type { TranscriptEditPauses } from './transcript-edit-silence';
+import type { TimelineRange, TranscriptEditLayer, TranscriptEditSnapshot, TranscriptPauseDetection, TranscriptSuggestionOptions, TranscriptSuggestionRequest } from './transcript-edit-plan';
 
-export type { TimelineRange, TranscriptEditSnapshot } from './transcript-edit-plan';
+export type { TimelineRange, TranscriptEditSnapshot, TranscriptSuggestionRequest } from './transcript-edit-plan';
 export { transcriptDraftRanges } from './transcript-edit-plan';
 export interface TranscriptEditOptions {
 	signal?: AbortSignal;
@@ -25,6 +27,8 @@ export interface TranscriptEditOptions {
 	onProgress?: (message: string) => void;
 	/** Re-transcribe the current audio instead of using an existing aligned caption. */
 	refreshTranscript?: boolean;
+	/** Pause, filler and retake settings; they are part of the returned revision. */
+	suggestions?: TranscriptSuggestionRequest;
 }
 export interface TranscriptEditResult { sceneId: string; duration: number; previousDuration: number; clipCount: number; captionPath: string; checkpointId: string }
 interface MediaIdentity { path: string; asset: Asset; size: number; mtime: number }
@@ -37,6 +41,13 @@ interface PreparedEdit {
 	layers: TranscriptEditLayer[];
 	media: MediaIdentity[];
 	transcript: Transcript;
+	transcriptSource: TranscriptEditSnapshot['transcriptSource'];
+	/** Notes about where the words came from, carried into every later snapshot of this inspection. */
+	sourceWarnings: string[];
+	/** The measured mix for one detector setting; a new setting measures again but keeps the words. */
+	pauses: { key: string; measured: TranscriptEditPauses | null; warning?: string };
+	/** The resolved suggestion settings `snapshot` was made with. */
+	optionsKey: string;
 	dir: string;
 }
 // One trusted inspection per world keeps arbitrary caller words out of edits
@@ -118,6 +129,16 @@ async function verifyMedia(media: readonly MediaIdentity[], library: AssetLibrar
 	}
 }
 
+const decibels = (value: number | null | undefined) => typeof value === 'number' && Number.isFinite(value) ? Math.round(value * 10) / 10 : null;
+
+/** The pause settings in force and the levels the scene mix was measured at. */
+function pauseDetection(options: TranscriptSuggestionOptions, measured: TranscriptEditPauses): TranscriptPauseDetection {
+	return {
+		...options.pauses, mode: options.pauses.thresholdDb === null ? 'adaptive' : 'fixed',
+		appliedThresholdDb: decibels(measured.levels?.threshold), noiseFloorDb: decibels(measured.levels?.floor), speechDb: decibels(measured.levels?.sound),
+	};
+}
+
 /** Inspect trusted words and actual quiet intervals without changing the composition. */
 export async function prepareTranscriptEdit(world: World, dir: string, scene: Entity, options: TranscriptEditOptions = {}): Promise<TranscriptEditSnapshot> {
 	if (activeOperations.has(world)) throw new Error('A transcript operation is already running. Wait for it to finish.');
@@ -130,6 +151,10 @@ export async function prepareTranscriptEdit(world: World, dir: string, scene: En
 		// later. `duration` is end-start; using it would erase a leading gap.
 		const duration = Math.max(0, scene.get(Computed)?.end ?? 0) / fps;
 		if (!Number.isFinite(duration) || duration <= 0 || duration > 3600) throw new Error('Transcript editing supports scenes between one frame and one hour.');
+		// Settings are checked before any audio work starts.
+		const suggestionOptions = resolveSuggestionOptions(options.suggestions);
+		const detector = pauseSilenceOptions(suggestionOptions.pauses);
+		const pauseKey = JSON.stringify(detector), optionsKey = JSON.stringify(suggestionOptions);
 		const treeSignature = signature(tree);
 		const assertCurrent = () => {
 			options.signal?.throwIfAborted(); options.assertCurrent?.();
@@ -141,49 +166,60 @@ export async function prepareTranscriptEdit(world: World, dir: string, scene: En
 		const layers = collectLayers(world, scene, fps, duration);
 		const media = await mediaIdentities(tree, library, assertCurrent);
 		const cached = prepared.get(world);
-		if (!options.refreshTranscript && cached?.scene === scene && cached.dir === dir && cached.library === library && cached.treeSignature === treeSignature && cached.snapshot.frameRate === fps && cached.snapshot.duration === duration &&
-			JSON.stringify(cached.media.map(({ path, asset, size, mtime }) => [path, asset.id, asset.source, size, mtime])) === JSON.stringify(media.map(({ path, asset, size, mtime }) => [path, asset.id, asset.source, size, mtime]))) {
-			assertCurrent(); return structuredClone(cached.snapshot);
-		}
-		const warnings: string[] = [];
-		let transcript: Transcript | undefined;
-		let transcriptSource: 'captions' | 'transcribed' = 'transcribed';
+		const reuse = !options.refreshTranscript && cached?.scene === scene && cached.dir === dir && cached.library === library && cached.treeSignature === treeSignature && cached.snapshot.frameRate === fps && cached.snapshot.duration === duration &&
+			JSON.stringify(cached.media.map(({ path, asset, size, mtime }) => [path, asset.id, asset.source, size, mtime])) === JSON.stringify(media.map(({ path, asset, size, mtime }) => [path, asset.id, asset.source, size, mtime])) ? cached : undefined;
+		if (reuse?.optionsKey === optionsKey) { assertCurrent(); return structuredClone(reuse.snapshot); }
+		// Other settings for the same scene reuse its words; only a new
+		// detector setting measures the mix again.
+		let transcript: Transcript | undefined = reuse && structuredClone(reuse.transcript);
+		let transcriptSource: TranscriptEditSnapshot['transcriptSource'] = reuse?.transcriptSource ?? 'transcribed';
+		const sourceWarnings = reuse ? [...reuse.sourceWarnings] : [];
+		let pauses = reuse?.pauses.key === pauseKey ? reuse.pauses : undefined;
 		const caption = layers.find((layer) => layer.caption)?.caption;
-		if (caption && !options.refreshTranscript && typeof caption.props.src === 'string') {
+		if (!reuse && caption && !options.refreshTranscript && typeof caption.props.src === 'string') {
 			const asset = await library.resolve(caption.props.src); assertCurrent();
 			transcript = await resolveTranscript(asset); assertCurrent();
 			transcriptSource = 'captions';
-			warnings.push('Uses your current caption text and timing. If you changed the edit since captioning, transcribe the current audio before cutting.');
+			sourceWarnings.push('Uses your current caption text and timing. If you changed the edit since captioning, transcribe the current audio before cutting.');
 		}
-		options.onProgress?.('Preparing the scene audio');
-		let audio: Blob | undefined;
-		let silences: TimelineRange[] = [];
-		try {
-			audio = await encodeSceneAudio(world, scene, dir, { signal: options.signal, onProgress: (value) => options.onProgress?.(`Preparing audio · ${Math.round(value * 100)}%`) });
-			assertCurrent();
-			options.onProgress?.('Finding quiet pauses');
-			silences = await detectTranscriptEditSilences(audio, duration, options.signal);
-			assertCurrent();
-		} catch (error) {
-			assertCurrent();
-			if (!transcript) throw error;
-			warnings.push(`Quiet-pause suggestions are unavailable: ${error instanceof Error ? error.message : String(error)}`);
+		if (!pauses) {
+			options.onProgress?.('Preparing the scene audio');
+			let audio: Blob | undefined;
+			try {
+				audio = await encodeSceneAudio(world, scene, dir, { signal: options.signal, onProgress: (value) => options.onProgress?.(`Preparing audio · ${Math.round(value * 100)}%`) });
+				assertCurrent();
+				options.onProgress?.('Finding quiet pauses');
+				pauses = { key: pauseKey, measured: await detectTranscriptEditSilences(audio, duration, options.signal, detector) };
+				assertCurrent();
+			} catch (error) {
+				assertCurrent();
+				if (!transcript) throw error;
+				pauses = { key: pauseKey, measured: null, warning: `Quiet-pause suggestions are unavailable: ${error instanceof Error ? error.message : String(error)}` };
+			}
+			if (!transcript) {
+				if (!audio) throw new Error('The scene audio could not be prepared for transcription.');
+				transcript = await transcribeLocally(audio, { signal: options.signal, onProgress: ({ message, progress }) => options.onProgress?.(`${message}${progress === null ? '' : ` · ${Math.round(progress * 100)}%`}`) });
+				assertCurrent();
+			}
 		}
-		if (!transcript) {
-			if (!audio) throw new Error('The scene audio could not be prepared for transcription.');
-			transcript = await transcribeLocally(audio, { signal: options.signal, onProgress: ({ message, progress }) => options.onProgress?.(`${message}${progress === null ? '' : ` · ${Math.round(progress * 100)}%`}`) });
-			assertCurrent();
-		}
+		if (!transcript) throw new Error('No transcript is available for this scene. Transcribe the current audio first.');
 		await verifyMedia(media, library, assertCurrent); assertCurrent();
 		const words = timelineWords(transcript, duration);
+		const warnings = [...sourceWarnings, ...pauses.warning ? [pauses.warning] : []];
 		if (words.some((word, i) => i > 0 && word.start < words[i - 1]!.end)) warnings.push('Some word times overlap. Listen around those boundaries before removing words.');
 		const sceneId = scene.get(Source)?.value;
 		if (!sceneId) throw new Error('The scene has not been saved yet.');
-		const bytes = new TextEncoder().encode(JSON.stringify({ treeSignature, fps, duration, words, media: media.map(({ asset, size, mtime }) => [asset.id, asset.source, size, mtime]) }));
+		// The settings are part of the revision: an apply prepared from another
+		// inspection's suggestions is rejected rather than silently mixed.
+		const bytes = new TextEncoder().encode(JSON.stringify({ treeSignature, fps, duration, words, media: media.map(({ asset, size, mtime }) => [asset.id, asset.source, size, mtime]), suggestions: suggestionOptions }));
 		const revision = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))].map((v) => v.toString(16).padStart(2, '0')).join('');
 		assertCurrent();
-		const snapshot: TranscriptEditSnapshot = { revision, sceneId, sceneName: String(tree.props.name || 'Scene'), duration, frameRate: fps, transcriptSource, words, passages: transcriptPassages(words, duration), suggestions: transcriptSuggestions(words, duration, silences), warnings };
-		prepared.set(world, { snapshot: structuredClone(snapshot), scene, root, library, treeSignature, layers, media, transcript: structuredClone(transcript), dir });
+		const snapshot: TranscriptEditSnapshot = {
+			revision, sceneId, sceneName: String(tree.props.name || 'Scene'), duration, frameRate: fps, transcriptSource, words, passages: transcriptPassages(words, duration),
+			suggestions: transcriptSuggestions(words, duration, pauses.measured?.silences ?? [], suggestionOptions, fps),
+			pauseDetection: pauses.measured ? pauseDetection(suggestionOptions, pauses.measured) : null, warnings,
+		};
+		prepared.set(world, { snapshot: structuredClone(snapshot), scene, root, library, treeSignature, layers, media, transcript: structuredClone(transcript), transcriptSource, sourceWarnings, pauses, optionsKey, dir });
 		return snapshot;
 	} finally { activeOperations.delete(world); }
 }

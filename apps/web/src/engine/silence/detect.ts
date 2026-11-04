@@ -67,6 +67,27 @@ export const DEFAULT_SILENCE_OPTIONS: SilenceOptions = {
 	padding: 0.12,
 };
 
+/**
+ * A pause search as an editor asks for one: how long a pause has to last to
+ * count, how much of it to leave against the speech either side, and, when the
+ * room has been measured, the level to call quiet. Everything else stays at
+ * the speech tuning above.
+ */
+export type PauseSearch = {
+	/** Seconds a quiet stretch must last to be reported. */
+	minSeconds: number;
+	/** Seconds of each pause kept against the sound either side. */
+	keepSeconds: number;
+	/** A fixed threshold in dBFS; null measures one from the recording. */
+	thresholdDb: number | null;
+};
+
+/** The detector settings for a pause search. */
+export function pauseSilenceOptions(search: PauseSearch): SilenceOptions {
+	const fixed = search.thresholdDb === null ? {} : { minThreshold: search.thresholdDb, maxThreshold: search.thresholdDb };
+	return { ...DEFAULT_SILENCE_OPTIONS, ...fixed, minSilence: search.minSeconds, padding: search.keepSeconds };
+}
+
 /** A stretch of time, in seconds. */
 export type Span = [start: number, end: number];
 
@@ -192,16 +213,28 @@ function percentile(levels: Float32Array, fraction: number): number {
 }
 
 /**
+ * The two levels a threshold is read between, in dBFS: the noise floor (the
+ * quietest tenth of the hops reach it) and the sound (all but the loudest
+ * twentieth stay under it). Null for an empty envelope.
+ */
+export function envelopeLevels(levels: Float32Array): { floor: number; sound: number } | null {
+	if (levels.length === 0) return null;
+	return { floor: percentile(levels, 0.1), sound: percentile(levels, 0.95) };
+}
+
+/**
  * The level below which the envelope is silent, or null when it has no
  * silence to tell apart: sound and floor are too close together for a line
  * between them to mean anything. A recording that is quiet throughout is
- * silent throughout, and gets the loudest threshold allowed.
+ * silent throughout, and gets the loudest threshold allowed. A range pinned
+ * to one level (`minThreshold === maxThreshold`) is a fixed threshold, which
+ * holds whatever the contrast: the caller has measured the room.
  */
 export function silenceThreshold(levels: Float32Array, options: SilenceOptions): number | null {
 	if (levels.length === 0) return null;
+	if (options.minThreshold === options.maxThreshold) return options.minThreshold;
 
-	const floor = percentile(levels, 0.1);
-	const sound = percentile(levels, 0.95);
+	const { floor, sound } = envelopeLevels(levels)!;
 
 	if (sound <= options.minThreshold) return options.maxThreshold;
 	if (sound - floor < options.minContrast) return null;
@@ -230,9 +263,29 @@ function runs(gate: Uint8Array): [value: number, from: number, to: number][] {
  * is no sound beyond it to lead into.
  */
 export function findSilences(envelope: Envelope, options: SilenceOptions = DEFAULT_SILENCE_OPTIONS): Span[] {
+	return measureSilences(envelope, options).silences;
+}
+
+/**
+ * What a search for silence measured: the silences, and the levels it drew
+ * its line between, so a caller can say why a pause was or was not found and
+ * pick a fixed threshold for the next pass. `threshold` is null when the
+ * recording had no contrast to cut on.
+ */
+export type SilenceMeasurement = {
+	silences: Span[];
+	floor: number | null;
+	sound: number | null;
+	threshold: number | null;
+};
+
+/** `findSilences`, with the levels behind its decision. */
+export function measureSilences(envelope: Envelope, options: SilenceOptions = DEFAULT_SILENCE_OPTIONS): SilenceMeasurement {
 	const { levels, hop, start } = envelope;
+	const measured = envelopeLevels(levels);
 	const threshold = silenceThreshold(levels, options);
-	if (threshold === null) return [];
+	const result: SilenceMeasurement = { silences: [], floor: measured?.floor ?? null, sound: measured?.sound ?? null, threshold };
+	if (threshold === null) return result;
 
 	// 1 is sound. Opens above the threshold and closes only once the level
 	// has fallen clearly below it.
@@ -253,7 +306,6 @@ export function findSilences(envelope: Envelope, options: SilenceOptions = DEFAU
 	}
 
 	const minSilence = Math.round(options.minSilence / hop);
-	const silences: Span[] = [];
 
 	for (const [value, from, to] of runs(gate)) {
 		if (value === 1 || to - from < minSilence) continue;
@@ -262,8 +314,8 @@ export function findSilences(envelope: Envelope, options: SilenceOptions = DEFAU
 		const tail = to === levels.length ? 0 : options.padding;
 		const cutFrom = start + from * hop + head;
 		const cutTo = start + to * hop - tail;
-		if (cutTo - cutFrom >= hop) silences.push([cutFrom, cutTo]);
+		if (cutTo - cutFrom >= hop) result.silences.push([cutFrom, cutTo]);
 	}
 
-	return silences;
+	return result;
 }

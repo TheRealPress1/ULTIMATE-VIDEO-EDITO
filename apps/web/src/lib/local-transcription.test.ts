@@ -173,6 +173,15 @@ describe('long original-file transcription', () => {
     expect(windows.at(-1)).toEqual({ start: 5098, end: 5400 });
     expect(windows.every(window => window.end - window.start <= 304)).toBe(true);
   });
+  it('transcribes a window of a recording longer than two hours, and limits the window instead', async () => {
+    mocks.duration.mockResolvedValue(10_800);
+    await expect(transcribeLocally(audio, { sourceDuration: 10_800, window: { start: 9_000, end: 9_600 } })).resolves.toBeDefined();
+    expect(mocks.init.mock.calls.map(([value]) => value.trim)).toEqual([{ start: 9_000, end: 9_302 }, { start: 9_298, end: 9_600 }]);
+    mocks.init.mockClear();
+    await expect(transcribeLocally(audio, { sourceDuration: 10_800, window: { start: 0, end: 7_201 } })).rejects.toThrow('windows up to two hours');
+    await expect(transcribeLocally(audio, { sourceDuration: 10_800 })).rejects.toThrow('in windows');
+    expect(mocks.init).not.toHaveBeenCalled();
+  });
   it('normalizes a global positive media origin but retains an audio delay relative to video', async () => {
     mocks.first.mockResolvedValue(7); mocks.video.mockResolvedValue({ getFirstTimestamp: async () => 2 }); mocks.duration.mockResolvedValue(14);
     const result = await transcribeLocally(audio);
