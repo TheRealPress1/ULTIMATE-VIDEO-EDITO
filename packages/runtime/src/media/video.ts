@@ -27,6 +27,25 @@ export type VideoBufferMode = 'discarded' | 'idle' | 'alive';
 const IDLE_TIMEOUT_MS = 10_000;
 
 /**
+ * Most buffers allowed to hold a decoder and frame cache at once, not counting any in use. A
+ * cache is a canvas of up to ~105 MB, and dragging the playhead across a timeline of short clips
+ * touches every one of them within a second, so each would otherwise keep its cache for the
+ * whole idle timeout: gigabytes for a few dozen clips.
+ */
+const MAX_LIVE_BUFFERS = 8;
+
+/**
+ * A buffer touched this recently is playing, and is never released to stay under the limit.
+ * Nor is one still working on a seek, however long ago it was asked.
+ */
+const IN_USE_MS = 500;
+
+/**
+ * Buffers holding a decoder and cache, least recently touched first.
+ */
+const liveBuffers = new Set<VideoBuffer>();
+
+/**
  * Max extra frames we are willing to decode forward from the live cursor in
  * order to avoid a keyframe lookup + decoder reseed. Higher = stronger bias.
  */
@@ -64,6 +83,19 @@ const SCRUB_EVENT_WINDOW_MS = 250;
  */
 const SCRUB_SETTLE_MS = 120;
 
+/**
+ * Wait before each rebuild of a decoder that failed, in order. A source that fails more
+ * often than this, without the preview getting the frame it asked for in between, is
+ * reported as failed. The first rebuild is immediate: most failures happen once.
+ */
+const RECOVERY_DELAYS_MS = [0, 250, 1000];
+
+/**
+ * How long a decoder may sit on chunks it was given, producing nothing, before it counts as
+ * failed. A hardware decoder under load can stop answering without ever raising an error.
+ */
+const DECODER_STALL_MS = 3_000;
+
 const MIN_CACHE_COUNT = 30;
 const MAX_CACHE_COUNT = 81;
 
@@ -76,7 +108,7 @@ export class VideoBuffer {
 	public initialized: Promise<void>;
 
 	public readonly cache: FrameCache;
-	public readonly queue = new VideoDecoderQueue(this.frameCallback.bind(this), () => { this.errored = true; });
+	public readonly queue = new VideoDecoderQueue(this.frameCallback.bind(this), this.decoderFailed.bind(this));
 
 	// user facing display canvas
 	public readonly canvas = new OffscreenCanvas(0, 0);
@@ -95,7 +127,8 @@ export class VideoBuffer {
 	/**
 	 * Keyframes a scrub is waiting on. The preview keeps showing the last one that landed
 	 * until the next arrives, so a drag never blanks out for the length of a decode.
-	 * Holds several at once: decoder output trails submission by a handful of packets.
+	 * A step's keyframe is flushed out of the decoder, so more than one is only waiting
+	 * while a step that has since been passed over lands.
 	 */
 	private readonly pendingScrub = new Set<number>();
 
@@ -105,7 +138,20 @@ export class VideoBuffer {
 	private iterator: AsyncGenerator<EncodedPacket, void, unknown> | null = null;
 	private idleTimer: ReturnType<typeof setTimeout> | null = null;
 	private settleTimer: ReturnType<typeof setTimeout> | null = null;
+	private recoveryTimer: ReturnType<typeof setTimeout> | null = null;
 	private lastSeekAt: number = -Infinity;
+	private touchedAt: number = -Infinity;
+
+	/**
+	 * Seeks queued or running. A buffer with work outstanding has not delivered the frame the
+	 * preview is waiting for yet, so it is never released as stale.
+	 */
+	private pendingRuns = 0;
+
+	/**
+	 * Decoder failures since the preview last got a frame it was waiting for.
+	 */
+	private decoderFailures = 0;
 
 	public constructor(asset: VideoAsset, public readonly playbackSource: VideoAsset = asset) {
 		this.asset = asset;
@@ -153,8 +199,14 @@ export class VideoBuffer {
 
 		// A scrub keyframe takes over the preview the moment it lands, and only then:
 		// matching on the index keeps frames from an abandoned fill out of the display.
-		if (this.pendingScrub.delete(frameIndex)) {
+		const awaited = this.pendingScrub.delete(frameIndex);
+		if (awaited) {
 			this.displayFrame = frameIndex;
+		}
+
+		// The decoder is healthy again once a frame the preview was waiting for arrives.
+		if (awaited || Math.abs(frameIndex - this.currentFrame) <= DISPLAY_TOLERANCE_FRAMES) {
+			this.decoderFailures = 0;
 		}
 	}
 
@@ -180,6 +232,8 @@ export class VideoBuffer {
 		this.isDirty = true;
 
 		this.touch();
+		// This seek is the retry a failed decoder was waiting for.
+		this.cancelRecovery();
 
 		// A run of large jumps is a drag, not a playback step. Walking each GOP to the
 		// exact frame costs more than the gap between pointer events, so every walk gets
@@ -219,9 +273,11 @@ export class VideoBuffer {
 
 		this.pendingScrub.add(keyFrame);
 
+		this.pendingRuns++;
 		this.seekLock = this.seekLock
 			.then(() => this.decodeKeyframe(keyTimestamp, generation))
-			.catch(() => { if (generation === this.seekGeneration && this.mode === 'alive') this.errored = true; });
+			.catch(() => { if (generation === this.seekGeneration && this.mode === 'alive') this.errored = true; })
+			.finally(() => { this.pendingRuns--; });
 
 		return true;
 	}
@@ -232,22 +288,19 @@ export class VideoBuffer {
 		const keyPacket = await this.packetSink?.getKeyPacket(keyTimestamp);
 		if (!keyPacket || generation !== this.seekGeneration) return;
 
-		// Seed the iterator here as well, so the settle pass continues forward from this
-		// keyframe instead of reseeding the decoder a second time.
-		await this.iterator?.return();
+		// No iterator survives a scrub step: the settle pass has to walk on from this keyframe
+		// with a decoder of its own, since one that has taken other keyframes since it started
+		// decodes the leading pictures after this one against the wrong references (see fillCache).
+		const stale = this.iterator;
+		this.iterator = null;
+		await stale?.return();
 		if (generation !== this.seekGeneration) return;
-		const iterator = this.packetSink?.packets(keyPacket) ?? null;
-		this.iterator = iterator;
-		if (!iterator) return;
 
-		if (!this.queue.isAlive) {
-			this.queue.reseed();
-		}
-
-		const { value: packet } = await iterator.next();
-		if (packet && generation === this.seekGeneration) {
-			await this.queue.decode(packet);
-		}
+		// Alone in its stream, the keyframe would sit in the decoder until more packets pushed it
+		// out, so it is flushed: the preview gets it now, and each step starts from nothing.
+		this.queue.reseed();
+		await this.queue.decode(keyPacket);
+		await this.queue.flush();
 	}
 
 	/**
@@ -263,6 +316,50 @@ export class VideoBuffer {
 			if (this.mode !== 'alive' || this.errored) return;
 			this.exactSeekTo(this.currentFrame, this.currentFrame);
 		}, SCRUB_SETTLE_MS);
+	}
+
+	/**
+	 * The decoder reported an error and the queue has already dropped it. Starts again from the
+	 * keyframe ahead of the frame the preview wants, rather than leaving the clip on its last
+	 * frame for good, until rebuilding stops getting anywhere.
+	 */
+	private decoderFailed(error?: unknown) {
+		if (this.mode === 'discarded') return;
+
+		const attempt = this.decoderFailures++;
+		const reason = error instanceof Error ? error.message : String(error);
+		const giveUp = attempt >= RECOVERY_DELAYS_MS.length;
+
+		if (giveUp) {
+			console.error(`Video decoder failed for ${this.playbackSource.path} (${reason}), giving up`);
+		} else {
+			console.warn(`Video decoder failed for ${this.playbackSource.path} (${reason}), restarting it`);
+		}
+
+		// Whatever was feeding the dead decoder is stale, and must not start another at the next keyframe.
+		this.seekGeneration++;
+		this.pendingScrub.clear();
+		this.iterator?.return();
+		this.iterator = null;
+
+		if (giveUp) {
+			this.errored = true;
+			return;
+		}
+
+		this.cancelRecovery();
+		this.recoveryTimer = setTimeout(() => {
+			this.recoveryTimer = null;
+			if (this.mode !== 'alive' || this.errored) return;
+			this.exactSeekTo(this.currentFrame, this.currentFrame);
+		}, RECOVERY_DELAYS_MS[attempt]);
+	}
+
+	private cancelRecovery() {
+		if (this.recoveryTimer !== null) {
+			clearTimeout(this.recoveryTimer);
+			this.recoveryTimer = null;
+		}
 	}
 
 	private exactSeekTo(targetFrame: number, previousFrame: number) {
@@ -297,7 +394,10 @@ export class VideoBuffer {
 		}
 
 		// Run after the previous seek finishes — never concurrently.
-		this.seekLock = run.catch(() => { if (generation === this.seekGeneration && this.mode === 'alive') this.errored = true; });
+		this.pendingRuns++;
+		this.seekLock = run
+			.catch(() => { if (generation === this.seekGeneration && this.mode === 'alive') this.errored = true; })
+			.finally(() => { this.pendingRuns--; });
 	}
 
 	private framesToSeconds(frames: number) {
@@ -380,9 +480,10 @@ export class VideoBuffer {
 			await this.iterator?.return();
 			if (generation !== this.seekGeneration) return;
 			this.iterator = this.packetSink?.packets(keyPacket) ?? null;
-		}
 
-		if (!this.queue.isAlive) {
+			// The packets now start at a keyframe the decoder did not reach by decoding on from
+			// where it was. An HEVC decoder cannot take that jump mid-stream: it reports a
+			// decoding error and stops for good, so it starts over rather than carrying on.
 			this.queue.reseed();
 		}
 
@@ -436,15 +537,34 @@ export class VideoBuffer {
 
 	private touch() {
 		this.mode = 'alive';
+		this.touchedAt = performance.now();
 		if (this.idleTimer !== null) {
 			clearTimeout(this.idleTimer);
 		}
 		this.idleTimer = setTimeout(() => this.idle(), IDLE_TIMEOUT_MS);
+
+		liveBuffers.delete(this);
+		liveBuffers.add(this);
+		VideoBuffer.releaseStale();
+	}
+
+	/**
+	 * Brings the buffers holding a cache down to the limit, releasing the ones left behind
+	 * longest ago and skipping any still in use. A released buffer keeps its display canvas and
+	 * rebuilds its decoder when the playhead returns.
+	 */
+	private static releaseStale() {
+		const now = performance.now();
+		for (const buffer of liveBuffers) {
+			if (liveBuffers.size <= MAX_LIVE_BUFFERS || now - buffer.touchedAt < IN_USE_MS) break;
+			if (buffer.pendingRuns === 0) buffer.idle();
+		}
 	}
 
 	public idle() {
 		if (this.mode !== 'alive') return;
 		this.mode = 'idle';
+		liveBuffers.delete(this);
 		this.seekGeneration++;
 
 		if (this.idleTimer !== null) {
@@ -457,6 +577,8 @@ export class VideoBuffer {
 			this.settleTimer = null;
 		}
 
+		this.cancelRecovery();
+		this.decoderFailures = 0;
 		this.pendingScrub.clear();
 		this.cache.dispose();
 		this.queue.dispose();
@@ -467,6 +589,7 @@ export class VideoBuffer {
 	public dispose() {
 		if (this.mode === 'discarded') return;
 		this.mode = 'discarded';
+		liveBuffers.delete(this);
 		this.seekGeneration++;
 
 		if (this.idleTimer !== null) {
@@ -479,6 +602,7 @@ export class VideoBuffer {
 			this.settleTimer = null;
 		}
 
+		this.cancelRecovery();
 		this.pendingScrub.clear();
 		this.cache.dispose();
 		this.queue.dispose();
@@ -499,7 +623,7 @@ class VideoDecoderQueue {
 	public lastSubmitted: EncodedPacket | null = null;
 	public readonly inFlight = new Set<number>();
 
-	public constructor(callback: (frame: VideoFrame) => void, private readonly onError?: () => void) {
+	public constructor(callback: (frame: VideoFrame) => void, private readonly onError?: (error?: unknown) => void) {
 		this.callback = callback;
 	}
 
@@ -540,10 +664,9 @@ class VideoDecoderQueue {
 		this.resolver = null;
 	};
 
-	private handleError(e?: DOMException) {
-		console.error(e?.message);
-		this.onError?.();
+	private handleError(e?: unknown) {
 		this.dispose();
+		this.onError?.(e);
 	}
 
 	public async init(track: InputVideoTrack) {
@@ -567,6 +690,22 @@ class VideoDecoderQueue {
 		this.decoder.configure(this.config);
 	}
 
+	/**
+	 * Resolves once the decoder has handed back everything it was given. A decoder keeps the
+	 * last frames until more packets push them out; flushing releases them. It wants a
+	 * keyframe next.
+	 */
+	public async flush() {
+		if (this.decoder?.state !== 'configured') return;
+
+		try {
+			await this.decoder.flush();
+		} catch {
+			// A failing decoder reports itself through the error callback, and a reset or
+			// close aborts a flush that is still waiting.
+		}
+	}
+
 	public async decode(packet: EncodedPacket) {
 		this.ensureDecoder(packet);
 
@@ -582,11 +721,31 @@ class VideoDecoderQueue {
 			this.resolver = Promise.withResolvers();
 		}
 
-		this.decoder.decode(packet.toEncodedVideoChunk());
+		try {
+			this.decoder.decode(packet.toEncodedVideoChunk());
+		} catch (e) {
+			// A decoder that refuses a chunk has failed just like one that reports an error later.
+			this.handleError(e);
+			return;
+		}
 		this.lastSubmitted = packet;
 		this.inFlight.add(packet.microsecondTimestamp);
 
-		await this.resolver?.promise;
+		const waiting = this.resolver?.promise;
+		if (!waiting) return;
+
+		// A decoder that stops taking its chunks without saying so would hold this wait, and every
+		// seek queued behind it, for good.
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const hung = await Promise.race([
+			waiting.then(() => false),
+			new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(true), DECODER_STALL_MS); }),
+		]);
+		clearTimeout(timer);
+
+		if (hung && this.resolver?.promise === waiting) {
+			this.handleError(new Error('The decoder stopped responding'));
+		}
 	}
 
 	public dispose() {

@@ -11,6 +11,7 @@ import { For, Show, createEffect, createSignal, on } from "solid-js";
 import type { Item } from "@diffusionstudio/agent-chat";
 
 import { ChatItem } from "./items";
+import { createPinOnOpen } from "./pin-on-open";
 import { RunningIndicator } from "./running-indicator";
 import { createStickToBottom } from "./stick-to-bottom";
 
@@ -42,7 +43,7 @@ export function Transcript(props: TranscriptProps) {
   };
 
   createEffect(on(() => props.sendCount, (count) => count > 0 && stick.scrollToBottom(), { defer: true }));
-  createEffect(on([() => props.chatKey, () => props.items.length > 0], pin));
+  createPinOnOpen(() => props.chatKey, () => props.items.length > 0, pin);
 
   return (
     <div ref={setScrollEl} class="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
