@@ -17,7 +17,7 @@ import { ChatFolderStore, ChatFolderError } from "./chat-folders";
 
 import { isPersistedEvent, reduce } from "../reduce";
 import { HARNESS_IDS, HARNESS_LABELS, isHarnessId, titleFor } from "../protocol";
-import { withAttachments, chatInstructions } from "./harness";
+import { withAttachments, chatInstructions, instructionsHash, withRefreshedInstructions } from "./harness";
 
 import type {
   ChatEvent,
@@ -94,6 +94,8 @@ type Chat = {
   /** Whether the "editor tools unavailable" notice has been posted. */
   noticedNoMcp: boolean;
   persistenceError: string | null;
+  /** The current instructions, owed to a resumed session that started from older ones; sent with its next message. */
+  refresh: { text: string; hash: string } | null;
 };
 
 const IDLE_MS = 10 * 60 * 1000;
@@ -370,6 +372,7 @@ export class AgentHost {
       subscribers: new Set(),
       noticedNoMcp: false,
       persistenceError: null,
+      refresh: null,
     };
     this.chats.set(meta.id, chat);
     return chat;
@@ -687,9 +690,19 @@ export class AgentHost {
       const session = await this.ensureSession(chat, model, emit);
       // Session startup can outlive a Stop request. Do not start model work
       // after the user has already cancelled this turn.
-      outcome = chat.turn?.interrupted
-        ? { status: "interrupted" }
-        : (await session.send(text, model, emit)) ?? { status: "completed" };
+      const owed = chat.refresh;
+      let sent = false;
+      if (chat.turn?.interrupted) {
+        outcome = { status: "interrupted" };
+      } else {
+        sent = true;
+        outcome = (await session.send(owed ? withRefreshedInstructions(owed.text, text) : text, model, emit)) ?? { status: "completed" };
+      }
+      // Told once: a message that went out leaves the conversation holding the current instructions.
+      if (owed && sent && chat.refresh === owed && outcome.status !== "failed") {
+        chat.refresh = null;
+        chat.meta = { ...chat.meta, instructionsHash: owed.hash };
+      }
     } catch (error) {
       const message = (error as Error)?.message ?? String(error);
       outcome = chat.turn?.interrupted ? { status: "interrupted" } : { status: "failed", error: message };
@@ -764,12 +777,15 @@ export class AgentHost {
     let session: HarnessSession | undefined;
     try {
       const memory = await this.memoryDigest();
+      const instructions = chatInstructions(chat.meta.cwd, this.options.instructions, chat.meta.harness, memory);
+      // Read before the open: the provider's acknowledgment of a new session also sets the cursor.
+      const resuming = !!chat.meta.resume;
       session = await harness.open({
         cwd: chat.meta.cwd,
         model,
         resume: chat.meta.resume ? confirmedResume(chat.meta.resume, chat.meta.harness) : undefined,
         mcp: this.options.mcp,
-        instructions: chatInstructions(chat.meta.cwd, this.options.instructions, chat.meta.harness, memory),
+        instructions,
         env,
         emit,
         onResume,
@@ -779,6 +795,12 @@ export class AgentHost {
       // Adapters which return an already acknowledged session also pass the
       // barrier before send. Claude returns null until its init message.
       if (session.resume) await onResume(session.resume);
+      // A new session starts from the current instructions. A resumed one is still working from the
+      // instructions its conversation began with (see withRefreshedInstructions), so it is owed the
+      // current ones whenever they differ from what it was last told.
+      const hash = instructionsHash(instructions);
+      chat.refresh = resuming && chat.meta.instructionsHash !== hash ? { text: instructions, hash } : null;
+      if (!resuming) chat.meta = { ...chat.meta, instructionsHash: hash };
       chat.session = session;
       return session;
     } catch (error) {

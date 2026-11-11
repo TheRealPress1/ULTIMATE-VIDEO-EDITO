@@ -18,7 +18,12 @@ import type { ChatEvent, ChatSummary } from "../protocol";
 import type { Transcript } from "../reduce";
 import type { ResumeCursor } from "./harness";
 
-export type ChatMeta = ChatSummary & { cwd: string; resume: ResumeCursor | null };
+export type ChatMeta = ChatSummary & {
+  cwd: string;
+  resume: ResumeCursor | null;
+  /** A fingerprint of the instructions the chat's agent was last told, so a later app can tell it what changed. */
+  instructionsHash?: string;
+};
 type PendingEvent = { bytes: Buffer; written?: { offset: number; ino: number; dev: number } };
 
 export class ChatStore {

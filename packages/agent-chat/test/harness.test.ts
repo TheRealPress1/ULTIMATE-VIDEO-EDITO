@@ -67,6 +67,9 @@ describe("chatInstructions", () => {
       expect(text).toContain("`media_search` and `media_download` for YouTube");
       expect(text).toContain("`web_media_search` and `web_media_download` for openly licensed");
       expect(text).toContain("never a shell download");
+      // Footage is a platform link's picture, which an agent that only knew the stock tools took for impossible.
+      expect(text).toContain("picture included (`kind: \"video\"`: footage of an event or another creator's video comes this way");
+      expect(text).toContain("which refuses those platforms' pages");
       expect(text).not.toContain("from the web use `web_media_search`");
     }
     expect(chatInstructions("/projects/demo", "Prefer captions.", "codex").endsWith("\n\nPrefer captions.")).toBe(true);

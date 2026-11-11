@@ -94,6 +94,39 @@ describe.skipIf(!binary || !existsSync(binary))("media tools against the live ne
     expect(again).toMatchObject({ source: first.source, reused: true });
     await service.commit({ id: "live-2", assetId: "a1", src: "music/XajaJYraODs.m4a", source: again.source! });
   }, 600_000);
+
+  it("searches YouTube for footage, then downloads one result's picture and sound into a project", async () => {
+    const downloader = probeDownloader();
+    const search = new MediaSearchService({ downloader: () => downloader });
+    const args = toolByName("media_search").input.parse({ query: "Felix Baumgartner Red Bull Stratos jump", limit: 10, preview: 0 });
+    const found = await search.search(args, new AbortController().signal);
+    // A short result keeps the download small; the choice is the agent's in real use, by title, channel and length.
+    const pick = found.results.filter((result) => result.live === "none" && (result.durationSeconds ?? 0) >= 20 && (result.durationSeconds ?? 0) <= 240)
+      .sort((a, b) => a.durationSeconds! - b.durationSeconds!)[0];
+    console.log(JSON.stringify(found.results.map((result) => ({ index: result.index, title: result.title, channel: result.channel, seconds: result.durationSeconds })), null, 1));
+    expect(pick, "a YouTube result between 20 s and 4 min").toBeDefined();
+
+    const video = join(root, "video-project");
+    mkdirSync(video, { recursive: true });
+    writeFileSync(join(video, "package.json"), JSON.stringify({ name: "live-video", projectId: "live-video" }));
+    const service = new MediaDownloadService({ downloader: () => downloader, ...mediaTools({ ffprobe: join(tools, "ffprobe"), ffmpeg: join(tools, "ffmpeg") }) });
+    const request = { id: "live-v1", dir: video, url: pick!.url, kind: "video" as const, maxHeight: 720 as const };
+    const started = Date.now();
+    const first = await service.download(request, new AbortController().signal);
+    console.log(JSON.stringify({ ...first, seconds: (Date.now() - started) / 1000 }, null, 2));
+    expect(first).toMatchObject({ kind: "video", site: "youtube", reused: false });
+    expect(first.source).toMatch(/^assets\/footage\/[\w-]{11}\.\w+$/);
+    expect(first.videoCodec).toBeTruthy();
+    expect(first.height).toBeGreaterThan(0);
+    expect(first.durationSeconds).toBeGreaterThan(10);
+    expect(existsSync(first.path)).toBe(true);
+    await service.commit({ id: "live-v1", assetId: "v1", src: first.source!.replace(/^assets\//, ""), source: first.source! });
+    expect(readFileSync(join(video, "CREDITS.md"), "utf8")).toContain(first.mediaId);
+
+    const again = await service.download({ ...request, id: "live-v2" }, new AbortController().signal);
+    expect(again).toMatchObject({ source: first.source, reused: true });
+    await service.commit({ id: "live-v2", assetId: "v1", src: first.source!.replace(/^assets\//, ""), source: again.source! });
+  }, 900_000);
 });
 
 describe.skipIf(!binary || !existsSync(binary))("media_download's format choice, by the real downloader, offline", () => {

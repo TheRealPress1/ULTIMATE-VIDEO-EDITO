@@ -7,7 +7,7 @@
 // Questions are the model asking the user; tool permissions never become
 // cards (see automatic-policy.ts).
 
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type {
   ChatEvent,
@@ -252,10 +252,30 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
     "Skills are guidance, not proof a service is configured or permission for paid/external actions. " +
     automatic +
     "Adapt (new file name, work inside the project) instead of retrying or asking for permission. " +
-    "Media from outside the project comes through the cutroom tools, never a shell download: `media_search` and `media_download` for YouTube, YouTube Music, SoundCloud, TikTok, Instagram and other platforms; " +
-    "`web_media_search` and `web_media_download` for openly licensed images, video and audio. " +
+    "Media from outside the project comes through the cutroom tools, never a shell download: `media_search` and `media_download` for YouTube, YouTube Music, SoundCloud, TikTok, Instagram and other platforms, " +
+    "picture included (`kind: \"video\"`: footage of an event or another creator's video comes this way, and the whole upload is kept, so trim it in the project); " +
+    "`web_media_search` and `web_media_download` for openly licensed images, video and audio, which refuses those platforms' pages. " +
     "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Cutroom's own approval queue, which agents cannot use.";
   return [base, custom, memory].filter((part): part is string => !!part).join("\n\n");
+}
+
+/** A short fingerprint of a session's instructions, kept with the chat to tell later whether they have changed. */
+export function instructionsHash(instructions: string): string {
+  return createHash("sha256").update(instructions).digest("hex").slice(0, 16);
+}
+
+/**
+ * A resumed session keeps the instructions and tool descriptions its conversation began with: the
+ * provider's CLI replays them and ignores the ones passed at resume, so a chat that outlives an app
+ * update would never hear of a tool added since (a new chat does). The message that follows the update
+ * carries the current instructions instead.
+ */
+export function withRefreshedInstructions(instructions: string, message: string): string {
+  return "<system-reminder>\n" +
+    "Cutroom has been updated since this conversation began, so the instructions and tool descriptions you were given at the start may be out of date. " +
+    "The text below replaces your original instructions from now on. A tool it names that you have not loaded yet is loaded with ToolSearch; " +
+    "where a tool description you loaded earlier disagrees with this text, follow this text.\n\n" +
+    `${instructions}\n</system-reminder>\n\n${message}`;
 }
 
 /** The text a harness gets: the message, then the attached paths, one per line. */
