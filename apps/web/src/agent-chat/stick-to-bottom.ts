@@ -109,9 +109,16 @@ function hasSelectionWithin(element: HTMLElement): boolean {
   return range.commonAncestorContainer.contains(element) || element.contains(range.commonAncestorContainer);
 }
 
-function scrollableParent(target: EventTarget | null): HTMLElement | null {
+/**
+ * The nearest ancestor a wheel over `target` can scroll. One that merely has
+ * `overflow-y: auto` does not count: a code block or tool detail with only a
+ * horizontal bar computes to that, and hands the wheel on to its parent.
+ */
+export function scrollableParent(target: EventTarget | null): HTMLElement | null {
   let element = target instanceof HTMLElement ? target : null;
-  while (element && !SCROLLABLE_OVERFLOW.has(getComputedStyle(element).overflowY)) element = element.parentElement;
+  while (element && !(SCROLLABLE_OVERFLOW.has(getComputedStyle(element).overflowY) && element.scrollHeight > element.clientHeight)) {
+    element = element.parentElement;
+  }
   return element;
 }
 
