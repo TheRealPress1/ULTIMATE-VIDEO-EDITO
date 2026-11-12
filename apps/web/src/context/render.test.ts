@@ -127,3 +127,74 @@ describe("scene export lifecycle", () => {
     expect(mocks.track).not.toHaveBeenCalledWith('export_succeeded', expect.anything());
   });
 });
+
+describe("a background render, an agent's draft", () => {
+  const draft = (options: ReturnType<typeof fixture>["options"]) => ({ ...options, source: "agent" as const, background: true });
+
+  it("leaves the live editor running and opens no completion dialog", async () => {
+    const { engine, options } = fixture();
+    const job = renderScene(engine, draft(options));
+    expect(renderOverlay()).toMatchObject({ background: true, phase: "preparing" });
+    await expect(job).resolves.toMatchObject({ type: "success" });
+    expect(engine.stop).not.toHaveBeenCalled();
+    expect(engine.start).not.toHaveBeenCalled();
+    expect(completedExport()).toBeNull();
+    expect(renderOverlay()).toBeNull();
+    expect(mocks.track).toHaveBeenCalledWith("export_succeeded", expect.objectContaining({ source: "agent" }));
+  });
+
+  it("does not disturb the dialog of an export the person made", async () => {
+    const { engine, options } = fixture();
+    await renderScene(engine, options);
+    const earlier = completedExport();
+    expect(earlier).not.toBeNull();
+    await renderScene(engine, draft(options));
+    expect(completedExport()).toBe(earlier);
+  });
+
+  it("still holds the one render slot, so a second render is refused with the editor untouched", async () => {
+    const { capture, engine, options } = fixture();
+    const pending = deferred<typeof capture>();
+    mocks.capture.mockReturnValue(pending.promise);
+    const first = renderScene(engine, draft(options));
+    await expect(renderScene(engine, options)).rejects.toThrow("already running");
+    expect(renderOverlay()).toMatchObject({ background: true });
+    expect(engine.stop).not.toHaveBeenCalled();
+    pending.resolve(capture);
+    await expect(first).resolves.toMatchObject({ type: "success" });
+    expect(engine.start).not.toHaveBeenCalled();
+  });
+
+  it("can be cancelled from the corner indicator, and clears its progress", async () => {
+    const { capture, engine, options } = fixture();
+    const pending = deferred<typeof capture>();
+    mocks.capture.mockReturnValue(pending.promise);
+    const job = renderScene(engine, draft(options));
+    cancelRender();
+    expect(renderOverlay()).toMatchObject({ background: true, phase: "canceling" });
+    pending.resolve(capture);
+    await expect(job).resolves.toEqual({ type: "canceled" });
+    expect(renderOverlay()).toBeNull();
+    expect(capture.dispose).toHaveBeenCalledOnce();
+    expect(engine.stop).not.toHaveBeenCalled();
+    expect(engine.start).not.toHaveBeenCalled();
+  });
+
+  it("clears its progress when preparation fails, without touching the editor", async () => {
+    const { engine, options } = fixture();
+    mocks.capture.mockRejectedValue(new Error("Missing footage"));
+    await expect(renderScene(engine, draft(options))).rejects.toThrow("Missing footage");
+    expect(renderOverlay()).toBeNull();
+    expect(completedExport()).toBeNull();
+    expect(engine.stop).not.toHaveBeenCalled();
+    expect(engine.start).not.toHaveBeenCalled();
+  });
+
+  it("is what a foreground render is not: the editor stops and a dialog follows", async () => {
+    const { engine, options } = fixture();
+    await renderScene(engine, options);
+    expect(engine.stop).toHaveBeenCalledOnce();
+    expect(engine.start).toHaveBeenCalledOnce();
+    expect(completedExport()).not.toBeNull();
+  });
+});

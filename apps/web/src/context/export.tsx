@@ -17,7 +17,7 @@ import { MAIN_CHANNELS } from "@desktop/main-channels";
 import { ElectronWritableFileHandle } from "@/lib/electron-file-writable";
 import { useProjectConfig } from "@/engine/project-config";
 import { ExportComplete, ExportSetup } from "@/components/sidebar-right/inspector/export-dialogs";
-import { ExportProgress } from "@/components/sidebar-right/inspector/export-progress";
+import { BackgroundExportProgress, ExportProgress } from "@/components/sidebar-right/inspector/export-progress";
 import { renderScene, renderOverlay, cancelRender, completedExport, dismissCompletedExport, type ExportConfig } from "@/context/render";
 import {
   MIME_TYPES,
@@ -47,9 +47,16 @@ export function ExportProvider(props: { children: JSX.Element }) {
   const [choosingTarget, setChoosingTarget] = createSignal(false);
   const [request, setRequest] = createSignal<{ scene: Entity; config: ExportConfig } | null>(null);
   const exporting = () => choosingTarget() || !!renderOverlay();
+  /** A draft an agent is rendering behind a corner indicator, not a full-window export. */
+  const drafting = () => !!renderOverlay()?.background;
 
   const exportScene: ExportContextValue["exportScene"] = async (scene, config) => {
-    if (!scene?.isAlive() || exporting()) return;
+    if (!scene?.isAlive()) return;
+    if (drafting()) {
+      toast("A draft is still rendering", { description: "An agent is checking its work. Try again in a few seconds." });
+      return;
+    }
+    if (exporting()) return;
     const computed = scene.get(Computed);
     const workarea = scene.get(Workarea);
     const frames = workarea ? workarea.end - workarea.start : computed?.duration ?? 0;
@@ -246,7 +253,16 @@ export function ExportProvider(props: { children: JSX.Element }) {
         {(result) => <ExportComplete result={result} onClose={dismissCompletedExport} />}
       </Show>
       <ExportProgress
-        open={!!renderOverlay()}
+        open={!!renderOverlay() && !drafting()}
+        phase={renderOverlay()?.phase ?? "preparing"}
+        name={renderOverlay()?.name}
+        audioOnly={renderOverlay()?.audioOnly ?? false}
+        progress={renderOverlay()?.progress ?? 0}
+        remaining={renderOverlay()?.remaining}
+        onCancel={cancelRender}
+      />
+      <BackgroundExportProgress
+        open={drafting()}
         phase={renderOverlay()?.phase ?? "preparing"}
         name={renderOverlay()?.name}
         audioOnly={renderOverlay()?.audioOnly ?? false}

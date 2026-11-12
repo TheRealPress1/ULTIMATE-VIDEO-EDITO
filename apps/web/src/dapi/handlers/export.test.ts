@@ -52,8 +52,8 @@ function fakeLibrary(sources: string[], reals: Record<string, string> = {}, opti
   } as unknown as AssetLibrary & { fs: { realPath: typeof realPath } };
 }
 
-function context() {
-  const session = { world: { get: () => undefined }, project: { dir: () => "/project" }, engine: {} };
+function context(dir = "/project") {
+  const session = { world: { get: () => undefined }, project: { dir: () => dir }, engine: {} };
   return { requireSession: () => session, session: () => session, signal: new AbortController().signal } as unknown as ToolContext;
 }
 
@@ -163,5 +163,46 @@ describe("export to the default target", () => {
     mocks.library = fakeLibrary([], { "/project": "/project", exports: "/project/exports" });
     await expect(exportScene({ id: "intro" }, context())).resolves.toMatchObject({ path: "/project/exports/intro.mp4" });
     expect(mocks.renderScene).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("which screen an export gets", () => {
+  const backgroundOf = () => (mocks.renderScene.mock.calls[0]![1] as { background: boolean; source: string });
+
+  it("renders a draft in a temporary folder in the background, so it never takes over the editor", async () => {
+    mocks.library = fakeLibrary([], { "/project": "/project", exports: "/project/exports" });
+    await exportScene({ id: "intro", path: "/private/tmp/agent/promo-review-music-v2.mp4" }, context());
+    expect(backgroundOf()).toMatchObject({ source: "agent", background: true });
+    mocks.renderScene.mockClear();
+    await exportScene({ id: "intro", path: "/tmp/promo-review-v1.mp4" }, context());
+    expect(backgroundOf().background).toBe(true);
+  });
+
+  it("keeps a delivery on the full screen, in the project or anywhere a person would look", async () => {
+    mocks.library = fakeLibrary([], { "/project": "/project", exports: "/project/exports" });
+    await exportScene({ id: "intro" }, context());
+    expect(backgroundOf()).toMatchObject({ source: "agent", background: false });
+    mocks.renderScene.mockClear();
+    await exportScene({ id: "intro", path: "/Users/me/Movies/intro-cut.mp4" }, context());
+    expect(backgroundOf().background).toBe(false);
+  });
+
+  it("keeps what an export writes into the project a delivery, even when the project itself is in a temp folder", async () => {
+    mocks.library = fakeLibrary([], { "/private/tmp/qa": "/private/tmp/qa", exports: "/private/tmp/qa/exports" });
+    await exportScene({ id: "intro" }, context("/private/tmp/qa"));
+    expect(backgroundOf().background).toBe(false);
+    mocks.renderScene.mockClear();
+    await exportScene({ id: "intro", path: "/private/tmp/qa/exports/cut.mp4" }, context("/private/tmp/qa"));
+    expect(backgroundOf().background).toBe(false);
+    mocks.renderScene.mockClear();
+    await exportScene({ id: "intro", path: "/private/tmp/review-v1.mp4" }, context("/private/tmp/qa"));
+    expect(backgroundOf().background).toBe(true);
+  });
+
+  it("still refuses a second export while any render is running, background or not", async () => {
+    mocks.library = fakeLibrary([], { "/project": "/project", exports: "/project/exports" });
+    mocks.renderOverlay.mockReturnValue(true);
+    await expect(exportScene({ id: "intro", path: "/tmp/draft.mp4" }, context())).rejects.toMatchObject({ code: "busy" });
+    expect(mocks.renderScene).not.toHaveBeenCalled();
   });
 });

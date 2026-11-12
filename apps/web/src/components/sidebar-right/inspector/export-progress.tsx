@@ -106,3 +106,48 @@ export function ExportProgress(props: ExportProgressProps) {
     </Show>
   );
 }
+
+/**
+ * A draft an agent renders to check its own work. The editor keeps running and
+ * stays usable, so this is a corner indicator that covers nothing else, not
+ * the window-wide screen; a draft is a throwaway, so cancelling asks nothing.
+ */
+export function BackgroundExportProgress(props: ExportProgressProps) {
+  return (
+    <Show when={props.open}>
+      <Portal>
+        <div
+          role="status"
+          aria-live="polite"
+          class="fixed bottom-4 right-4 z-40 flex w-64 flex-col gap-2 rounded-lg border bg-popover px-3 py-2.5 text-popover-foreground shadow-lg"
+        >
+          <div class="flex items-center justify-between gap-3 text-xs">
+            <span class="truncate">{props.phase === "canceling" ? "Canceling the draft..." : "Rendering a draft for review..."}</span>
+            <span class="tabular-nums text-muted-foreground">{props.progress}%</span>
+          </div>
+          <div
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={props.progress}
+            aria-label="Draft progress"
+            class="h-1 w-full overflow-hidden rounded-full bg-foreground/10"
+          >
+            <div class="h-full rounded-full bg-primary transition-all" style={{ width: `${props.progress}%` }} />
+          </div>
+          <div class="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span class="truncate">{props.name}</span>
+            <button
+              type="button"
+              class="shrink-0 hover:text-foreground disabled:opacity-50"
+              onClick={() => props.onCancel()}
+              disabled={props.phase === "canceling"}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Portal>
+    </Show>
+  );
+}
