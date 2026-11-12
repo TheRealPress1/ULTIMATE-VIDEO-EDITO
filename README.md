@@ -165,7 +165,7 @@ Local `SKIP_SIGN=1` builds remain unsigned. Production releases fail closed on s
 
 The root `extract-zip` dependency and its `yauzl@3.3.1` override work around [Forge's Node 24.16/26 extraction failure](https://github.com/electron/forge/issues/4277). The direct dependency is necessary for npm to apply that override through this workspace's dependency tree. Keep both until the packaging dependency is upgraded.
 
-To regenerate the original desktop artwork: `uv run --with pillow scripts/generate-icons.py`.
+To regenerate the desktop artwork: `npm run make:icon -w @diffusionstudio/desktop` renders the app icon, `icon.ico` and the tray marks from `apps/desktop/assets/icon.svg`, and `uv run --with pillow scripts/generate-icons.py` draws the tray menu glyphs.
 
 The dependency audit still reports inherited build and packaging issues, including a critical `tar` advisory in Electron Forge 7's development dependency tree. Electron and Zod are updated to patched releases. The remaining build-tool upgrades stay on the release-maintenance docket; development-only findings are not described as shipped app vulnerabilities.
 

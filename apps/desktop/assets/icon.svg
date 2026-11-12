@@ -1,0 +1,38 @@
+<!-- App icon: a total eclipse. A black disc, a thin corona and a diamond-ring flare on a matte black square.
+     Full-bleed and opaque on purpose: macOS 26 masks and lights an icon like this itself, but puts one with transparent
+     corners or a baked-in tile on a gray plate. Source for icon.png, icon.icns, icon.ico and the tray marks:
+     render it with `npm run make:icon`. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151517"/><stop offset="1" stop-color="#060607"/></linearGradient>
+    <filter id="grain" filterUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="11"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .14 0 0 0 -.035"/>
+    </filter>
+    <radialGradient id="corona" gradientUnits="userSpaceOnUse" cx="512" cy="512" r="497.1">
+      <stop offset="0.5723" stop-color="#ffae3a" stop-opacity="0"/>
+      <stop offset="0.5959" stop-color="#fff1d6" stop-opacity=".95"/>
+      <stop offset="0.6313" stop-color="#ffc66e" stop-opacity=".5"/>
+      <stop offset="0.7198" stop-color="#ffae3a" stop-opacity=".2"/>
+      <stop offset="0.8850" stop-color="#ffae3a" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#ffae3a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="lit" gradientUnits="userSpaceOnUse" cx="736.7" cy="323.5" r="944.5"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#8d8d8d"/><stop offset="1" stop-color="#303030"/></radialGradient>
+    <mask id="litMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect width="1024" height="1024" fill="url(#lit)"/></mask>
+    <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="736.7" y1="323.5" x2="287.3" y2="700.5"><stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".5" stop-color="#ffe9c4" stop-opacity=".28"/><stop offset="1" stop-color="#ffe9c4" stop-opacity=".05"/></linearGradient>
+    <radialGradient id="spark" gradientUnits="userSpaceOnUse" cx="736.7" cy="323.5" r="104.4">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/><stop offset=".1" stop-color="#fff4de" stop-opacity=".9"/><stop offset=".22" stop-color="#ffe0a8" stop-opacity=".5"/>
+      <stop offset=".4" stop-color="#ffc060" stop-opacity=".2"/><stop offset=".62" stop-color="#ffae3a" stop-opacity=".07"/><stop offset=".85" stop-color="#ffae3a" stop-opacity=".015"/><stop offset="1" stop-color="#ffae3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="streakH" gradientUnits="userSpaceOnUse" x1="550.3" y1="0" x2="923.1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <linearGradient id="streakV" gradientUnits="userSpaceOnUse" x1="0" y1="174.4" x2="0" y2="472.6"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#field)"/>
+  <circle cx="512" cy="512" r="497.1" fill="url(#corona)" mask="url(#litMask)"/>
+  <circle cx="512" cy="512" r="293.3" fill="#000"/>
+  <circle cx="512" cy="512" r="293.3" fill="none" stroke="url(#rim)" stroke-width="6.2"/>
+  <circle cx="736.7" cy="323.5" r="104.4" fill="url(#spark)"/>
+  <rect x="550.3" y="321.6" width="372.8" height="3.7" fill="url(#streakH)"/>
+  <rect x="734.9" y="174.4" width="3.5" height="298.3" fill="url(#streakV)"/>
+  <rect width="1024" height="1024" fill="#000" filter="url(#grain)"/>
+</svg>

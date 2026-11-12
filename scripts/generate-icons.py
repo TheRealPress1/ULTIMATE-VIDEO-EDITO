@@ -1,37 +1,13 @@
-"""Generate original Cutroom desktop artwork. Run: uv run --with pillow scripts/generate-icons.py"""
+"""Draw the tray menu glyphs and the Windows manifest. Run: uv run --with pillow scripts/generate-icons.py
+
+The app icon, icon.ico and the tray marks come from apps/desktop/assets/icon.svg: npm run make:icon."""
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 ASSETS = Path(__file__).resolve().parents[1] / "apps/desktop/assets"
 (ASSETS / "tray/menu").mkdir(parents=True, exist_ok=True)
 
-
-def mark(size, dock=False, busy=False):
-    scale = 4
-    image = Image.new("RGBA", (size * scale, size * scale))
-    draw = ImageDraw.Draw(image)
-    unit = size * scale / 26
-    box = lambda points: tuple(round(v * unit) for v in points)
-    if dock:
-        draw.rounded_rectangle(box((1, 1, 25, 25)), radius=round(6 * unit), fill="#222426")
-    ink = "#f2f2f2" if dock else "#000000"
-    draw.rounded_rectangle(box((5, 5, 18, 17)), radius=round(2 * unit), fill=ink)
-    draw.rounded_rectangle(box((7, 9, 23, 23)), radius=round(3 * unit), fill="#222426" if dock else "#ffffff00")
-    draw.rounded_rectangle(box((8, 10, 23, 23)), radius=round(2 * unit), outline=ink, width=max(1, round(1.8 * unit)))
-    draw.line(box((13, 14, 18, 19)), fill=ink, width=max(1, round(1.8 * unit)))
-    if busy:
-        draw.ellipse(box((19, 2, 25, 8)), fill=ink)
-    return image.resize((size, size), Image.Resampling.LANCZOS)
-
-
-icon = mark(1024, dock=True)
-icon.save(ASSETS / "icon.png")
-icon.save(ASSETS / "icon-dev.png")
-icon.save(ASSETS / "icon.icns", format="ICNS")
-icon.save(ASSETS / "icon.ico", sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
 for suffix, size in [("", 18), ("@2x", 36)]:
-    for name in ["idleTemplate", "busyTemplate", "win"]:
-        mark(size, dock=name == "win", busy=name == "busyTemplate").save(ASSETS / f"tray/{name}{suffix}.png")
     for name in ["open", "hide", "ready", "busy", "project", "quit"]:
         image = Image.new("RGBA", (size * 4, size * 4))
         draw = ImageDraw.Draw(image)
@@ -60,4 +36,4 @@ for suffix, size in [("", 18), ("@2x", 36)]:
   </requestedPrivileges></security></trustInfo>
 </assembly>
 ''')
-print(f"Generated original artwork in {ASSETS}")
+print(f"Generated tray menu glyphs in {ASSETS}")
