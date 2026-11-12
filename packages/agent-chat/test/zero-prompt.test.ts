@@ -114,7 +114,7 @@ describe("Claude: former permission-card triggers", () => {
     ["reading a credential store", "Read", { file_path: "~/.aws/credentials" }, () => refuse(POLICY_MESSAGES.sensitive)],
     ["replacing a file outside the project", "Write", { file_path: "/etc/hosts", content: "" }, () => refuse(POLICY_MESSAGES.outsideExisting)],
     ["writing outside every allowed folder", "Edit", { file_path: "/outside/title.tsx", old_string: "a", new_string: "b" }, () => refuse(POLICY_MESSAGES.outside)],
-    ["writing a project config folder", "Write", { file_path: ".claude/settings.json", content: "{}" }, () => refuse("Cutroom keeps .claude off-limits to editing sessions. Write project files elsewhere in the project folder.")],
+    ["writing a project config folder", "Write", { file_path: ".claude/settings.json", content: "{}" }, () => refuse("Blackout keeps .claude off-limits to editing sessions. Write project files elsewhere in the project folder.")],
     ["a project write", "Write", { file_path: "assets/title.json", content: "{}" }, allow],
     ["rm", "Bash", { command: "rm -rf assets/old-renders" }, () => refuse(SHELL_MESSAGES.destructive)],
     ["dangerouslyDisableSandbox", "Bash", { command: "curl -O https://example.com/a.jpg", dangerouslyDisableSandbox: true }, () => refuse(SHELL_MESSAGES.unsandboxed)],
@@ -124,8 +124,8 @@ describe("Claude: former permission-card triggers", () => {
     ["sandbox network to a private host", "SandboxNetworkAccess", { host: "192.168.1.20" }, () => refuse(POLICY_MESSAGES.privateHost)],
     ["sandbox network to a name that resolves into the LAN", "SandboxNetworkAccess", { host: "192-168-1-1.nip.io" }, () => refuse(POLICY_MESSAGES.privateHost)],
     ["entering plan mode", "EnterPlanMode", {}, () => refuse(PLAN_MODE_MESSAGE)],
-    ["another MCP server", "mcp__other__run", {}, () => refuse("Only Cutroom's tools are connected in this chat.")],
-    ["a scheduling tool", "CronCreate", { cron: "* * * * *" }, () => refuse("CronCreate isn't available in Cutroom editing sessions; use the cutroom tools or a sandboxed shell command.")],
+    ["another MCP server", "mcp__other__run", {}, () => refuse("Only Blackout's tools are connected in this chat.")],
+    ["a scheduling tool", "CronCreate", { cron: "* * * * *" }, () => refuse("CronCreate isn't available in Blackout editing sessions; use the cutroom tools or a sandboxed shell command.")],
     ["a benign built-in", "TodoWrite", { todos: [] }, allow],
   ];
 

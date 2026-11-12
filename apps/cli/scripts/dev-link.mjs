@@ -66,7 +66,7 @@ if (process.platform === "win32") {
     process.exit(0);
   }
   if (!dir) {
-    console.error("dev-link: no standard command directory exists. Install the CLI from Cutroom.");
+    console.error("dev-link: no standard command directory exists. Install the CLI from Blackout.");
     process.exit(1);
   }
 

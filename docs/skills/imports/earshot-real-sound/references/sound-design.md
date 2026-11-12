@@ -32,7 +32,7 @@ The rules the placement, critique and fix steps work from. Numbers marked *(norm
 - **One licensed track** at 110-130 BPM (or half-time 55-65) whose structure fits the film: soft intro, groove, a breakdown or stop at 40-80 % of the runtime, a drop for the hero reveal, a resolve. Steady tempo, 4/4, professionally mastered, full bandwidth, instrumental.
 - **Avoid:** vocals, corporate ukulele and whistling, EDM brostep, lo-fi hiss, trailer braams on a product film, dark or tense moods for a friendly product, famous overused stock tracks.
 - **Match the brand's personality:** calm or literary: soft piano, felt, strings, no booms; fast or exact: tight drums, plucks, a drop on true silence; bright or friendly: marimba, claps, pops, major key; precise or expensive: sparse piano, low strings, air; raw or mechanical: ticks, latches, metallic hits; warm or kind: plucked strings, soft pads.
-- **Edit at bar lines:** the picture is cut on the grid (120 BPM = 2 s bars at 4/4), the music is cut on its downbeats (`sourceIn` / `sourceOut` of consecutive clips), splices continue the harmony (V to I, or the same chord), and the drop's downbeat lands on the hero frame. Cutroom's `playbackRate` resamples, so retiming music also changes its pitch: keep music at rate 1 and fit the picture to the grid.
+- **Edit at bar lines:** the picture is cut on the grid (120 BPM = 2 s bars at 4/4), the music is cut on its downbeats (`sourceIn` / `sourceOut` of consecutive clips), splices continue the harmony (V to I, or the same chord), and the drop's downbeat lands on the hero frame. Blackout's `playbackRate` resamples, so retiming music also changes its pitch: keep music at rate 1 and fit the picture to the grid.
 - **Shape with rides, not with new music:** dip under typing, lift into the drop, settle under the logo, with a `volume` keyframe track on the music clip or `audio_finish` ducking under dialogue.
 
 ## 4. Levels, arc and mix
@@ -40,7 +40,7 @@ The rules the placement, critique and fix steps work from. Numbers marked *(norm
 - -14 LUFS integrated for web and social; true peak at most -1 dBTP after the AAC encode. -15 or -16 only for a stated reason (a dynamic orchestral track that would otherwise need heavy limiting).
 - LRA 5-9 LU for a film with an arc *(norm: 1-2 sound crushed)*; the intro 5-12 LU under the body for its first 2-3 s, entering with intent on frame 0 (no fade over the first bar, no click on sample 0).
 - The loudest momentary moment sits on the drop or hero reveal, not on the logo, not in the last 15 %.
-- Effects are dry. Cutroom has no per-clip pan, so keep effects as recorded: mono or narrow recordings for UI and foley, wider ones only for whooshes, risers, ambiences and the music.
+- Effects are dry. Blackout has no per-clip pan, so keep effects as recorded: mono or narrow recordings for UI and foley, wider ones only for whooshes, risers, ambiences and the music.
 - Every effect at least 3 dB over the bed in its own best band (6 is clear); a layer that adds nothing measurable is a wasted placement. Check on the `sheet` and with `ab` of the moment with and without the layer.
 - Nothing in the 2-6 kHz band much louder than the music's own loudest presence peaks: that band hurts first on phones and laptops. Effect brightness (centroid) at or below 6.5 kHz *(norm)*; pings at 9-14 kHz fatigue. Without an EQ, choose a darker take or lower the `volume`.
 

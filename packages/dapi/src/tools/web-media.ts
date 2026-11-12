@@ -30,7 +30,7 @@ export const WebMediaLicense = z.object({
   shareAlike: z.boolean().describe("adaptations must carry the same license"),
   commercialUse: z.boolean(),
   modificationsAllowed: z.boolean().describe("cropping, overlays and edits are allowed; false for no-derivatives (ND) licenses"),
-  verified: z.boolean().describe("true when the license comes from the search provider's metadata or, for a file Cutroom's audio catalog ships, from that catalog; false for any other link, whose rights the user must confirm"),
+  verified: z.boolean().describe("true when the license comes from the search provider's metadata or, for a file Blackout's audio catalog ships, from that catalog; false for any other link, whose rights the user must confirm"),
 });
 
 export const WebMediaResult = z.object({

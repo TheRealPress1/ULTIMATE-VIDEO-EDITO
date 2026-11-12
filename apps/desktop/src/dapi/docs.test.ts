@@ -15,7 +15,7 @@ const repoDocs = join(__dirname, "..", "..", "..", "..", "docs");
 
 beforeAll(() => {
   mkdirSync(join(docsDir, "skills"), { recursive: true });
-  writeFileSync(join(docsDir, "INSTRUCTIONS.md"), "Cutroom is running.\n\nRead `skills/editor.md`.\n");
+  writeFileSync(join(docsDir, "INSTRUCTIONS.md"), "Blackout is running.\n\nRead `skills/editor.md`.\n");
   writeFileSync(join(docsDir, "skills", "editor.md"), "# Editing\n\nHow to edit.\n");
   writeFileSync(join(docsDir, "skills", "watch.md"), "# Watching\n\nHow to watch.\n");
 });
@@ -25,8 +25,8 @@ afterAll(() => rmSync(root, { recursive: true, force: true }));
 describe("instructions", () => {
   it("is where the docs sit on disk, followed by INSTRUCTIONS.md verbatim", () => {
     const text = instructions(docsDir);
-    expect(text.startsWith(`Cutroom's docs are the files at \`${docsDir}\``)).toBe(true);
-    expect(text.endsWith("\n\nCutroom is running.\n\nRead `skills/editor.md`.")).toBe(true);
+    expect(text.startsWith(`Blackout's docs are the files at \`${docsDir}\``)).toBe(true);
+    expect(text.endsWith("\n\nBlackout is running.\n\nRead `skills/editor.md`.")).toBe(true);
   });
 
   it("falls back to a one-liner when nothing is staged", () => {
@@ -49,7 +49,7 @@ describe("instructions", () => {
     if (!existsSync(repoDocs)) return;
     const body = readFileSync(join(repoDocs, "INSTRUCTIONS.md"), "utf8").trim();
     // The same page staged under a long install path (a copy in a user's Applications folder).
-    const installed = join(root, `Users/${"someone".repeat(8)}/Applications/Cutroom Beta.app/Contents/Resources/docs`);
+    const installed = join(root, `Users/${"someone".repeat(8)}/Applications/Blackout Beta.app/Contents/Resources/docs`);
     mkdirSync(installed, { recursive: true });
     writeFileSync(join(installed, "INSTRUCTIONS.md"), body);
     for (const dir of [repoDocs, installed]) {

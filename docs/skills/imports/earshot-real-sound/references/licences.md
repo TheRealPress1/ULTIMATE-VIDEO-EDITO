@@ -18,7 +18,7 @@ A launch video is commercial use, it is edited (trimmed, layered, synced to pict
 | two sources disagree ("disputed") | forbidden | the strictest reading wins: reject it | |
 | "royalty free" with no licence text, platform rips, anything behind a login or paywall you would bypass, AI-generated or code-synthesized audio | not used | unknown terms, or not a real recording | |
 
-In Cutroom terms: a `web_media_search` result carries a verified `license` from the provider. Keep `code` `cc0`, `pdm`, `public-domain` and `by`; reject `by-sa`, `by-nd`, `by-nc`, `by-nc-sa`, `by-nc-nd`, `sampling+`, `nc-sampling+` and the copyleft `gfdl` and `fal`, and anything with `shareAlike: true`, `commercialUse: false` or `modificationsAllowed: false`; read the terms of any other code on the work's page. `license: "commercial"` on the search already leaves out NonCommercial and NoDerivatives works; it keeps ShareAlike ones, so filter those yourself.
+In Blackout terms: a `web_media_search` result carries a verified `license` from the provider. Keep `code` `cc0`, `pdm`, `public-domain` and `by`; reject `by-sa`, `by-nd`, `by-nc`, `by-nc-sa`, `by-nc-nd`, `sampling+`, `nc-sampling+` and the copyleft `gfdl` and `fal`, and anything with `shareAlike: true`, `commercialUse: false` or `modificationsAllowed: false`; read the terms of any other code on the work's page. `license: "commercial"` on the search already leaves out NonCommercial and NoDerivatives works; it keeps ShareAlike ones, so filter those yourself.
 
 ## Verify on the item's own page (never from a search snippet, an aggregator or memory)
 
@@ -49,7 +49,7 @@ A complete credit names the title, the author, the source (a link to the item pa
 (https://freesound.org/people/InspectorJ/sounds/346642/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/), edited
 ```
 
-Cutroom writes `CREDITS.md` at the project root from its download ledger: every `web_media_download` and `media_download` file with its credit line, licence and source page. Offer the CC BY lines for the video description; credits never need to be on screen. For an unverified download, add what you read on its page to your report so the user can complete the credit.
+Blackout writes `CREDITS.md` at the project root from its download ledger: every `web_media_download` and `media_download` file with its credit line, licence and source page. Offer the CC BY lines for the video description; credits never need to be on screen. For an unverified download, add what you read on its page to your report so the user can complete the credit.
 
 ## Content ID and CC BY music
 

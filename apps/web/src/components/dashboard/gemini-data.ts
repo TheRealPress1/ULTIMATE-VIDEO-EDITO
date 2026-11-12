@@ -17,12 +17,12 @@ export const GEMINI_PURPOSE =
  * and the difference between Google's free and paid keys.
  */
 export const GEMINI_DISCLOSURE =
-  "When an agent asks, the file in question is uploaded to Google under your key (only its sound, when the question is about sound) and deleted again afterwards; a YouTube link sends just the link. Cutroom asks Google not to store the question or the answer. On Google's free tier, though, what you send is used to improve its products; with a paid key (a Google project with billing turned on) it isn't. For private footage, use a paid key.";
+  "When an agent asks, the file in question is uploaded to Google under your key (only its sound, when the question is about sound) and deleted again afterwards; a YouTube link sends just the link. Blackout asks Google not to store the question or the answer. On Google's free tier, though, what you send is used to improve its products; with a paid key (a Google project with billing turned on) it isn't. For private footage, use a paid key.";
 
 /** The one-line status Settings shows. */
 export function geminiLine(status: GeminiStatus): string {
   if (status.error) return status.error;
-  if (!status.encryption) return "This Mac can't store a key encrypted, so Cutroom won't save one. Nothing is sent to Google.";
+  if (!status.encryption) return "This Mac can't store a key encrypted, so Blackout won't save one. Nothing is sent to Google.";
   if (!status.configured) return "No key saved. Nothing is sent to Google.";
   return `Ready${status.hint ? `, key ending ${status.hint}` : ""}. Questions go to ${status.model}.`;
 }

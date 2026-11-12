@@ -67,7 +67,7 @@ export function AppSidebar(props: AppSidebarProps) {
     <aside class="cutroom-sidebar" aria-label="Main navigation">
       <div class="cutroom-brand">
         <CutroomMark />
-        <span>Cutroom</span>
+        <span>Blackout</span>
       </div>
       <nav class="cutroom-primary-nav">
         <button type="button" class="cutroom-nav-item" classList={{ "is-active": onHome() }} onClick={() => navigate("/")}>

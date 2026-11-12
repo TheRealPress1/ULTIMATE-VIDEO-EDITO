@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Read-only standalone bundle verification. This checks portable dependencies,
 // not Gatekeeper/notarization or installation on another physical machine.
-// Usage: node scripts/verify-standalone-bundle.mjs /path/Cutroom.app [arm64|x64] [--output report.json]
+// Usage: node scripts/verify-standalone-bundle.mjs /path/Blackout.app [arm64|x64] [--output report.json]
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";

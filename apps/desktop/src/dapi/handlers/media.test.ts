@@ -72,9 +72,9 @@ describe("media_search handler", () => {
       expect(content[1]).toMatchObject({ mimeType: "image/webp", data: Buffer.from(webp).toString("base64") });
       rmSync(dirname(structured.results[1]!.previewPath!), { recursive: true, force: true });
 
-      service.search.mockRejectedValueOnce(new Error("Cutroom can't search X."));
+      service.search.mockRejectedValueOnce(new Error("Blackout can't search X."));
       const failed = await client.callTool({ name: "media_search", arguments: { platform: "x", query: "cats" } });
-      expect(failed).toMatchObject({ isError: true, content: [{ type: "text", text: "Cutroom can't search X." }] });
+      expect(failed).toMatchObject({ isError: true, content: [{ type: "text", text: "Blackout can't search X." }] });
     } finally {
       await client.close();
       await session.close();

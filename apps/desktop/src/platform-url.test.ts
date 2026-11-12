@@ -108,7 +108,7 @@ describe("creatorTarget", () => {
   });
 
   it.each(["@a", "@has space", "https://vimeo.com/someone", "https://www.youtube.com/watch?v=AbCdEfGhIj0", "@".padEnd(40, "x")])("refuses %s as a YouTube creator", (creator) => {
-    expect(() => creatorTarget("youtube", creator)).toThrow(/creator Cutroom can list on YouTube/);
+    expect(() => creatorTarget("youtube", creator)).toThrow(/creator Blackout can list on YouTube/);
   });
 
   it("lists SoundCloud tracks, Vimeo videos, TikTok and Instagram accounts", () => {

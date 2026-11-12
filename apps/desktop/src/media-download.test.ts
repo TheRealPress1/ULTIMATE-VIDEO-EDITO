@@ -417,7 +417,7 @@ describe("media_download's folders", () => {
     symlinkSync("../.git", join(project, "assets", "music"));
     const { media, fake } = service(byUrl({ [YT]: YOUTUBE_VIDEO_INFO }));
     await expect(media.download(request(YT), signal())).rejects.toThrow(
-      "The project's assets/music folder leads into .git, which Cutroom keeps off-limits to editing sessions. Remove that link and try again.",
+      "The project's assets/music folder leads into .git, which Blackout keeps off-limits to editing sessions. Remove that link and try again.",
     );
     expect(fake.run).not.toHaveBeenCalled();
     expect(readdirSync(join(project, ".git"))).toEqual([]);
@@ -530,7 +530,7 @@ describe("media_download from MyInstants and the user's own Instagram", () => {
     expect(pageFetch.mock.calls.map(([url]) => url)).toEqual([PAGE, "https://www.myinstants.com/media/sounds/boing-spring.mp3"]);
     expect(download).toMatchObject({
       source: "assets/sfx/boing-spring-123.mp3", site: "myinstants", mediaId: "boing-spring-123", title: "Boing & Spring", kind: "audio",
-      sourceUrl: PAGE, downloader: "Cutroom (MyInstants page)", warnings: ["MyInstants only has sounds, so this was saved as audio."],
+      sourceUrl: PAGE, downloader: "Blackout (MyInstants page)", warnings: ["MyInstants only has sounds, so this was saved as audio."],
     });
     await media.commit({ id: download.id, assetId: "s", src: "sfx/boing-spring-123.mp3", source: download.source! });
     pageFetch.mockClear();
@@ -557,7 +557,7 @@ describe("media_download from MyInstants and the user's own Instagram", () => {
     expect(fake.run).not.toHaveBeenCalled();
     expect(download).toMatchObject({
       source: "assets/footage/17900000000000001.mp4", site: "instagram", mediaId: "17900000000000001", title: "Sunset run.", channel: "@me.myself",
-      sourceUrl: PERMALINK, downloader: "Cutroom (Instagram file)",
+      sourceUrl: PERMALINK, downloader: "Blackout (Instagram file)",
     });
     await media.commit({ id: download.id, assetId: "v", src: "footage/x.mp4", source: download.source! });
     const [item] = (await readLedger(project)).items;

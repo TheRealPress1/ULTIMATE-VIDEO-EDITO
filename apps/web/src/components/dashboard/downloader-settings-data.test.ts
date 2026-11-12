@@ -25,7 +25,7 @@ describe("the Downloads card", () => {
     expect(downloaderDetails(ready, format)).toEqual([
       "yt-dlp 2026.10.26, installed 2026-10-26.",
       "Last checked GitHub for a newer release 2026-11-03.",
-      "YouTube's playback challenges are solved locally with Cutroom's built-in Node 24.22.0.",
+      "YouTube's playback challenges are solved locally with Blackout's built-in Node 24.22.0.",
     ]);
   });
 

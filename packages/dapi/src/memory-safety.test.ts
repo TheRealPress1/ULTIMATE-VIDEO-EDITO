@@ -105,7 +105,7 @@ describe("scanMemoryText", () => {
     "CutroomProjectsArchive2026Summer is the archive drive",
     "Instagram handle @cooking.with.jane, posts at 18:00",
     "Prefers to review a draft export before captions are added\nand likes short summaries",
-    "Final Cut Pro is installed; Cutroom is the main editor",
+    "Final Cut Pro is installed; Blackout is the main editor",
     "Uses https://example.com/press as the press page",
     "Thinks system design videos do well",
     "Archive lives in /Volumes/Media/CutroomProjectsArchive2026Summer/x",

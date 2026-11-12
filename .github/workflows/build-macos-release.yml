@@ -85,7 +85,7 @@ jobs:
       - name: Verify signature and notarization
         run: |
           set -euo pipefail
-          TASK_APP="apps/desktop/out/Cutroom-darwin-$(node -p process.arch)/Cutroom.app"
+          TASK_APP="apps/desktop/out/Blackout-darwin-$(node -p process.arch)/Blackout.app"
           TASK_ZIP="$(node --input-type=module -e 'import { globSync } from "node:fs"; const paths = globSync("apps/desktop/out/make/**/*.zip"); if (paths.length !== 1) throw new Error("Expected one update archive."); console.log(paths[0]);')"
           TASK_DMG="$(node --input-type=module -e 'import { globSync } from "node:fs"; const paths = globSync("apps/desktop/out/make/**/*.dmg"); if (paths.length !== 1) throw new Error("Expected one installer."); console.log(paths[0]);')"
           node scripts/verify-standalone-bundle.mjs "$TASK_APP" arm64 --output apps/desktop/out/make/bundle-verification.json

@@ -191,7 +191,7 @@ describe.skipIf(!darwin)("installing", () => {
     const zip = await onedirZip("2026.10.26");
     const sums = sumsFor({ zip });
     for (const [release, why] of [
-      [{ zip, sig: testSigner().sign(Buffer.from(sums)) }, /its signature is by a key Cutroom doesn't know/],
+      [{ zip, sig: testSigner().sign(Buffer.from(sums)) }, /its signature is by a key Blackout doesn't know/],
       [{ zip, sums: sums.replace(sha(zip), sha("something else")), sig: signer.sign(Buffer.from(sums)) }, /its signature doesn't match the file/],
       [{ zip, sig: Buffer.from("not a signature") }, /its signature isn't an OpenPGP packet/],
       [{ zip, sig: null }, /the release has no SHA2-256SUMS\.sig/],
@@ -202,7 +202,7 @@ describe.skipIf(!darwin)("installing", () => {
       const failure = await ytdlp.ensure().then(() => new Error("the install succeeded"), (error: unknown) => error as DapiError);
       expect(failure).toBeInstanceOf(DapiError);
       expect(failure.message).toMatch(why);
-      expect(failure.message).toMatch(/Cutroom installs only yt-dlp releases signed with yt-dlp's release key/);
+      expect(failure.message).toMatch(/Blackout installs only yt-dlp releases signed with yt-dlp's release key/);
       expect(failure.message).not.toContain("Check the network");
       expect(ytdlp.status()).toMatchObject({ state: "failed" });
       expect(hub.count("/yt-dlp_macos.zip") + hub.count("/yt-dlp_macos")).toBe(0);
@@ -336,7 +336,7 @@ describe.skipIf(!darwin)("updating", () => {
     latest.tag = "2026.11.02";
     const zip = await onedirZip("2026.11.02");
     releases.set("2026.11.02", { zip, sig: testSigner().sign(Buffer.from(sumsFor({ zip }))) });
-    await expect(ytdlp.checkNow()).rejects.toThrow(/the release's SHA2-256SUMS isn't signed with yt-dlp's release key \(its signature is by a key Cutroom doesn't know/);
+    await expect(ytdlp.checkNow()).rejects.toThrow(/the release's SHA2-256SUMS isn't signed with yt-dlp's release key \(its signature is by a key Blackout doesn't know/);
     expect(ytdlp.status()).toMatchObject({ state: "ready", version: "2026.10.26", error: expect.stringContaining("isn't signed") });
     expect(await releaseDirs(root)).toEqual(["2026.10.26"]);
     expect(hub.count("/2026.11.02/yt-dlp_macos.zip")).toBe(0);

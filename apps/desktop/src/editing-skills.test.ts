@@ -77,7 +77,7 @@ describe("shared UVE skill library", () => {
     expect(web).not.toContain("media/web");
   });
 
-  it("ships original music and sound-effect workflows built on Cutroom's own tools", async () => {
+  it("ships original music and sound-effect workflows built on Blackout's own tools", async () => {
     const listed = await readEditingSkills(repoDocs, { action: "list" });
     for (const id of ["uve-music", "uve-sfx"]) {
       expect(listed.skills.find((skill) => skill.id === id)).toMatchObject({ path: `skills/${id}/SKILL.md`, category: "editing", available: true });
@@ -327,7 +327,7 @@ describe("shared UVE skill library", () => {
     const user = listed.skills.slice(EDITING_SKILLS.length);
     expect(user.map((skill) => [skill.id, skill.available])).toEqual([["hidden-text", false], ["intro-card", true], ["linked-file", false], ["loud-title", false], ["no-frontmatter", false], ["weekly-recap", true], ["wrong-name", false]]);
     // A skill changed by hand outside skill_write gets the same safety scan before any agent reads it.
-    expect(user.find((skill) => skill.id === "hidden-text")?.description).toMatch(/fails Cutroom's safety check \(instruction-override\)/);
+    expect(user.find((skill) => skill.id === "hidden-text")?.description).toMatch(/fails Blackout's safety check \(instruction-override\)/);
     expect(user.find((skill) => skill.id === "hidden-text")?.description).not.toContain("Ignore previous");
     // Nothing from a held-back SKILL.md's frontmatter reaches agents, the title included, in a list or in any read's list.
     expect(user.find((skill) => skill.id === "loud-title")).toMatchObject({ title: "Loud title", available: false, files: [] });

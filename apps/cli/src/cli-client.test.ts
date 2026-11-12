@@ -19,7 +19,7 @@ afterEach(() => {
 
 describe("macOS CLI app launch", () => {
   it.each([false, true])("opens its own packaged app with background=%s", async (background) => {
-    const appPath = "/Applications/My Editor's Copies/Cutroom.app";
+    const appPath = "/Applications/My Editor's Copies/Blackout.app";
     vi.stubEnv("CUTROOM_APP_PATH", appPath);
     vi.stubEnv("ELECTRON_RUN_AS_NODE", "1");
     execFile.mockImplementation((_command, _args, _options, callback) => callback(null));
@@ -39,11 +39,11 @@ describe("macOS CLI app launch", () => {
     execFile.mockImplementation((_command, _args, _options, callback) => callback(null));
 
     expect(await launchDarwin(false)).toBe(true);
-    expect(execFile.mock.calls[0]?.[1]).toEqual(["-a", "Cutroom"]);
+    expect(execFile.mock.calls[0]?.[1]).toEqual(["-a", "Blackout"]);
   });
 
   it("does not launch another app copy if its containing bundle is missing", async () => {
-    const appPath = "/Applications/Removed Cutroom.app";
+    const appPath = "/Applications/Removed Blackout.app";
     vi.stubEnv("CUTROOM_APP_PATH", appPath);
     execFile.mockImplementation((_command, _args, _options, callback) => callback(new Error("Application not found")));
 

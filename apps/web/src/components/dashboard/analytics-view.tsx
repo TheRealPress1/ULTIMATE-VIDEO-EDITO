@@ -168,14 +168,14 @@ export function DashboardAnalyticsView() {
             <section class="cutroom-analytics-empty">
               <div class="cutroom-analytics-empty-icon"><AnalyticsIcon /></div>
               <h2>Open analytics in the desktop app</h2>
-              <p>Your Instagram connection and saved statistics live in Cutroom on your Mac. They aren’t available in this browser preview.</p>
+              <p>Your Instagram connection and saved statistics live in Blackout on your Mac. They aren’t available in this browser preview.</p>
             </section>
           </Match>
           <Match when={dashboard()?.status === "unavailable" && !hasAccount()}>
             <section class="cutroom-analytics-empty">
               <div class="cutroom-analytics-empty-icon"><InstagramMark /></div>
               <h2>Instagram connection unavailable</h2>
-              <p>Cutroom can’t access your secure Instagram connection. Check the connection message above, then open settings to reconnect.</p>
+              <p>Blackout can’t access your secure Instagram connection. Check the connection message above, then open settings to reconnect.</p>
               <Button onClick={settings}>Manage connection</Button>
             </section>
           </Match>
@@ -231,7 +231,7 @@ export function DashboardAnalyticsView() {
               <section class="cutroom-analytics-audience">
                 <div class="cutroom-analytics-audience-number"><span><i class="cutroom-analytics-live-dot" />Followers</span><strong>{count(account()?.followers)}</strong><p>Current account total</p><AnalyticsChange points={followerPoints()} context="since first recorded sync" /></div>
                 <div class="cutroom-analytics-audience-chart">
-                  <div class="cutroom-analytics-section-heading"><h2>Audience over time</h2><span>{followerPoints().length < 2 ? "First observation recorded" : "Recorded in Cutroom"}</span></div>
+                  <div class="cutroom-analytics-section-heading"><h2>Audience over time</h2><span>{followerPoints().length < 2 ? "First observation recorded" : "Recorded in Blackout"}</span></div>
                   <AnalyticsSparkline label="Followers" points={followerPoints()} empty="Follower history will appear after your first measurement." />
                   <p class="cutroom-analytics-note">{followerPoints().length < 2 ? "Your starting point is saved. Refresh on another day to see your growth." : "Actual follower counts recorded at each sync. Earlier history is not backfilled."}</p>
                 </div>

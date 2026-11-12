@@ -147,7 +147,7 @@ export class EarshotInstaller {
     this.arch = options.arch ?? process.arch;
     this.platform = options.platform ?? process.platform;
     const fetch: Fetch = options.fetch ?? ((url, init) => globalThis.fetch(url, init));
-    const userAgent = options.userAgent ?? "Cutroom";
+    const userAgent = options.userAgent ?? "Blackout";
     this.fetchFile = options.download ?? ((file, dest, signal, onBytes) => fetchVerified(fetch, file, dest, signal, onBytes, userAgent));
     this.run = options.run ?? spawnRunner;
     this.extract = options.extract ?? tarExtract(this.run);
@@ -652,7 +652,7 @@ export class EarshotInstaller {
   private async assertRemovable(): Promise<void> {
     const expected = join(this.userData, "addons", "earshot");
     if (this.root !== expected || basename(this.root) !== "earshot") {
-      throw new Error(`Refusing to delete ${this.root}: it isn't Cutroom's audio intelligence folder.`);
+      throw new Error(`Refusing to delete ${this.root}: it isn't Blackout's audio intelligence folder.`);
     }
     const info = await lstat(this.root).catch(() => null);
     if (!info) return;
@@ -664,7 +664,7 @@ export class EarshotInstaller {
 
   /** Stops an install for good: the app is quitting. */
   dispose(): void {
-    this.running?.controller.abort(new InstallCanceled("Cutroom is quitting."));
+    this.running?.controller.abort(new InstallCanceled("Blackout is quitting."));
   }
 
   /** Where a running install is, for the message a tool call gets when it stops waiting: `step 3/5, 410 of 1,260 MB`. */

@@ -172,7 +172,7 @@ export function mergeEntry(base: AudioCatalogEntry | null, patch: AudioCatalogPa
   if (movedUrl && !TIMING_FIELDS.some((field) => overridden.includes(field))) {
     for (const field of TIMING_FIELDS) delete entry[field];
     needsVerification = true;
-    warnings.push(`${id} plays from a different source than Cutroom's entry, so its duration, range and levels were dropped. Probe the new source before trimming it.`);
+    warnings.push(`${id} plays from a different source than Blackout's entry, so its duration, range and levels were dropped. Probe the new source before trimming it.`);
   }
 
   const record: MergedRecord = { id, default: base, personal: patch ? knownPatch(patch) : null, merged: null };
@@ -187,7 +187,7 @@ export function mergeEntry(base: AudioCatalogEntry | null, patch: AudioCatalogPa
     warnings.push(
       base
         ? `${id} has no title, so it's left out. Give it one with save, or reset the field.`
-        : `${id} is in the personal catalog without ${hasText("title") ? "a description" : "a title"} and isn't one of Cutroom's entries (any more), so it's left out. Complete it with save, or reset it.`,
+        : `${id} is in the personal catalog without ${hasText("title") ? "a description" : "a title"} and isn't one of Blackout's entries (any more), so it's left out. Complete it with save, or reset it.`,
     );
     return { record, warnings };
   }
@@ -299,7 +299,7 @@ export function patchProblems(base: AudioCatalogEntry | null, patch: AudioCatalo
   const problems: string[] = [];
   const fields = patch as Loose;
   if (base) {
-    for (const field of REQUIRED_FIELDS) if (fields[field] === null) problems.push(`${field} can't be cleared on one of Cutroom's entries: set another value, or reset the field.`);
+    for (const field of REQUIRED_FIELDS) if (fields[field] === null) problems.push(`${field} can't be cleared on one of Blackout's entries: set another value, or reset the field.`);
   }
   const foreign = foreignFields(fields, kind);
   if (foreign.length) problems.push(`${foreign.join(", ")} ${foreign.length === 1 ? "describes" : "describe"} ${kind === "music" ? "sound effects" : "music"}, not ${kind}.`);

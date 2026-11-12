@@ -13,7 +13,7 @@ vi.mock("@/lib/environment", () => ({
   get LOCAL_MODE() {
     return mocks.local;
   },
-  CLOUD_UNAVAILABLE_MESSAGE: "Hosted generation is not configured in Cutroom.",
+  CLOUD_UNAVAILABLE_MESSAGE: "Hosted generation is not configured in Blackout.",
 }));
 vi.mock("@/lib/api", () => ({
   api: {
@@ -64,7 +64,7 @@ describe("generate without hosted generation", () => {
     await expect(refused).rejects.toMatchObject({
       code: "unsupported",
       message:
-        "Hosted generation (flux-2-klein) isn't configured in Cutroom, so it can't run. For photos, video or audio from the web use web_media_search then web_media_download; build titles and graphics as native JSX layers. Local sam-2.1 masking still works.",
+        "Hosted generation (flux-2-klein) isn't configured in Blackout, so it can't run. For photos, video or audio from the web use web_media_search then web_media_download; build titles and graphics as native JSX layers. Local sam-2.1 masking still works.",
     });
     // Nothing else ran first: no project lookup, sign-in check, upload, estimate or job.
     expect(ctx.session).not.toHaveBeenCalled();

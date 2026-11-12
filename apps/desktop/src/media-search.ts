@@ -49,7 +49,7 @@ const FULL_LISTING_MAX = 10;
 const TEXT_MAX = 500;
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 const VIMEO_BEST_EFFORT =
-  "Vimeo downloads are best effort: Vimeo lets the downloader fetch most videos only when signed in, which Cutroom doesn't do, so media_download may refuse these links. Ask the user for their own copy of one it refuses.";
+  "Vimeo downloads are best effort: Vimeo lets the downloader fetch most videos only when signed in, which Blackout doesn't do, so media_download may refuse these links. Ask the user for their own copy of one it refuses.";
 
 export type MediaSearchOptions = {
   /** The managed downloader; null when this build has none. */
@@ -235,7 +235,7 @@ export class MediaSearchService {
     this.now = options.now ?? (() => new Date());
     this.timeouts = { ...TIMEOUTS, ...options.timeouts };
     this.networkRetryMs = options.networkRetryMs;
-    this.userAgent = `Cutroom/${options.version ?? "dev"} (desktop video editor)`;
+    this.userAgent = `Blackout/${options.version ?? "dev"} (desktop video editor)`;
   }
 
   async search(args: MediaSearchArgs, signal: AbortSignal): Promise<MediaSearchAnswer> {
@@ -273,7 +273,7 @@ export class MediaSearchService {
     const count = byDate ? datePool(limit) : limit;
     const target = creator ? creatorTarget(platform, creator, args.tab) : { url: queryTarget(platform, query!, count), handle: null };
     const downloader = this.downloader();
-    if (!downloader) throw new DapiError("unsupported", "This build of Cutroom has no downloader, so platforms can't be searched. Use web_media_search for openly licensed media.");
+    if (!downloader) throw new DapiError("unsupported", "This build of Blackout has no downloader, so platforms can't be searched. Use web_media_search for openly licensed media.");
     if (creator && (platform === "tiktok" || platform === "instagram")) {
       warnings.push(`${platform === "tiktok" ? "TikTok" : "Instagram"} account listings are best effort: the site often blocks them, and the results may be partial.`);
     }

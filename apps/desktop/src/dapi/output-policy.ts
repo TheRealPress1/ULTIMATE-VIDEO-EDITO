@@ -33,10 +33,10 @@ export const WRITABLE_PLACES =
   "Only the project folder, temporary folders, and new files in Desktop, Documents, Downloads, Movies, Music or Pictures can be written.";
 
 export const OPEN_PLACES =
-  "Editing sessions can open an existing Cutroom project, or a new or empty folder in the project, a temporary folder, Desktop, Documents, Downloads, Movies, Music or Pictures. Open a new folder there as the project (for example `~/Movies/<name>`) and use other files by their paths.";
+  "Editing sessions can open an existing Blackout project, or a new or empty folder in the project, a temporary folder, Desktop, Documents, Downloads, Movies, Music or Pictures. Open a new folder there as the project (for example `~/Movies/<name>`) and use other files by their paths.";
 
 export const OPEN_EXISTING =
-  "That folder already holds files and isn't a Cutroom project, so editing sessions can't open it. Open it from Cutroom's dashboard, which makes it a project, or copy its files into a new folder (for example `~/Movies/<name>`) and open that.";
+  "That folder already holds files and isn't a Blackout project, so editing sessions can't open it. Open it from Blackout's dashboard, which makes it a project, or copy its files into a new folder (for example `~/Movies/<name>`) and open that.";
 
 export const PROJECT_MOVED = "The open project's folder changed on disk; reopen the project.";
 
@@ -49,10 +49,10 @@ export const EXPORTS_OUTSIDE =
  * so an agent that would fix the path and then hit that hears it at once.
  */
 export const HOSTED_NOTE =
-  "Hosted models also need hosted generation configured in Cutroom; where it isn't, use web_media_search then web_media_download for media from the web.";
+  "Hosted models also need hosted generation configured in Blackout; where it isn't, use web_media_search then web_media_download for media from the web.";
 
 export function protectedMessage(segment: string): string {
-  return `Cutroom keeps ${segment} off-limits to editing sessions. Write project files elsewhere in the project folder.`;
+  return `Blackout keeps ${segment} off-limits to editing sessions. Write project files elsewhere in the project folder.`;
 }
 
 // Case-insensitive volumes are the default on macOS and Windows, where
@@ -79,7 +79,7 @@ export function libraryFolderRefusal(root: string, real: string, label: string):
     return `The project's ${label} folder leads outside the project. Remove that link and try again.`;
   }
   const segment = protectedPart(inside.split(sep));
-  return segment ? `The project's ${label} folder leads into ${segment}, which Cutroom keeps off-limits to editing sessions. Remove that link and try again.` : null;
+  return segment ? `The project's ${label} folder leads into ${segment}, which Blackout keeps off-limits to editing sessions. Remove that link and try again.` : null;
 }
 
 /**

@@ -46,7 +46,7 @@ export function validateArchiveEntries(entries) {
     // guessing APFS's case/normalization rules during security preflight.
     assert(name && !name.includes('\\') && !/[^\x20-\x7e]/.test(name)
       && !name.startsWith('/') && !name.split('/').some(part => part === '..' || part === '.' || part === ''), 'Unsafe release archive path.');
-    assert(name === 'Cutroom.app' || name.startsWith('Cutroom.app/') || name === '__MACOSX' || name.startsWith('__MACOSX/'), 'Unexpected file outside Cutroom.app.');
+    assert(name === 'Blackout.app' || name.startsWith('Blackout.app/') || name === '__MACOSX' || name.startsWith('__MACOSX/'), 'Unexpected file outside Blackout.app.');
     const key = canonical(name);
     assert(!seen.has(key), 'Duplicate release archive path.');
     seen.add(key);
@@ -56,7 +56,7 @@ export function validateArchiveEntries(entries) {
       assert(typeof entry.link === 'string' && entry.link.length > 0 && !entry.link.includes('\\')
         && !/[^\x20-\x7e]/.test(entry.link) && !posix.isAbsolute(entry.link), 'Unsafe release archive symlink.');
       const target = posix.normalize(posix.join(posix.dirname(name), entry.link));
-      assert(target.startsWith('Cutroom.app/'), 'Release archive symlink escapes the app.');
+      assert(target.startsWith('Blackout.app/'), 'Release archive symlink escapes the app.');
       links.set(key, canonical(entry.link));
     }
   }
@@ -81,7 +81,7 @@ export function validateArchiveEntries(entries) {
         resolved.pop();
       } else {
         resolved.push(part);
-        assert(resolved[0] === 'cutroom.app', 'Release archive symlink escapes the app.');
+        assert(resolved[0] === 'blackout.app', 'Release archive symlink escapes the app.');
         const target = links.get(resolved.join('/'));
         if (target !== undefined) {
           assert(++hops <= 40, 'Release archive has a cyclic or excessively chained symlink.');
@@ -134,7 +134,7 @@ export async function verifyMacApp(path, team) {
   const version = stableVersion(await plist('CFBundleShortVersionString'));
   assert.equal(await plist('CFBundleVersion'), version, 'Bundle version fields disagree.');
   assert.equal(await plist('CFBundleIdentifier'), 'app.cutroom.editor');
-  assert.equal(await plist('CFBundleExecutable'), 'Cutroom');
+  assert.equal(await plist('CFBundleExecutable'), 'Blackout');
   const pkg = JSON.parse(await readFile(join(bundle, 'Contents/Resources/app/package.json'), 'utf8'));
   assert.equal(pkg.version, version, 'Packaged JavaScript version disagrees with bundle version.');
   const config = JSON.parse(await readFile(join(bundle, 'Contents/Resources/app/dist/release-config.json'), 'utf8'));
@@ -148,7 +148,7 @@ export async function verifyMacApp(path, team) {
   assert(cdhash, 'Missing code-signature hash.');
   await command('/usr/bin/xcrun', ['stapler', 'validate', bundle]);
   await command('/usr/sbin/spctl', ['--assess', '--type', 'execute', bundle]);
-  const arches = (await command('/usr/bin/lipo', ['-archs', join(bundle, 'Contents/MacOS/Cutroom')])).split(/\s+/);
+  const arches = (await command('/usr/bin/lipo', ['-archs', join(bundle, 'Contents/MacOS/Blackout')])).split(/\s+/);
   assert(arches.length === 1 && ['arm64', 'x86_64'].includes(arches[0]), 'Expected a single supported release architecture.');
   return { version, platform: 'darwin', arch: arches[0] === 'x86_64' ? 'x64' : 'arm64', teamId: team, cdhash, notarized: true, updateFeedUrl: config.updateFeedUrl, updateFeedType: config.updateFeedType ?? 'default' };
 }
@@ -164,7 +164,7 @@ export async function withVerifiedZip(zip, team, callback = async value => value
     await mkdir(extracted);
     // ditto preserves Apple's resource forks and stapled-ticket metadata.
     await command('/usr/bin/ditto', ['-x', '-k', snapshot, extracted]);
-    const appPath = join(extracted, 'Cutroom.app');
+    const appPath = join(extracted, 'Blackout.app');
     const verified = await verifyMacApp(appPath, team);
     const digest = await hashFile(snapshot);
     assert.deepEqual(await hashFile(zip), digest, 'Release ZIP changed during verification.');
@@ -188,7 +188,7 @@ export async function verifyMacDmg(path, team, expectedApp) {
     await mkdir(mount);
     await command('/usr/bin/hdiutil', ['attach', '-readonly', '-nobrowse', '-mountpoint', mount, snapshot]);
     mounted = true;
-    const appPath = join(mount, 'Cutroom.app');
+    const appPath = join(mount, 'Blackout.app');
     assert((await lstat(appPath)).isDirectory() && (await realpath(appPath)).startsWith((await realpath(mount)) + '/'), 'Installer must contain a real app inside its mounted volume.');
     const app = await verifyMacApp(appPath, team);
     if (expectedApp) for (const key of ['version', 'arch', 'teamId', 'cdhash']) assert.equal(app[key], expectedApp[key], `DMG app disagrees: ${key}`);

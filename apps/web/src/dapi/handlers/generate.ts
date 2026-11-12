@@ -33,9 +33,9 @@ const LOCAL_ALTERNATIVES =
  */
 function refuseHosted(model: string): never {
   if (model === "universal-3.5-pro") {
-    throw new DapiError("unsupported", "Cutroom transcribes audio locally. Use the transcribe tool with an audio or video path, or Generate captions in the editor.");
+    throw new DapiError("unsupported", "Blackout transcribes audio locally. Use the transcribe tool with an audio or video path, or Generate captions in the editor.");
   }
-  throw new DapiError("unsupported", `Hosted generation (${model}) isn't configured in Cutroom, so it can't run. ${LOCAL_ALTERNATIVES}`);
+  throw new DapiError("unsupported", `Hosted generation (${model}) isn't configured in Blackout, so it can't run. ${LOCAL_ALTERNATIVES}`);
 }
 
 /**
@@ -81,7 +81,7 @@ export const job: ToolHandler<"job"> = async ({ id, cancel }, ctx) => {
     return localJob(id, cancel ?? false);
   }
   if (LOCAL_MODE) {
-    throw new DapiError("unsupported", `Hosted generation isn't configured in Cutroom, so job ${id} can't be checked; only local sam-2.1 jobs (local-…) run here. ${LOCAL_ALTERNATIVES}`);
+    throw new DapiError("unsupported", `Hosted generation isn't configured in Blackout, so job ${id} can't be checked; only local sam-2.1 jobs (local-…) run here. ${LOCAL_ALTERNATIVES}`);
   }
 
   await requireSignIn();

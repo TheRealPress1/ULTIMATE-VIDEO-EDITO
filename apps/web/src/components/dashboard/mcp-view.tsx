@@ -85,7 +85,7 @@ function DashboardInAppAgentsSection() {
                     leadingSize="sm"
                     title={provider.label}
                     leading={<Icon name={provider.id === "claude" ? "claude-code" : "codex"} class="text-foreground" />}
-                    description={ready() ? `${harness()!.models.length} models available${harness()?.version ? ` · v${harness()!.version}` : ""}` : !isDesktop() ? "Open Cutroom desktop to detect your installed agent." : harness()?.detail ?? "Checking the local agent host."}
+                    description={ready() ? `${harness()!.models.length} models available${harness()?.version ? ` · v${harness()!.version}` : ""}` : !isDesktop() ? "Open Blackout desktop to detect your installed agent." : harness()?.detail ?? "Checking the local agent host."}
                     action={<span class="shrink-0 rounded-full px-2 py-1 text-[10px]" classList={{ "bg-success-accent text-success-accent-foreground": ready(), "bg-accent text-muted-foreground": !ready() }}>{statusLabel(harness())}</span>}
                   />
                   <Show when={connected() && harness()?.status === "signed-out"}>
@@ -100,7 +100,7 @@ function DashboardInAppAgentsSection() {
           </For>
         </DashboardDividedStack>
       </DashboardSurfaceCard>
-      <p class="px-2 pt-3 text-xs leading-5 text-muted-foreground">In-app conversations connect to Cutroom’s editing tools automatically. No external MCP registration is needed.</p>
+      <p class="px-2 pt-3 text-xs leading-5 text-muted-foreground">In-app conversations connect to Blackout’s editing tools automatically. No external MCP registration is needed.</p>
     </DashboardTitledSection>
   );
 }
@@ -188,7 +188,7 @@ function DashboardAgentsSection() {
   return (
     <DashboardTitledSection
       title="External app connections (optional)"
-      description="Register Cutroom in other apps so you can edit videos from their own conversations. These switches update each app’s MCP configuration."
+      description="Register Blackout in other apps so you can edit videos from their own conversations. These switches update each app’s MCP configuration."
       action={
         <Button variant="link" class="h-4" disabled={connectable().length === 0} onClick={enableAll}>
           Enable all
@@ -249,7 +249,7 @@ function DashboardMcpServerSection() {
         <DashboardInfoActionRow
           layout="inline"
           leadingSize="sm"
-          title="Cutroom MCP"
+          title="Blackout MCP"
           leading={<Icon name="ai-mcp-cli" class="text-foreground" />}
           description="Connect any other agent that supports MCP over Streamable HTTP."
           action={
@@ -265,7 +265,7 @@ function DashboardMcpServerSection() {
         />
       </DashboardSurfaceCard>
       <p class="px-2 pt-3 text-xs text-muted-foreground">
-        <span>Available locally while Cutroom is running. </span>
+        <span>Available locally while Blackout is running. </span>
         <a href={MCP_DOCS_URL} target="_blank" class="text-primary hover:underline">
           What is MCP?
         </a>
@@ -315,14 +315,14 @@ function DashboardCliSection() {
   return (
     <DashboardSurfaceSection
       title="CLI"
-      description="Give agents access to Cutroom through terminal commands."
+      description="Give agents access to Blackout through terminal commands."
     >
       <DashboardInfoActionRow
         layout="inline"
         leadingSize="sm"
         title="cutroom CLI"
         leading={<Icon name="dapi-cli" class="text-foreground" />}
-        description="Cutroom’s command-line tool for accessing its media tools and managing projects."
+        description="Blackout’s command-line tool for accessing its media tools and managing projects."
         action={
           <Switch>
             <Match when={!status()}>
@@ -343,7 +343,7 @@ function DashboardCliSection() {
                 <TooltipTrigger as={Button} variant="on">
                   Installed
                 </TooltipTrigger>
-                <TooltipContent>Found at {status()?.path}. This command is not managed by Cutroom.</TooltipContent>
+                <TooltipContent>Found at {status()?.path}. This command is not managed by Blackout.</TooltipContent>
               </Tooltip>
             </Match>
             <Match when={!status()?.available}>
@@ -372,7 +372,7 @@ export function DashboardMcpView() {
         fallback={
           <DashboardSurfaceSection title="External connections">
             <p class="text-xs text-muted-foreground">
-              External MCP connections and the command-line tool are available in Cutroom desktop.
+              External MCP connections and the command-line tool are available in Blackout desktop.
             </p>
           </DashboardSurfaceSection>
         }

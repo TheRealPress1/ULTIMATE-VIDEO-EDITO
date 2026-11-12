@@ -19,7 +19,7 @@ The beat names are the ones `brief.md` uses (`opener`, `doubt`, `point 1`, `proo
 - **Versus.** opener (the choice the viewer faces) → point 1 (option A, honestly) → point 2 (option B, honestly) → payoff (who should pick which) → close. *Fails when* the verdict is "it depends" with no rule for deciding.
 - **Day in the life.** opener (the most surprising moment of the day) → point 1…N (time stamps, each with one detail) → payoff (what the day adds up to) → close. *Fails when* nothing in the day surprises the viewer, or the details are a routine anyone has.
 
-Formats that come from the material Cutroom usually has:
+Formats that come from the material Blackout usually has:
 
 - **Interview pull.** opener (the question, as an on-screen card) → the answer (one passage from `footage_search`, uncut in meaning) → close (a card or the guest's last line). *Fails when* the answer needs context the clip leaves out. Keep the question that was really asked.
 - **Narrated essay.** A voice-over over B-roll or licensed web media, built like a belief-flip or a list. *Fails when* the pictures only illustrate the words instead of adding to them. Plan the shots first.

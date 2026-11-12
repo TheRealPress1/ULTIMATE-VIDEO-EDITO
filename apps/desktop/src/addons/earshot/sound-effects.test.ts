@@ -161,7 +161,7 @@ describe("render", () => {
     await expect(pendingElsewhere).resolves.toMatchObject({ reused: false });
   });
 
-  it("stops a render at once when Cutroom quits, its temporary take removed before anything else runs", async () => {
+  it("stops a render at once when Blackout quits, its temporary take removed before anything else runs", async () => {
     hang = true;
     const pending = render();
     await vi.waitFor(() => expect(renders).toHaveLength(1));
@@ -170,7 +170,7 @@ describe("render", () => {
     fake.renders.dispose();
     // Synchronously: the app is gone before the render's own cleanup would run.
     await expect(stat(work)).rejects.toThrow();
-    await expect(pending).rejects.toMatchObject({ code: "canceled", message: "Cutroom quit while the sound effect rendered." });
+    await expect(pending).rejects.toMatchObject({ code: "canceled", message: "Blackout quit while the sound effect rendered." });
     expect(await readdir(join(project, "assets", "sfx"))).toEqual([]);
     await expect(stat(join(project, "CREDITS.md"))).rejects.toThrow();
     expect(fake.renders.holds(work)).toBe(false);

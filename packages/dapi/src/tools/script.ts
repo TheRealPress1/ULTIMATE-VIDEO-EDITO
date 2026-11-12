@@ -51,7 +51,7 @@ export const scriptLint = defineTool({
       text: z.string().min(1).max(SCRIPT_LINT_TEXT_MAX).optional().describe("the script or a whole brief, inline, instead of a project file"),
       wpm: z.int().min(SCRIPT_LINT_MIN_WPM).max(SCRIPT_LINT_MAX_WPM).optional().describe(`reading rate in words per minute (default: measured from voiceSample, else the creator's profile, else ${SCRIPT_LINT_DEFAULT_WPM})`),
       targetSeconds: z.object({ min: z.number().min(0).max(600), max: z.number().min(5).max(600) }).optional().describe("target spoken length; default: the brief's Goal target"),
-      extraStalePhrases: z.array(z.string().trim().min(2).max(80)).max(50).optional().describe("more worn phrases to flag, on top of Cutroom's list and the profile's"),
+      extraStalePhrases: z.array(z.string().trim().min(2).max(80)).max(50).optional().describe("more worn phrases to flag, on top of Blackout's list and the profile's"),
       avoidWords: z.array(z.string().trim().min(2).max(40)).max(50).optional().describe("words or phrases this creator never says, on top of the profile's words to avoid"),
       voiceSample: z.array(AssetPath).min(1).max(5).optional().describe("library paths of recordings of the creator talking, already indexed by footage_index"),
       language: z.string().trim().regex(/^[A-Za-z]{2,3}(?:[-_][A-Za-z0-9]{2,8})*$/).optional().describe("language tag such as en or fr (default: the brief's Goal language, else detected)"),

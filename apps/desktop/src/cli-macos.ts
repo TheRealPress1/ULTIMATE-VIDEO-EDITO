@@ -37,12 +37,23 @@ function ownedLink(path: string, target: string): string | null {
   return resolve(dirname(path), destination) === resolve(target) ? destination : null;
 }
 
+// Builds before Blackout were called Cutroom.app and linked the command into their own bundle.
+const EARLIER_TARGET = /\/Cutroom\.app\/Contents\/Resources\/cli\/bin\/dapi$/;
+
+/** The original link text when an earlier build made the link and that build's app is gone: this build's to replace. */
+function staleLink(path: string): string | null {
+  if (!lstatSync(path, { throwIfNoEntry: false })?.isSymbolicLink()) return null;
+  const destination = readlinkSync(path);
+  const resolved = resolve(dirname(path), destination);
+  return EARLIER_TARGET.test(resolved) && !executable(resolved) ? destination : null;
+}
+
 export function macCliStatus(options: MacCliOptions): CliStatus {
   const available = executable(options.target);
   for (const path of linkPaths(options)) {
     try {
       if (!lstatSync(path, { throwIfNoEntry: false })) continue;
-      return { installed: executable(path), path, managed: ownedLink(path, options.target) !== null, available };
+      return { installed: executable(path), path, managed: ownedLink(path, options.target) !== null || staleLink(path) !== null, available };
     } catch {
       // An inaccessible location is not evidence of an install we can manage.
     }
@@ -52,17 +63,27 @@ export function macCliStatus(options: MacCliOptions): CliStatus {
 
 export async function installMacCli(options: MacCliOptions): Promise<CliInstallResult> {
   if (!executable(options.target)) {
-    return { status: "error", error: "The Cutroom command-line tool is missing or not executable. Rebuild or reinstall Cutroom, then try again." };
+    return { status: "error", error: "The Blackout command-line tool is missing or not executable. Rebuild or reinstall Blackout, then try again." };
   }
   const target = resolve(options.target);
   const path = join(options.installDirectory, "cutroom");
   try {
     let installed = false;
+    const stale: string[] = [];
     for (const candidate of new Set([...linkPaths(options), path])) {
       if (!lstatSync(candidate, { throwIfNoEntry: false })) continue;
+      if (staleLink(candidate) !== null) {
+        stale.push(candidate);
+        continue;
+      }
       if (ownedLink(candidate, target) === null) {
         return { status: "error", error: `${candidate} already exists and belongs to another installation. It was left alone.` };
       }
+      installed = true;
+    }
+    for (const candidate of stale) {
+      unlinkSync(candidate);
+      symlinkSync(target, candidate);
       installed = true;
     }
     if (installed) return { status: "installed" };
@@ -73,13 +94,15 @@ export async function installMacCli(options: MacCliOptions): Promise<CliInstallR
     if (!permissionError(error) || !options.elevate) return { status: "error", error: message(error) };
   }
   try {
-    // Never replace an entry that appeared while the administrator prompt was open.
+    // Never replace an entry that appeared while the administrator prompt was open. The one exception is a
+    // dangling link into an earlier Cutroom.app, which is what a build before Blackout left behind.
     await options.elevate!(
       `[ -f ${quote(target)} ] && [ -x ${quote(target)} ] && ` +
       `mkdir -p ${quote(options.installDirectory)} && ` +
+      `{ if [ -L ${quote(path)} ] && [ ! -e ${quote(path)} ]; then case "$(readlink ${quote(path)})" in */Cutroom.app/Contents/Resources/cli/bin/dapi) rm ${quote(path)};; esac; fi; } && ` +
       `[ ! -e ${quote(path)} ] && [ ! -L ${quote(path)} ] && ln -s ${quote(target)} ${quote(path)}`,
     );
-    if (ownedLink(path, target) === null || !executable(path)) throw new Error("The Cutroom CLI link could not be verified.");
+    if (ownedLink(path, target) === null || !executable(path)) throw new Error("The Blackout CLI link could not be verified.");
     return { status: "installed" };
   } catch (error) {
     return cancelled(error) ? { status: "cancelled" } : { status: "error", error: message(error) };
@@ -90,7 +113,7 @@ export async function uninstallMacCli(options: MacCliOptions): Promise<CliUninst
   let removed = false;
   try {
     for (const path of linkPaths(options)) {
-      const destination = ownedLink(path, options.target);
+      const destination = ownedLink(path, options.target) ?? staleLink(path);
       if (destination === null) continue;
       try {
         unlinkSync(path);
@@ -101,7 +124,7 @@ export async function uninstallMacCli(options: MacCliOptions): Promise<CliUninst
           `if [ -L ${quote(path)} ] && [ "$(readlink ${quote(path)})" = ${quote(destination)} ]; then ` +
           `rm ${quote(path)}; elif [ -e ${quote(path)} ] || [ -L ${quote(path)} ]; then exit 1; fi`,
         );
-        if (ownedLink(path, options.target) !== null) throw new Error("The Cutroom CLI link could not be removed.");
+        if (ownedLink(path, options.target) !== null || staleLink(path) !== null) throw new Error("The Blackout CLI link could not be removed.");
       }
       removed = true;
     }

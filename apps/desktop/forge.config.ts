@@ -23,7 +23,7 @@ const release = resolveReleaseSettings();
 
 const config: ForgeConfig = {
   packagerConfig: {
-    name: 'Cutroom',
+    name: 'Blackout',
     appBundleId: 'app.cutroom.editor',
     appCategoryType: 'public.app-category.video',
     appVersion: version,
@@ -31,12 +31,12 @@ const config: ForgeConfig = {
     extendInfo: { LSMinimumSystemVersion: '13.0' },
     icon: './assets/icon',
     win32metadata: {
-      CompanyName: 'Cutroom',
-      ProductName: 'Cutroom',
-      FileDescription: 'Cutroom video editor',
+      CompanyName: 'Blackout',
+      ProductName: 'Blackout',
+      FileDescription: 'Blackout video editor',
       'application-manifest': join(__dirname, 'assets', 'app.manifest'),
     },
-    protocols: [{ name: 'Cutroom', schemes: ['cutroom'] }],
+    protocols: [{ name: 'Blackout', schemes: ['cutroom'] }],
     prune: false,
     ignore: (path) =>
       path !== '' &&
@@ -55,17 +55,18 @@ const config: ForgeConfig = {
   makers: [
     new MakerZIP({}, ['darwin']),
     new MakerSquirrel({
+      // The Windows install folder, kept from when the app was called Cutroom: the CLI shim lives in it too.
       name: 'Cutroom',
-      authors: 'Cutroom',
+      authors: 'Blackout',
       description: 'The professional video editor built for agents',
-      exe: 'Cutroom.exe',
-      setupExe: `Cutroom-${process.arch}-Setup.exe`,
+      exe: 'Blackout.exe',
+      setupExe: `Blackout-${process.arch}-Setup.exe`,
       setupIcon: './assets/icon.ico',
       noMsi: true,
       windowsSign: sign,
     }),
     new MakerDMG({
-      name: `Cutroom-${process.arch}`,
+      name: `Blackout-${process.arch}`,
       icon: './assets/icon.icns',
       iconSize: 120,
       additionalDMGOptions: {
@@ -87,7 +88,7 @@ const config: ForgeConfig = {
       if (platform === 'darwin') {
         const speechDir = join(__dirname, 'speech');
         if (!existsSync(join(speechDir, 'whisper-cli')) || !existsSync(join(speechDir, 'runtime.json'))) {
-          throw new Error('Run npm run setup:speech before packaging Cutroom on macOS.');
+          throw new Error('Run npm run setup:speech before packaging Blackout on macOS.');
         }
         const runtime = JSON.parse(readFileSync(join(speechDir, 'runtime.json'), 'utf8'));
         if (runtime.platform !== platform || runtime.arch !== targetArch) {

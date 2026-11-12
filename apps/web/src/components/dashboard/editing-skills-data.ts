@@ -54,7 +54,7 @@ export function userSkillsState(memory: { available: boolean; enabled: boolean }
 
 /** The line under "Your skills": why the list is empty, or that agents can't see what is listed. Null when the cards say it all. */
 export function userSkillsNotice(state: UserSkillsState, count: number): string | null {
-  if (state === "off") return "Saved skills are turned off in this Cutroom session (CUTROOM_MEMORY=0): agents can't see or save them, and none are shown here.";
+  if (state === "off") return "Saved skills are turned off in this Blackout session (CUTROOM_MEMORY=0): agents can't see or save them, and none are shown here.";
   if (state === "paused") {
     return count > 0
       ? "Paused with agent memory: agents don't see these skills and can't save new ones until you turn memory back on under What agents remember."

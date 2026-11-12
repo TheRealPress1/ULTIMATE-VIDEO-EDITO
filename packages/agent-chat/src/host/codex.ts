@@ -112,7 +112,7 @@ function spawnAppServer(binary: string, cwd: string, env: Record<string, string>
 
 async function initialize(peer: JsonRpcPeer, version: string): Promise<{ version?: string }> {
   const result = (await peer.request("initialize", {
-    clientInfo: { name: CLIENT_NAME, title: "Cutroom", version },
+    clientInfo: { name: CLIENT_NAME, title: "Blackout", version },
     capabilities: { experimentalApi: true },
   })) as { userAgent?: string };
   peer.notify("initialized");
@@ -461,7 +461,7 @@ class CodexSession implements HarnessSession {
       case "applyPatchApproval":
         // Legacy v1 callbacks: this client never opens v1 conversations.
         auditAutomaticApproval("codex", method, "deny", method === "execCommandApproval" ? "project-sandbox" : "project-file");
-        return { decision: { denied: { rejection: "Cutroom runs commands and edits only inside the project sandbox and doesn't grant extra access." } } };
+        return { decision: { denied: { rejection: "Blackout runs commands and edits only inside the project sandbox and doesn't grant extra access." } } };
       case "item/tool/requestUserInput":
         return stale ? { answers: {} } : this.askUser((params ?? {}) as UserInputRequest, signal);
       case "mcpServer/elicitation/request":

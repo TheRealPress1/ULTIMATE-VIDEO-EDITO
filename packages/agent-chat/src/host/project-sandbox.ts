@@ -70,12 +70,12 @@ export function claudeProjectSandbox(cwd: string, options: ProjectSandboxOptions
 
 export const SHELL_MESSAGES = {
   destructive:
-    "Cutroom editing sessions don't run deleting or system commands (rm, rmdir, unlink, truncate, find -delete, rsync --delete, scripted deletes, sudo, git push/reset/clean, diskutil, launchctl, osascript…). Leave unused files in place — media in assets/ and exports/ may be the only copy — or write a new temporary file instead.",
+    "Blackout editing sessions don't run deleting or system commands (rm, rmdir, unlink, truncate, find -delete, rsync --delete, scripted deletes, sudo, git push/reset/clean, diskutil, launchctl, osascript…). Leave unused files in place — media in assets/ and exports/ may be the only copy — or write a new temporary file instead.",
   unsandboxed:
     "Commands always run inside the project sandbox, which still reaches public hosts; retry without dangerouslyDisableSandbox. Get media through the cutroom tools rather than a command: `media_download` for YouTube, SoundCloud and other platform links, `web_media_download` for openly licensed files and pages.",
   empty: "Provide the shell command to run.",
   managed:
-    "This Mac's managed Claude Code policy requires review for shell commands, which Cutroom chats can't show. Use the cutroom tools instead.",
+    "This Mac's managed Claude Code policy requires review for shell commands, which Blackout chats can't show. Use the cutroom tools instead.",
 } as const;
 
 // These patterns are guidance, not a security boundary: a determined command

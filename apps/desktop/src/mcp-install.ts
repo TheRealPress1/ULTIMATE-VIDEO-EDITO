@@ -96,7 +96,7 @@ function unavailableReason(target: AgentTarget, current: McpServerSpec): string 
   if (!needsBinary(target)) return null;
   if (current.command === "") return "Needs the cutroom command line tool, which this build does not include.";
   if (app.isPackaged && current.command.includes("/AppTranslocation/")) {
-    return "Move Cutroom to the Applications folder and relaunch it first.";
+    return "Move Blackout to the Applications folder and relaunch it first.";
   }
   return null;
 }

@@ -80,7 +80,7 @@ export function compareTags(a: string, b: string): number {
 
 function checkHost(url: URL): void {
   if (url.protocol !== "https:" || !DOWNLOAD_HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password || (url.port && url.port !== "443")) {
-    throw new InstallError("network", `GitHub redirected the download to ${url.hostname || "an unknown host"}, which Cutroom doesn't download from`);
+    throw new InstallError("network", `GitHub redirected the download to ${url.hostname || "an unknown host"}, which Blackout doesn't download from`);
   }
 }
 
@@ -132,7 +132,7 @@ export async function latestTag(fetch: Fetch, headers: Record<string, string>, s
   }
   const path = new URL(location, RELEASES_URL).pathname;
   const tag = /\/releases\/tag\/([^/]+)\/?$/.exec(path)?.[1];
-  if (!tag || !TAG_PATTERN.test(decodeURIComponent(tag))) throw new InstallError("invalid", "GitHub named a latest release Cutroom doesn't recognize");
+  if (!tag || !TAG_PATTERN.test(decodeURIComponent(tag))) throw new InstallError("invalid", "GitHub named a latest release Blackout doesn't recognize");
   return decodeURIComponent(tag);
 }
 
@@ -211,7 +211,7 @@ export async function saveBody(response: Response, path: string, maxBytes: numbe
   const declared = Number(response.headers.get("content-length"));
   if (Number.isFinite(declared) && declared > maxBytes) {
     await discard(response);
-    throw new InstallError("invalid", `the download is larger than the ${Math.round(maxBytes / MB)} MB Cutroom expects`);
+    throw new InstallError("invalid", `the download is larger than the ${Math.round(maxBytes / MB)} MB Blackout expects`);
   }
   if (!response.body) throw new InstallError("network", "GitHub sent an empty download");
   const hash = createHash("sha256");
@@ -221,7 +221,7 @@ export async function saveBody(response: Response, path: string, maxBytes: numbe
     for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
       signal.throwIfAborted();
       bytes += chunk.length;
-      if (bytes > maxBytes) throw new InstallError("invalid", `the download is larger than the ${Math.round(maxBytes / MB)} MB Cutroom expects`);
+      if (bytes > maxBytes) throw new InstallError("invalid", `the download is larger than the ${Math.round(maxBytes / MB)} MB Blackout expects`);
       hash.update(chunk);
       await file.write(chunk);
     }

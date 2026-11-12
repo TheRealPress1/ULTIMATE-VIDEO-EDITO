@@ -36,10 +36,10 @@ describe("the node shim", () => {
   it("quotes paths with spaces and quotes", () => {
     expect(shellQuote("/Applications/My App.app")).toBe("'/Applications/My App.app'");
     expect(shellQuote("/tmp/it's")).toBe("'/tmp/it'\\''s'");
-    const text = shimScript("/Applications/Cut 'room'.app/Contents/MacOS/Cutroom");
+    const text = shimScript("/Applications/Cut 'room'.app/Contents/MacOS/Blackout");
     expect(text.startsWith("#!/bin/sh\n")).toBe(true);
     expect(text).toContain("unset NODE_OPTIONS NODE_PATH");
-    expect(text).toContain(`ELECTRON_RUN_AS_NODE=1 exec '/Applications/Cut '\\''room'\\''.app/Contents/MacOS/Cutroom' "$@"`);
+    expect(text).toContain(`ELECTRON_RUN_AS_NODE=1 exec '/Applications/Cut '\\''room'\\''.app/Contents/MacOS/Blackout' "$@"`);
   });
 
   it("runs the quoted binary with every argument intact", async () => {
@@ -55,10 +55,10 @@ describe("the node shim", () => {
   it("is rewritten only when the app moved", async () => {
     const dir = await scratch();
     const shim = join(dir, "tools", "node-shim");
-    expect(await writeShim(shim, "/Applications/Cutroom.app/Contents/MacOS/Cutroom")).toBe(true);
-    expect(await writeShim(shim, "/Applications/Cutroom.app/Contents/MacOS/Cutroom")).toBe(false);
+    expect(await writeShim(shim, "/Applications/Blackout.app/Contents/MacOS/Blackout")).toBe(true);
+    expect(await writeShim(shim, "/Applications/Blackout.app/Contents/MacOS/Blackout")).toBe(false);
     expect((await stat(shim)).mode & 0o777).toBe(0o755);
-    expect(await writeShim(shim, "/Users/me/Applications/Cutroom.app/Contents/MacOS/Cutroom")).toBe(true);
+    expect(await writeShim(shim, "/Users/me/Applications/Blackout.app/Contents/MacOS/Blackout")).toBe(true);
     expect(await readFile(shim, "utf8")).toContain("/Users/me/Applications/");
   });
 });

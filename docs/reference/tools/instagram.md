@@ -1,6 +1,6 @@
 # Instagram analytics
 
-These four tools, available over MCP and the CLI, read the Instagram analytics already saved by Cutroom. They work without an open editing project. Connect an account in **Settings → Instagram** and sync in the app first. Tools never connect, disconnect, sync, publish, or read credentials.
+These four tools, available over MCP and the CLI, read the Instagram analytics already saved by Blackout. They work without an open editing project. Connect an account in **Settings → Instagram** and sync in the app first. Tools never connect, disconnect, sync, publish, or read credentials.
 
 | Tool | Input | Result |
 | --- | --- | --- |

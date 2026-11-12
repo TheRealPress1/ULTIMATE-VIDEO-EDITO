@@ -112,6 +112,9 @@ const launchProfile = resolveLaunchProfile(
 );
 const squirrelLaunch = !launchProfile.isolated && handleSquirrelEvent();
 
+// The app's internal name, from before it was renamed Blackout. Electron names the Keychain item that
+// protects stored secrets (Instagram, Gemini) after it, so changing it would lock the app out of them.
+// What people read is PRODUCT_NAME.
 app.setName("Cutroom");
 mkdirSync(launchProfile.directory, { recursive: true });
 app.setPath('userData', launchProfile.directory);
@@ -717,7 +720,7 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.CLIPBOARD_PATHS, async () => clipboardPaths());
   mainBridge.handle(MAIN_CHANNELS.LOGS_GET, () => logBuffer);
   mainBridge.handle(MAIN_CHANNELS.AGENT_CHAT_ENDPOINT, () => agentChatEndpoint());
-  const isolatedSetupMessage = 'Use the normal Cutroom profile to change system command or agent registrations.';
+  const isolatedSetupMessage = 'Use the normal Blackout profile to change system command or agent registrations.';
   mainBridge.handle(MAIN_CHANNELS.MCP_STATUS, () => launchProfile.isolated ? { url: dapi.url, agents: [] } : mcpStatus());
   mainBridge.handle(MAIN_CHANNELS.MCP_APPLY, (request) => launchProfile.isolated
     ? { added: [], removed: [], failures: [...new Set([...request.add, ...request.remove])].map(id => ({ id, error: isolatedSetupMessage })) }

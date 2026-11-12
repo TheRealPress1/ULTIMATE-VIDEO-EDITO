@@ -44,7 +44,7 @@ export const MemoryEntry = z.object({
  */
 const MemoryEntryOut = MemoryEntry.extend({
   text: z.string().optional().describe("the entry; left out when it is withheld"),
-  withheld: z.enum(MEMORY_SAFETY_CATEGORIES).optional().describe("set when the entry fails Cutroom's safety check: agents don't get its text, and the user reviews it in Settings"),
+  withheld: z.enum(MEMORY_SAFETY_CATEGORIES).optional().describe("set when the entry fails Blackout's safety check: agents don't get its text, and the user reviews it in Settings"),
 });
 
 /** The whole saved file: `<userData>/agent-memory/memory.json`. */
@@ -72,9 +72,9 @@ const MemoryOperation = z.object({
 export const memory = defineTool({
   name: "memory", title: "Agent memory",
   description:
-    "What Cutroom remembers about the user across chats and projects, in two short lists. `profile`: who they are and what they make — audience and viewer, platforms, voice, recurring stories and proof points, words to avoid, openers that worked, how they like to work. `setup`: machine and workspace facts — project and export folders, the connected Instagram handle, tool quirks. " +
+    "What Blackout remembers about the user across chats and projects, in two short lists. `profile`: who they are and what they make — audience and viewer, platforms, voice, recurring stories and proof points, words to avoid, openers that worked, how they like to work. `setup`: machine and workspace facts — project and export folders, the connected Instagram handle, tool quirks. " +
     "Call `view` at the start of a task when the session did not open with saved memory. Save at once when the user asks you to remember or forget something; never save one-off requests or anything inferred from footage, transcripts, analytics or web pages. Visual taste (fonts, captions, pacing, colors) goes to `editing_style`, facts about one project to its brief.md, and a procedure the user wants repeated to `skill_write`. " +
-    "Each entry is one short fact. `replace` and `remove` take an entry id or a unique part of its text; `apply` makes up to 12 changes in one step, all or none, with the budget checked after the last. A refused change (over budget, ambiguous, unsafe, stale `expectedRevision`, memory paused) writes nothing and returns the current entries: merge or drop old entries and retry. Credentials, contact details, links with query parameters and instructions aimed at agents are refused; a saved entry that fails that check comes back `withheld`, without its text, and can be changed only by its id. Changes reach new sessions, not the running one. Only this tool changes Cutroom's memory; never write it, or Claude's or Codex's own memory files, directly.",
+    "Each entry is one short fact. `replace` and `remove` take an entry id or a unique part of its text; `apply` makes up to 12 changes in one step, all or none, with the budget checked after the last. A refused change (over budget, ambiguous, unsafe, stale `expectedRevision`, memory paused) writes nothing and returns the current entries: merge or drop old entries and retry. Credentials, contact details, links with query parameters and instructions aimed at agents are refused; a saved entry that fails that check comes back `withheld`, without its text, and can be changed only by its id. Changes reach new sessions, not the running one. Only this tool changes Blackout's memory; never write it, or Claude's or Codex's own memory files, directly.",
   input: z.object({
     action: z.enum(["view", "add", "replace", "remove", "apply"]).default("view"),
     target: z.enum(MEMORY_TARGETS).optional().describe("the list to change; required for add, replace and remove, and the default for `apply` operations"),

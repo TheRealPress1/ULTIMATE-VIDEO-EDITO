@@ -1,6 +1,6 @@
 # Platform video and audio
 
-`media_search` finds uploads on YouTube, YouTube Music, SoundCloud and MyInstants, or lists a creator's latest uploads on YouTube, SoundCloud, Vimeo, TikTok and Instagram. `media_download` saves the sound or the video behind a platform link (those sites, X, and most other video or audio sites; Vimeo only at best, see below) into the open project's library and credits it in `CREDITS.md`. Both run inside Cutroom with its managed downloader (yt-dlp, installed into the app's own data folder on first use and kept current), so they need no shell, no network in the agent's sandbox and no permission prompt. Never run `yt-dlp`, `pip`, `brew` or `curl` in the shell for this: a shell download gets no provenance record, no credit, no library entry and no playability check.
+`media_search` finds uploads on YouTube, YouTube Music, SoundCloud and MyInstants, or lists a creator's latest uploads on YouTube, SoundCloud, Vimeo, TikTok and Instagram. `media_download` saves the sound or the video behind a platform link (those sites, X, and most other video or audio sites; Vimeo only at best, see below) into the open project's library and credits it in `CREDITS.md`. Both run inside Blackout with its managed downloader (yt-dlp, installed into the app's own data folder on first use and kept current), so they need no shell, no network in the agent's sandbox and no permission prompt. Never run `yt-dlp`, `pip`, `brew` or `curl` in the shell for this: a shell download gets no provenance record, no credit, no library entry and no playability check.
 
 **Rights are not verified.** A platform upload may be copyrighted, so every download is listed in `CREDITS.md` as unverified and the publishing decision stays with the user. For openly licensed stock, and for the images a web page shares, use [`web_media_search` and `web_media_download`](web-media.md), which record a verified license.
 
@@ -28,9 +28,9 @@ What each platform supports:
 | `youtube` | yes | yes | dates in listings are YouTube's rough age ("3 weeks ago") turned into a day, so `publishedAtApproximate` is true |
 | `youtube_music` | yes (songs) | as YouTube | best for a song's official audio or instrumental; links come back as `youtube.com/watch?v=…`. Its listing gives titles only, so each song's page is read for its artist, length and date when `limit` is 10 or less (a few seconds a song); above that, or when a song can't be read, results carry titles only and a warning says so |
 | `soundcloud` | yes | yes (`/tracks`) | downloads are AAC (`.m4a`), kept as served (a track offered without AAC keeps its MP3 or Opus file). Some tracks are DRM-protected: they still appear in a search, but `media_download` refuses them with a DRM error, so pick another result |
-| `vimeo` | no | yes (`/videos`) | best effort: Vimeo lets the downloader fetch most videos only when signed in, public ones included, and Cutroom doesn't sign in, so `media_download` usually refuses its links (asking for the user's own copy). A listing says so in a warning |
+| `vimeo` | no | yes (`/videos`) | best effort: Vimeo lets the downloader fetch most videos only when signed in, public ones included, and Blackout doesn't sign in, so `media_download` usually refuses its links (asking for the user's own copy). A listing says so in a warning |
 | `tiktok` | no | best effort | each video's page is read for dates and counts when `limit` is 10 or less; TikTok often blocks listings |
-| `instagram` | no | best effort | Instagram often requires a sign-in, which Cutroom doesn't do |
+| `instagram` | no | best effort | Instagram often requires a sign-in, which Blackout doesn't do |
 | `x` | no | no | |
 | `myinstants` | yes | no | short meme sounds; read from MyInstants' own search page |
 
@@ -68,7 +68,7 @@ What happens:
 
 1. **The link is checked.** Only `http` and `https` links, as for `web_media_download`: local names and private addresses are refused before anything runs. An image link, or a `web_media_search` result, is sent back to `web_media_download`, which keeps its license; a MyInstants link that isn't a sound page is refused with a pointer to `media_search`.
 2. **An upload saved before is found without the network**, offline included, by the id the link names (YouTube watch, `youtu.be`, Shorts, live, embed and YouTube Music links; TikTok, X, Instagram, Vimeo and MyInstants links; the user's own Instagram posts by the post's id), when the project's record of it still matches the file by size and hash. It is reused from whichever folder it is in. A video saved with a lower `maxHeight` than the one asked for doesn't count, so the larger one is downloaded next to it (`<id>-2.mp4`); one saved larger than asked for is reused, with a warning. A file that came larger than its cap (nothing smaller was offered) counts for every cap up to its own size.
-3. **Then the network.** The link's host must resolve to public addresses (a known site that doesn't resolve fails as a connection problem, not a bad link), and the downloader's own traffic goes through Cutroom's egress gate, which refuses private addresses too. A known platform's link is read only by that platform's extractor.
+3. **Then the network.** The link's host must resolve to public addresses (a known site that doesn't resolve fails as a connection problem, not a bad link), and the downloader's own traffic goes through Blackout's egress gate, which refuses private addresses too. A known platform's link is read only by that platform's extractor.
 4. **The metadata is read first.** A list holding several uploads fails with how many it holds (pass `item`); it is counted only up to 101, so a channel or a long playlist isn't read to its end. Live and upcoming streams fail; a source longer than the cap (audio 6 h, video 3 h), or expected to be larger (audio 1 GB, video 4 GB), fails before a byte of media moves. A file already in the folder under the upload's id that the project has no record of (copied in by hand) is adopted once it probes as the kind asked for.
 5. **The media is downloaded** into a work folder in the project's `.cutroom/`, out of the agents' reach and on the same disk, so the finished file is renamed into place. Audio takes the site's own sound without re-encoding: AAC as `.m4a` where the site has it, otherwise its MP3 or Opus file (`reencoded: false`). Video takes the largest picture whose shorter side is within `maxHeight`, or the smallest there is when nothing is that small (with a warning), in a codec the editor plays where offered; at the same size H.264 comes first, then HEVC, and AAC sound (whether the site calls it `mp4a` or `aac`) comes first. Picture and sound are merged into MP4. A download has 60 minutes, and stops after 2 minutes without data. A file that turns out larger than the cap only once it is fetched (the site didn't say its size) is skipped by the downloader, and the call fails saying so. At most two run at once; asking for an upload that is already downloading waits for it and reuses its file.
 6. **The file is checked to play.** It must have a length, the picture (H.264, HEVC, AV1 or VP9) or the sound asked for, and stay within the caps. A video without sound is kept with a warning.
@@ -110,11 +110,11 @@ The title and channel say what an upload claims to be, not what it sounds like. 
 
 ## Recovery inside the call
 
-The downloader is installed on the first call that needs it, from yt-dlp's GitHub releases, and checked for updates in the background. A release is used only when its files match its `SHA2-256SUMS` and that file carries yt-dlp's signature, checked against the release key built into Cutroom; an unsigned release is refused, and the installed one keeps working. Within one call, a page the extractor can no longer read updates the downloader once and tries again (a download that fails this way has the link's metadata read again by the new version first, since the saved formats came from the old one); a dropped connection is tried once more after two seconds. Nothing else is retried, so an error that reaches the agent is final: follow its message rather than calling again with the same link, and never swap in a different song or video without telling the user. Settings > Downloads shows the downloader's version and state.
+The downloader is installed on the first call that needs it, from yt-dlp's GitHub releases, and checked for updates in the background. A release is used only when its files match its `SHA2-256SUMS` and that file carries yt-dlp's signature, checked against the release key built into Blackout; an unsigned release is refused, and the installed one keeps working. Within one call, a page the extractor can no longer read updates the downloader once and tries again (a download that fails this way has the link's metadata read again by the new version first, since the saved formats came from the old one); a dropped connection is tried once more after two seconds. Nothing else is retried, so an error that reaches the agent is final: follow its message rather than calling again with the same link, and never swap in a different song or video without telling the user. Settings > Downloads shows the downloader's version and state.
 
 ## Credits
 
-Platform downloads join web media in the `CREDITS.md` section Cutroom rewrites after each download, with the credit line `"<title>" by <channel> on <Site> (<page>)`, the license marked as not verified, and the source page. See [web media](web-media.md#licenses-and-credits) for how that section is kept.
+Platform downloads join web media in the `CREDITS.md` section Blackout rewrites after each download, with the credit line `"<title>" by <channel> on <Site> (<page>)`, the license marked as not verified, and the source page. See [web media](web-media.md#licenses-and-credits) for how that section is kept.
 
 ## CLI
 
@@ -135,8 +135,8 @@ The CLI prints the same JSON as the MCP tools; inline thumbnails are not printed
 ## Errors
 
 - `Give exactly one of query (words to search for) or creator (an account whose latest uploads to list).`
-- `Cutroom can't search TikTok by keyword. …` (and the same for Instagram, X and Vimeo) — with the substitute to use.
-- `That isn't a creator Cutroom can list on YouTube: give a handle like @name, a channel id (UC…) or a channel link.`
+- `Blackout can't search TikTok by keyword. …` (and the same for Instagram, X and Vimeo) — with the substitute to use.
+- `That isn't a creator Blackout can list on YouTube: give a handle like @name, a channel id (UC…) or a channel link.`
 - `No project is open. Open one first, or pass an absolute folder to save the file there without a project.`
 - `That folder isn't one media_download can use: …` and `With a project open, folder is a library folder under assets/ …`
 - `This is an image or a web_media_search result, whose license web_media_download keeps. …`
@@ -146,14 +146,14 @@ The CLI prints the same JSON as the MCP tools; inline thumbnails are not printed
 - `The downloader skipped this video: it is larger than the 4.0 GB media_download takes for video. …` — the site didn't say the size up front.
 - `This media can't be downloaded (Video unavailable). Choose a different source; this link won't work on retry.`
 - `SoundCloud protects this with DRM (…), so it can't be downloaded. Choose another source or ask the user for their own copy.` — the same for any site's DRM-protected media.
-- `YouTube only shows this to signed-in viewers (…). Cutroom doesn't sign in to sites: choose another source, or ask the user for their own copy of the file.`
-- `Vimeo lets the downloader read its videos only when signed in, public ones included (The web client only works when logged-in), and Cutroom doesn't sign in to sites. …` — about Vimeo, not the video: ask the user for their own copy.
+- `YouTube only shows this to signed-in viewers (…). Blackout doesn't sign in to sites: choose another source, or ask the user for their own copy of the file.`
+- `Vimeo lets the downloader read its videos only when signed in, public ones included (The web client only works when logged-in), and Blackout doesn't sign in to sites. …` — about Vimeo, not the video: ask the user for their own copy.
 - `YouTube asked for a bot check (…), which happens on VPNs and shared networks. …`
 - `<Site> is limiting requests from this network (HTTP Error 429 …). Wait several minutes …`
 - `The downloader is up to date (yt-dlp <version>) and still can't read this page (…). The site may be blocking downloads right now; tell the user rather than retrying.`
 - `Couldn't reach YouTube (…). Check the internet connection, then try once more.` — also when a known site's name doesn't resolve (offline).
 - `No picture the editor can play came with this video (mpeg4 with aac); choose another source.`
-- `Cutroom couldn't set up its downloader (yt-dlp): … Settings > Downloads shows its state.`
+- `Blackout couldn't set up its downloader (yt-dlp): … Settings > Downloads shows its state.`
 - `MyInstants refused the request (it may be showing a bot check). …` and `MyInstants took longer than 20 seconds to answer …`
 - `Instagram's link to this file has expired (403). Call instagram_posts again for a fresh mediaUrl, or pass the post's permalink.`
 - `The project was saved or moved during the download. Download again in the project where it is now.`

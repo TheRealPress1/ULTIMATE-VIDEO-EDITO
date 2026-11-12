@@ -1,6 +1,6 @@
 # brief.md: the project brief
 
-Each video project can keep its plan in one plain markdown file, `brief.md`, at the top of the project folder. The [scripting skill](../skills/uve-scripting/SKILL.md) writes it and [`script_lint`](./tools/script.md) reads it by default. The other editing skills read it to learn the goal, the viewer and the edit plan. Agents write it with their own file tools, which are allowed inside the open project without asking. The user can change it in any text editor. Cutroom has no Script panel yet, so the file is the only copy.
+Each video project can keep its plan in one plain markdown file, `brief.md`, at the top of the project folder. The [scripting skill](../skills/uve-scripting/SKILL.md) writes it and [`script_lint`](./tools/script.md) reads it by default. The other editing skills read it to learn the goal, the viewer and the edit plan. Agents write it with their own file tools, which are allowed inside the open project without asking. The user can change it in any text editor. Blackout has no Script panel yet, so the file is the only copy.
 
 The format is loose on purpose. Every section is optional and sections can come in any order. A file the parser can't fully read still works: the parser never fails, and anything it had to guess comes back as a warning.
 

@@ -135,7 +135,7 @@ export class EarshotWorker {
    * for the calls ahead first; `timeoutMs` counts from when earshot gets it.
    */
   async call(name: string, args: Record<string, unknown>, options: { signal?: AbortSignal; timeoutMs: number }): Promise<CallToolResult> {
-    if (this.disposed) throw new Error("Cutroom is quitting.");
+    if (this.disposed) throw new Error("Blackout is quitting.");
     options.signal?.throwIfAborted();
     this.inFlight++;
     this.clearIdle();
@@ -199,7 +199,7 @@ export class EarshotWorker {
     if (restart && this.restarts.length >= this.maxRestarts) {
       const last = this.lastTail.trim().split(/\r?\n/).at(-1);
       return Promise.reject(new WorkerCrashed(
-        `The sound analysis worker stopped unexpectedly ${this.crashes.length} times in ${Math.round(this.restartWindowMs / 60_000)} minutes${last ? ` (${last.slice(0, 240)})` : ""}, so it isn't being restarted for now. Try again in a few minutes, or reinstall audio intelligence in Cutroom's Settings (Remove, then Install now).`,
+        `The sound analysis worker stopped unexpectedly ${this.crashes.length} times in ${Math.round(this.restartWindowMs / 60_000)} minutes${last ? ` (${last.slice(0, 240)})` : ""}, so it isn't being restarted for now. Try again in a few minutes, or reinstall audio intelligence in Blackout's Settings (Remove, then Install now).`,
       ));
     }
     if (restart) this.restarts.push(now);

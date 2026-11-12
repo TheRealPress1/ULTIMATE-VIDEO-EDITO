@@ -62,7 +62,7 @@ export async function readEditingSkills(docsDir: string | null, args: ToolArgs<"
   const selected = await findSkill(skills, args.id, docsDir);
   if (!selected) {
     const ids = skills.map((skill) => skill.id).join(", ");
-    const paused = options.userSkillsPaused ? " The user's saved skills are paused along with agent memory in Cutroom's Settings, so none are offered until they turn it back on." : "";
+    const paused = options.userSkillsPaused ? " The user's saved skills are paused along with agent memory in Blackout's Settings, so none are offered until they turn it back on." : "";
     throw new DapiError("invalid-input", args.id
       ? `Unknown skill ${JSON.stringify(args.id.slice(0, 80))}. Use one of these ids (or its listed path): ${ids}.${paused}`
       : `Choose a skill id: ${ids}.${paused}`);
@@ -208,7 +208,7 @@ async function listUserSkills(dir: string, reserved: ReadonlySet<string>): Promi
       // Frontmatter reaches agents only from a SKILL.md that passed the scan; otherwise the id stands in.
       title: scan?.ok && meta?.title && meta.title.length <= 80 ? meta.title : humanize(id),
       description: description ?? (scan && !scan.ok
-        ? `This saved skill fails Cutroom's safety check (${scan.category}), so agents don't get it.`
+        ? `This saved skill fails Blackout's safety check (${scan.category}), so agents don't get it.`
         : "This saved skill's SKILL.md is missing, too large, or lacks a name and description in its frontmatter."),
       version: meta?.version && /^\d+(?:\.\d+){0,2}$/.test(meta.version) ? meta.version : "local",
       available: description !== null,

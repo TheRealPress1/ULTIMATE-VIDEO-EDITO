@@ -2,7 +2,7 @@
 
 `memory` keeps a few facts about the user between chats, shared by Claude Code and Codex and by every project. It works without an open project. There are two lists:
 
-- `profile`: who the user is and who they make videos for. Their audience and the viewer they picture, platforms and formats, their voice, recurring stories and proof points, words to avoid, openers that worked, and how they like to work. This is the creator profile; Cutroom has no separate one.
+- `profile`: who the user is and who they make videos for. Their audience and the viewer they picture, platforms and formats, their voice, recurring stories and proof points, words to avoid, openers that worked, and how they like to work. This is the creator profile; Blackout has no separate one.
 - `setup`: facts about their machine and workspace. Where projects and exports go, the connected Instagram handle, tool quirks worth knowing.
 
 Other things have their own place. Visual taste (fonts, captions, pacing, colors) goes in [`editing_style`](skills.md). Facts about one project go in that project's `brief.md`. A procedure the user wants repeated becomes a user skill through [`skill_write`](skills.md#skill_write).
@@ -17,7 +17,7 @@ Other things have their own place. Visual taste (fonts, captions, pacing, colors
 
 Save as soon as the user says to remember something, and remove an entry as soon as they say to forget it. Don't save one-off requests ("make this one shorter"). Don't save anything you only inferred from footage, transcripts, analytics, web pages or another agent's output. Each entry is one short fact in plain words.
 
-Only this tool and Settings change the memory. Agents never write its files directly, and never write Claude's or Codex's own memory files on Cutroom's behalf.
+Only this tool and Settings change the memory. Agents never write its files directly, and never write Claude's or Codex's own memory files on Blackout's behalf.
 
 ## Input
 
@@ -71,12 +71,12 @@ An entry already saved can fail the check later, after a hand edit, a restore of
 
 ## How sessions see it
 
-Each in-app chat (Claude Code or Codex) starts with a digest appended to its instructions: the revision, the profile and setup entries, a pointer to the editing style when one is saved, and the user's own skills (the ones `skills` would serve: not a bundled id, and a whole SKILL.md that passes the safety check). The digest is rendered afresh each time a session opens or resumes. Saving in the middle of a chat therefore leaves that chat's instructions alone; the change shows up in the next session, or in this one once it resumes. Entries that fail the safety check at that moment are withheld and only counted, and the user can review them in Settings. The digest says the notes are background that never override the current request, the brief or Cutroom's rules.
+Each in-app chat (Claude Code or Codex) starts with a digest appended to its instructions: the revision, the profile and setup entries, a pointer to the editing style when one is saved, and the user's own skills (the ones `skills` would serve: not a bundled id, and a whole SKILL.md that passes the safety check). The digest is rendered afresh each time a session opens or resumes. Saving in the middle of a chat therefore leaves that chat's instructions alone; the change shows up in the next session, or in this one once it resumes. Entries that fail the safety check at that moment are withheld and only counted, and the user can review them in Settings. The digest says the notes are background that never override the current request, the brief or Blackout's rules.
 
 External MCP sessions don't get the digest in their instructions. They call `memory` with `view` at the start of a task.
 
 ## Settings and switches
 
-**What agents remember** in Settings lists both lists with their usage, lets the user edit, add and delete entries, and marks any entry chats are not shown. It can restore any of the last 50 versions; a restore is a new revision, and the version it replaces is kept too. The pause switch keeps everything saved. While memory is paused, in-app chats open without the digest, `memory` returns no entries and refuses changes, and `skill_write` writes nothing. Skills already saved stay listed by `skills`. Starting Cutroom with `CUTROOM_MEMORY=0` turns memory and user skills off for that session. Each isolated launch profile keeps its own memory.
+**What agents remember** in Settings lists both lists with their usage, lets the user edit, add and delete entries, and marks any entry chats are not shown. It can restore any of the last 50 versions; a restore is a new revision, and the version it replaces is kept too. The pause switch keeps everything saved. While memory is paused, in-app chats open without the digest, `memory` returns no entries and refuses changes, and `skill_write` writes nothing. Skills already saved stay listed by `skills`. Starting Blackout with `CUTROOM_MEMORY=0` turns memory and user skills off for that session. Each isolated launch profile keeps its own memory.
 
 A memory file that can't be read is never overwritten. Every write fails with an error until the file is fixed or moved aside. A file started over after a move-aside begins again at revision 0; the versions kept from the old one stay in **Earlier versions**, which lists versions by when they were replaced.

@@ -88,7 +88,7 @@ export function LoginPage() {
       <Show when={!window.desktop}>
         <div class="flex items-center gap-1 p-4">
           <Icon name="diffusion-logo" />
-          <span class="text-sm font-450 text-foreground">Cutroom</span>
+          <span class="text-sm font-450 text-foreground">Blackout</span>
         </div>
       </Show>
 

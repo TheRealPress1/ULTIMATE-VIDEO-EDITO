@@ -57,11 +57,11 @@ describe("fetchVerified", () => {
 
   it("only downloads over HTTPS from the hosts it knows, redirects included", async () => {
     const { fetch } = github(bytes, "https://evil.example/uv.tar.gz");
-    await expect(fetchVerified(fetch, file, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("was sent to evil.example, which Cutroom doesn't download from.");
+    await expect(fetchVerified(fetch, file, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("was sent to evil.example, which Blackout doesn't download from.");
     const plain = { ...file, url: "http://github.com/astral-sh/uv.tar.gz" };
-    await expect(fetchVerified(github().fetch, plain, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("which Cutroom doesn't download from");
+    await expect(fetchVerified(github().fetch, plain, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("which Blackout doesn't download from");
     const local = { ...file, url: "https://127.0.0.1/uv.tar.gz" };
-    await expect(fetchVerified(github().fetch, local, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("127.0.0.1, which Cutroom doesn't download from");
+    await expect(fetchVerified(github().fetch, local, join(dir, "uv.tar.gz"), new AbortController().signal)).rejects.toThrow("127.0.0.1, which Blackout doesn't download from");
     expect(await readdir(dir)).toEqual([]);
   });
 

@@ -229,7 +229,7 @@ const AnswerEntry = z.looseObject({
   id: z.string(),
   title: z.string(),
   rights: RightsCode,
-  origin: Origin.describe("default: Cutroom's entry as shipped; personal: the user's own; overridden: a default the user changed"),
+  origin: Origin.describe("default: Blackout's entry as shipped; personal: the user's own; overridden: a default the user changed"),
   overridden: z.array(z.string()).optional().describe("fields the personal layer sets; a summary leaves it out when there are none"),
   needsVerification: z.boolean().optional().describe("true when the source moved without new timing: recheck duration and range first; a summary leaves it out when false"),
   selectable: z.boolean().optional().describe("false for a hidden entry; a summary leaves it out when true"),
@@ -255,7 +255,7 @@ export const audioCatalog = defineTool({
   name: "audio_catalog",
   title: "Music and sound effect catalog",
   description:
-    "Cutroom's curated music beds and sound effects, merged with the user's personal catalog (shared by every project and both agents). Read it before choosing music or effects the user didn't supply. `list` filters by mood, use, energy, vocals, category, rights and usable length and returns compact entries; `detail: \"full\"` adds descriptions, credits, sections and what each entry is wrong for; `get` returns one entry in full with its default and personal layers. Each entry's `download` names the call that fetches it (media_download for YouTube, MyInstants and Freesound pages, web_media_download for Commons and Freesound files) with the `url` and `folder` to pass. `sourceRange` is in source seconds for sourceIn/sourceOut, `suggestedVolumeDb` is a starting clip volume (a bed under speech; an effect at its category's level, corrected for the file's peak), and an effect's `hitAt` and `align` say where its moment lands. `rights: \"copyrighted\"` suits drafts and private edits and may be muted or claimed when posted; prefer cc0, public-domain, cc-by or royalty-free entries for published work, and put their `attribution` in the caption. `save` and `reset` change only the personal catalog, and only when the user explicitly asks to remember, prefer, hide, correct or add an entry; send `expectedRevision` from the last call, and a stale one fails without overwriting. Placing a track never saves it. Needs no open project.",
+    "Blackout's curated music beds and sound effects, merged with the user's personal catalog (shared by every project and both agents). Read it before choosing music or effects the user didn't supply. `list` filters by mood, use, energy, vocals, category, rights and usable length and returns compact entries; `detail: \"full\"` adds descriptions, credits, sections and what each entry is wrong for; `get` returns one entry in full with its default and personal layers. Each entry's `download` names the call that fetches it (media_download for YouTube, MyInstants and Freesound pages, web_media_download for Commons and Freesound files) with the `url` and `folder` to pass. `sourceRange` is in source seconds for sourceIn/sourceOut, `suggestedVolumeDb` is a starting clip volume (a bed under speech; an effect at its category's level, corrected for the file's peak), and an effect's `hitAt` and `align` say where its moment lands. `rights: \"copyrighted\"` suits drafts and private edits and may be muted or claimed when posted; prefer cc0, public-domain, cc-by or royalty-free entries for published work, and put their `attribution` in the caption. `save` and `reset` change only the personal catalog, and only when the user explicitly asks to remember, prefer, hide, correct or add an entry; send `expectedRevision` from the last call, and a stale one fails without overwriting. Placing a track never saves it. Needs no open project.",
   input: z.object({
     action: z.enum(["list", "get", "save", "reset"]).default("list").describe("list (default), get one entry, save a personal override or entry, reset (drop) a personal override"),
     kind: CatalogKind.describe("music or sfx"),
@@ -292,7 +292,7 @@ export const audioCatalog = defineTool({
   output: z.object({
     kind: CatalogKind,
     revision: z.int().nonnegative().describe("the personal file's revision; pass it as expectedRevision to save or reset"),
-    defaultsUpdated: z.string().nullable().describe("when Cutroom's defaults were last curated (YYYY-MM-DD)"),
+    defaultsUpdated: z.string().nullable().describe("when Blackout's defaults were last curated (YYYY-MM-DD)"),
     defaultsPath: z.string().nullable(),
     personalPath: z.string(),
     total: z.int().nonnegative().describe("entries matching the filters, before `limit`"),
@@ -300,7 +300,7 @@ export const audioCatalog = defineTool({
     entries: z.array(AnswerEntry).describe("list: a summary leaves out sourceUrl (download.url has it), description, attribution, avoid, sections, pageUrl, verifiedAt, addedAt and loudnessLufs"),
     selected: z.object({
       id: z.string(),
-      default: AnswerLayer.nullable().describe("Cutroom's entry as shipped"),
+      default: AnswerLayer.nullable().describe("Blackout's entry as shipped"),
       personal: AnswerLayer.nullable().describe("the user's override: the fields it sets, null where it clears one"),
       merged: AnswerEntry.nullable().describe("the result, in full; null when too incomplete to list"),
       excludedReason: z.enum(["hidden", "incomplete", "no-source"]).optional(),

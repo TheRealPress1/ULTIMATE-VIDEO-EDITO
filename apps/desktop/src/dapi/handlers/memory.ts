@@ -8,6 +8,6 @@ import type { MainHandler } from "../handler";
 
 /** `memory`: the user's saved profile and setup notes, shared with Settings' "What agents remember". */
 export const memory: MainHandler<"memory"> = async (args, ctx) => {
-  if (!ctx.agentMemoryFile) throw new DapiError("unsupported", "Agent memory is turned off in this Cutroom session, so nothing is read or saved.");
+  if (!ctx.agentMemoryFile) throw new DapiError("unsupported", "Agent memory is turned off in this Blackout session, so nothing is read or saved.");
   return agentMemoryStore(ctx.agentMemoryFile).tool(args);
 };

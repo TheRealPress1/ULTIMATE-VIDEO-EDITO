@@ -82,7 +82,7 @@ export const instagramPosts = defineTool({
 export const instagramPostAnalytics = defineTool({
   name: "instagram_post_analytics",
   title: "Instagram post analytics",
-  description: "Read one cached Instagram post's latest lifetime metrics and saved observations from previous syncs. Null means Instagram did not provide that metric. History starts when Cutroom observed the post and is not a backfilled daily time series. Reads the local cache without a project or a network sync. Use a postId returned by instagram_posts; unknown IDs return a not-found error.",
+  description: "Read one cached Instagram post's latest lifetime metrics and saved observations from previous syncs. Null means Instagram did not provide that metric. History starts when Blackout observed the post and is not a backfilled daily time series. Reads the local cache without a project or a network sync. Use a postId returned by instagram_posts; unknown IDs return a not-found error.",
   input: z.object({ postId: z.string().min(1).describe("a cached Instagram media ID returned by instagram_posts") }),
   output: z.object({
     ...connectionFields,
@@ -97,7 +97,7 @@ export const instagramPostAnalytics = defineTool({
 export const instagramAccountInsights = defineTool({
   name: "instagram_account_insights",
   title: "Instagram account insights",
-  description: "Read the connected account's latest follower count and follower observations saved by Cutroom's syncs. This is observed history since connection, not historical daily growth from Instagram; do not infer missing dates or pre-connection followers. Includes connection state, sync freshness and cached-post coverage. Reads local data only and does not require a project.",
+  description: "Read the connected account's latest follower count and follower observations saved by Blackout's syncs. This is observed history since connection, not historical daily growth from Instagram; do not infer missing dates or pre-connection followers. Includes connection state, sync freshness and cached-post coverage. Reads local data only and does not require a project.",
   input: z.object({}),
   output: z.object({
     ...connectionFields,

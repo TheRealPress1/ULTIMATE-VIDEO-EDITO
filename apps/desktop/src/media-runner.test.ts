@@ -148,7 +148,7 @@ describe("downloaderError", () => {
     const error = await runRecovering(downloader, ["https://vimeo.com/76979871"], { signal: new AbortController().signal, purpose: "download", site: "vimeo" }).catch((thrown: DapiError) => thrown);
     expect(error).toMatchObject({ code: "sign-in-required" });
     expect((error as Error).message).toBe(
-      "Vimeo lets the downloader read its videos only when signed in, public ones included (The web client only works when logged-in), and Cutroom doesn't sign in to sites. Ask the user for their own copy of the file, or choose a source on another site.",
+      "Vimeo lets the downloader read its videos only when signed in, public ones included (The web client only works when logged-in), and Blackout doesn't sign in to sites. Ask the user for their own copy of the file, or choose a source on another site.",
     );
   });
 

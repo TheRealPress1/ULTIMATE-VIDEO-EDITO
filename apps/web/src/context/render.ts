@@ -159,7 +159,7 @@ export async function renderScene(
     const encoder = await createEncoder(capture.world, {
       ...encodeConfig,
       target,
-      comment: `Made with Cutroom v${version}`,
+      comment: `Made with Blackout v${version}`,
       onProgress(p) {
         const percent = Math.max(0, Math.min(100, Math.round((p.progress / Math.max(p.total, 1)) * 100)));
         logProgress(percent);

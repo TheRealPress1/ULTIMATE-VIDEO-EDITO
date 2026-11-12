@@ -14,8 +14,8 @@ import { track } from "@/lib/analytics";
 const RELEASES = "https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/releases/latest/download/";
 
 const DOWNLOADS = {
-  macos: { url: `${RELEASES}Cutroom-arm64.dmg`, label: "macOS" },
-  windows: { url: `${RELEASES}Cutroom-x64-Setup.exe`, label: "Windows" },
+  macos: { url: `${RELEASES}Blackout-arm64.dmg`, label: "macOS" },
+  windows: { url: `${RELEASES}Blackout-x64-Setup.exe`, label: "Windows" },
 } as const;
 
 export type DesktopAppPlatform = keyof typeof DOWNLOADS;
@@ -60,12 +60,12 @@ export function downloadDesktopApp(source: DesktopAppDownloadSource) {
   if (!platform) {
     toast("Available for macOS and Windows", {
       description:
-        "The desktop app ships for macOS and Windows. Open Cutroom on one of those to install it.",
+        "The desktop app ships for macOS and Windows. Open Blackout on one of those to install it.",
     });
     return;
   }
 
-  toast("Run Cutroom on your desktop", {
+  toast("Run Blackout on your desktop", {
     description: "From the project folder, run npm install, then npm run dev. The desktop app connects to your installed agents and local media.",
     duration: 10000,
   });

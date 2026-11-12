@@ -6,7 +6,7 @@ The creator here makes houseplant videos. They paste a rough draft about waterin
 
 ## 1. Project and context
 
-Open or create the video's project with `open`. Read what Cutroom already knows: `memory` with `action: "view"` for the creator's profile (their viewer, voice, words they avoid, a measured reading rate) and `editing_style` with `action: "get"` for caption look and pacing. Read the scripting skill and its references with `skills`.
+Open or create the video's project with `open`. Read what Blackout already knows: `memory` with `action: "view"` for the creator's profile (their viewer, voice, words they avoid, a measured reading rate) and `editing_style` with `action: "get"` for caption look and pacing. Read the scripting skill and its references with `skills`.
 
 A pasted draft starts at the rewrite stage. Fill in `## Goal` from the request and the profile, and ask only for what's missing.
 

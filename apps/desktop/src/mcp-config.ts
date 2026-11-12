@@ -152,8 +152,9 @@ export function readServer(text: string | null, format: ConfigFormat): Registere
 
 // What a path to our proxy has in it: the app's name inside a macOS bundle
 // (or the translocated mount a quarantined bundle ran from), the Squirrel
-// package id in the Windows shim folder.
-const OUR_PATHS = ["/Cutroom.app/", "\\Cutroom\\"];
+// package id in the Windows shim folder. Builds before Blackout were called
+// Cutroom.app, and an entry they wrote is still ours to repair.
+const OUR_PATHS = ["/Blackout.app/", "/Cutroom.app/", "\\Cutroom\\"];
 
 /**
  * Whether a stdio entry runs our proxy — from wherever the app was when the

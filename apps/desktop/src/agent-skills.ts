@@ -77,8 +77,8 @@ const BUNDLED = new Set(EDITING_SKILLS.map((skill) => skill.id));
 /** Why `id` cannot name a user skill; null when it can. */
 export function userSkillIdRefusal(id: string): string | null {
   if (!USER_SKILL_ID.test(id)) return "A skill id is 3-48 lowercase letters, digits and hyphens, starting with a letter.";
-  if (id.startsWith(RESERVED_SKILL_PREFIX)) return `Ids starting with \`${RESERVED_SKILL_PREFIX}\` are kept for Cutroom's own skills; choose another id.`;
-  if (BUNDLED.has(id)) return `\`${id}\` is one of Cutroom's own skills, which can't be changed; choose another id.`;
+  if (id.startsWith(RESERVED_SKILL_PREFIX)) return `Ids starting with \`${RESERVED_SKILL_PREFIX}\` are kept for Blackout's own skills; choose another id.`;
+  if (BUNDLED.has(id)) return `\`${id}\` is one of Blackout's own skills, which can't be changed; choose another id.`;
   return null;
 }
 

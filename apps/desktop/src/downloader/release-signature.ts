@@ -95,11 +95,11 @@ function readPacket(bytes: Buffer, at: number): { tag: number; body: Buffer; end
     } else if (octet === 255) {
       need(bytes, at + 6);
       [length, start] = [bytes.readUInt32BE(at + 2), at + 6];
-    } else throw new SignatureError("is split into parts, which Cutroom doesn't read");
+    } else throw new SignatureError("is split into parts, which Blackout doesn't read");
   } else {
     tag = (first >> 2) & 0x0f;
     const type = first & 0x03;
-    if (type === 3) throw new SignatureError("has no length, which Cutroom doesn't read");
+    if (type === 3) throw new SignatureError("has no length, which Blackout doesn't read");
     const size = 1 << type;
     need(bytes, at + 1 + size);
     length = size === 1 ? bytes[at + 1]! : size === 2 ? bytes.readUInt16BE(at + 1) : bytes.readUInt32BE(at + 1);
@@ -180,11 +180,11 @@ export function checkSignature(data: Uint8Array, signature: Uint8Array, keys: re
   if (packet.tag !== 2 || packet.end !== bytes.length) throw new SignatureError("isn't a single OpenPGP signature");
   const body = packet.body;
   need(body, 6);
-  if (body[0] !== 4) throw new SignatureError(`is a version ${body[0]} signature, which Cutroom doesn't read`);
+  if (body[0] !== 4) throw new SignatureError(`is a version ${body[0]} signature, which Blackout doesn't read`);
   if (body[1] !== 0x00) throw new SignatureError("doesn't sign a file's bytes");
   if (!RSA.has(body[2]!)) throw new SignatureError("isn't an RSA signature");
   const hash = HASHES[body[3]!];
-  if (!hash) throw new SignatureError("uses a hash Cutroom doesn't accept");
+  if (!hash) throw new SignatureError("uses a hash Blackout doesn't accept");
   const hashedEnd = 6 + body.readUInt16BE(4);
   need(body, hashedEnd + 2);
   const unhashedEnd = hashedEnd + 2 + body.readUInt16BE(hashedEnd);
@@ -194,14 +194,14 @@ export function checkSignature(data: Uint8Array, signature: Uint8Array, keys: re
   const quick = body.subarray(unhashedEnd, unhashedEnd + 2);
   const { value, end } = readMpi(body, unhashedEnd + 2);
   if (end !== body.length) throw new SignatureError("has bytes after its value");
-  if (hashed.some((item) => item.critical && !UNDERSTOOD.has(item.type))) throw new SignatureError("carries a condition Cutroom doesn't understand");
+  if (hashed.some((item) => item.critical && !UNDERSTOOD.has(item.type))) throw new SignatureError("carries a condition Blackout doesn't understand");
 
   // The signer: its fingerprint (subpacket 33) or key ID (16, the fingerprint's last 8 bytes), when it says.
   const issuers = [...hashed, ...unhashed].flatMap((item) =>
     item.type === 33 && item.body[0] === 4 ? [item.body.subarray(1).toString("hex").toUpperCase()]
     : item.type === 16 && item.body.length === 8 ? [item.body.toString("hex").toUpperCase()] : []);
   const candidates = issuers.length ? keys.filter((key) => issuers.some((issuer) => key.fingerprint.endsWith(issuer))) : keys;
-  if (!candidates.length) throw new SignatureError(`is by a key Cutroom doesn't know (${issuers[0]})`);
+  if (!candidates.length) throw new SignatureError(`is by a key Blackout doesn't know (${issuers[0]})`);
 
   // What was signed: the data, then the signature's own hashed part, then its length (RFC 4880, 5.2.4).
   const trailer = Buffer.from([0x04, 0xff, 0, 0, 0, 0]);

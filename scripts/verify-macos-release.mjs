@@ -5,7 +5,7 @@ import { realpath } from 'node:fs/promises';
 import { atomicJson, verifyMacApp, verifyMacDmg, withVerifiedZip } from './lib/release-artifacts.mjs';
 
 const { values } = parseArgs({ options: Object.fromEntries(['app', 'zip', 'dmg', 'team', 'output'].map(name => [name, { type: 'string' }])) });
-assert(values.app && values.zip && values.dmg && values.team, 'Usage: node scripts/verify-macos-release.mjs --app Cutroom.app --zip release.zip --dmg release.dmg --team TEAMID --output verification.json');
+assert(values.app && values.zip && values.dmg && values.team, 'Usage: node scripts/verify-macos-release.mjs --app Blackout.app --zip release.zip --dmg release.dmg --team TEAMID --output verification.json');
 if (values.output) {
   const output = join(await realpath(dirname(resolve(values.output))), basename(values.output)).toLowerCase();
   const app = (await realpath(values.app)).toLowerCase();

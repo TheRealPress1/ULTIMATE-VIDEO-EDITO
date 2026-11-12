@@ -14,7 +14,7 @@ cp examples/01-basics.tsx ~/Movies/basics/index.tsx
 
 `open` creates the folder with an empty `index.tsx`, and the app picks up the copied
 entry as soon as it lands. Over `open` (from a shell or an agent), a folder must be new
-or empty unless it already is a Cutroom project, so copy the example in after opening,
+or empty unless it already is a Blackout project, so copy the example in after opening,
 not before.
 
 | Example | Shows |

@@ -2,7 +2,7 @@
 
 UVE uses Developer ID signing and Apple notarization for macOS releases. The app and DMG receive separate notarization tickets, including stapled tickets for offline installation. Signing, notarization, or Gatekeeper failure stops packaging.
 
-The current distribution choice is **public GitHub releases**: the repository and its releases are public, so anyone can download an installer without an account. **Settings → App updates** opens the releases page in the browser. These are manual installer updates: download the DMG, quit Cutroom after saving, and replace the application in Applications. Projects and the existing application profile live outside the bundle. No GitHub token or other credential is embedded in the app or its release configuration.
+The current distribution choice is **public GitHub releases**: the repository and its releases are public, so anyone can download an installer without an account. **Settings → App updates** opens the releases page in the browser. These are manual installer updates: download the DMG, quit Blackout after saving, and replace the application in Applications. Projects and the existing application profile live outside the bundle. No GitHub token or other credential is embedded in the app or its release configuration.
 
 ## Build a signed release
 
@@ -38,8 +38,8 @@ Release settings are validated both during the build and at Forge's packaging en
 After packaging, run both checks (use the actual version in the ZIP filename):
 
 ```sh
-node scripts/verify-standalone-bundle.mjs apps/desktop/out/Cutroom-darwin-arm64/Cutroom.app arm64 --output .context/bundle-verification.json
-node scripts/verify-macos-release.mjs --app apps/desktop/out/Cutroom-darwin-arm64/Cutroom.app --zip apps/desktop/out/make/zip/darwin/arm64/Cutroom-darwin-arm64-VERSION.zip --dmg apps/desktop/out/make/Cutroom-arm64.dmg --team YOURTEAMID --output .context/release-verification.json
+node scripts/verify-standalone-bundle.mjs apps/desktop/out/Blackout-darwin-arm64/Blackout.app arm64 --output .context/bundle-verification.json
+node scripts/verify-macos-release.mjs --app apps/desktop/out/Blackout-darwin-arm64/Blackout.app --zip apps/desktop/out/make/zip/darwin/arm64/Blackout-darwin-arm64-VERSION.zip --dmg apps/desktop/out/make/Blackout-arm64.dmg --team YOURTEAMID --output .context/release-verification.json
 ```
 
 The first checks bundled native dependencies, local speech/speaker models, web assets, compiler modules and the bundled CLI with a system-only PATH. The second extracts a private snapshot of the ZIP and mounts a private snapshot of the DMG read-only, verifies actual bundle versions and code-signature hashes agree, checks the expected Developer ID team, hardened runtime, stapled tickets and Gatekeeper acceptance, then records SHA-256 and sizes. It rejects unsafe ZIP paths/symlinks and changing artifacts.
@@ -57,7 +57,7 @@ When an appropriate host is available, build with `CUTROOM_UPDATE_FEED_URL` poin
 Generate metadata only from a signed, stapled ZIP:
 
 ```sh
-node scripts/prepare-release-manifest.mjs path/to/Cutroom.zip https://releases.example.com/uve/ releases.json arm64 --team YOURTEAMID --static-dir release-site
+node scripts/prepare-release-manifest.mjs path/to/Blackout.zip https://releases.example.com/uve/ releases.json arm64 --team YOURTEAMID --static-dir release-site
 ```
 
 The generator reads the version and architecture from the verified archive, streams its checksum, preserves prior releases and other architectures, and rejects an older version or replacing an existing version with different bytes. Static manifests appear at `release-site/darwin/arm64/RELEASES.json` (and x64 when present). Upload ZIPs first and replace feed metadata last.
@@ -78,7 +78,7 @@ The manual **Build signed macOS release** workflow imports a Developer ID P12 in
 
 The workflow is provided in the source tree; cloud builds require configuring its repository secrets. Releases so far were built locally with the existing macOS Keychain profile. A GitHub release carries installer artifacts only; publishing one does not activate cloud builds.
 
-For same-machine release QA, launch the packaged executable with `--user-data-dir=/absolute/separate/profile`. The profile must not overlap the normal Cutroom data directory. An alternate profile has separate recents, storage, logs and caches; it skips global protocol/CLI/agent registration changes and uses a separate loopback MCP port. Its `profile-session.json` records the test instance and endpoint. Use disposable project copies for editing/export checks.
+For same-machine release QA, launch the packaged executable with `--user-data-dir=/absolute/separate/profile`. The profile must not overlap the normal Blackout data directory. An alternate profile has separate recents, storage, logs and caches; it skips global protocol/CLI/agent registration changes and uses a separate loopback MCP port. Its `profile-session.json` records the test instance and endpoint. Use disposable project copies for editing/export checks.
 
 A fresh profile proves storage isolation and bundled dependencies on this machine. It is not a clean-Mac test. Final clean-machine acceptance still requires a second Mac/user environment without the development checkout, Homebrew or Node: download the DMG from the public releases page, drag the app into Applications, launch under Gatekeeper without bypasses, import/edit/caption/export a disposable project, relaunch it and verify the output. Keep that result separate from same-machine QA.
 

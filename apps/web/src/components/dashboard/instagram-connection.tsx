@@ -108,7 +108,7 @@ export function InstagramConnection() {
   return (
     <section id="instagram" aria-label="Instagram connection">
       <DashboardSurfaceSection title="Instagram" description="Connect your account to see how your content performs.">
-        <Show when={window.desktop} fallback={<p class="text-sm text-muted-foreground">Open the Cutroom desktop app to connect Instagram.</p>}>
+        <Show when={window.desktop} fallback={<p class="text-sm text-muted-foreground">Open the Blackout desktop app to connect Instagram.</p>}>
           <Show when={!state.loading} fallback={<p class="text-sm text-muted-foreground">Loading connection…</p>}>
             <Show when={!state.error} fallback={
               <div class="flex items-center justify-between gap-3">
@@ -147,7 +147,7 @@ export function InstagramConnection() {
               <Show when={auth.error}><p role="alert" class="text-xs text-destructive">Could not load browser sign-in configuration.</p></Show>
               <Show when={confirmDisconnect()}>
                 <div class="rounded-lg border border-border p-3 text-sm">
-                  <p>Remove this connection and its saved stats from Cutroom? Outstanding publishing approvals will pause for review. Your Instagram posts will stay as they are.</p>
+                  <p>Remove this connection and its saved stats from Blackout? Outstanding publishing approvals will pause for review. Your Instagram posts will stay as they are.</p>
                   <div class="mt-3 flex gap-2">
                     <Button variant="destructive" disabled={pending()} onClick={() => void disconnect()}>Remove connection</Button>
                     <Button variant="ghost" disabled={pending()} onClick={() => setConfirmDisconnect(false)}>Cancel</Button>

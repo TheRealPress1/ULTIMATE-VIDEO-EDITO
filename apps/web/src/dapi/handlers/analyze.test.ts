@@ -223,7 +223,7 @@ describe("analyze", () => {
 
   it("keeps going when speech fails, and says so", async () => {
     const { deps } = fakes();
-    deps.transcribe.mockRejectedValueOnce(new Error("The local speech engine is unavailable in this build of Cutroom."));
+    deps.transcribe.mockRejectedValueOnce(new Error("The local speech engine is unavailable in this build of Blackout."));
     const result = await createAnalyzer(deps).analyze(args({ path: "footage/talk.mp4" }), context());
     expect(result.state).toBe("done");
     expect(result.speech).toMatchObject({ origin: "failed", words: 0 });

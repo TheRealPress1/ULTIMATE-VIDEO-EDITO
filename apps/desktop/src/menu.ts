@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { app, BrowserWindow, Menu, webContents } from "electron";
+import { BrowserWindow, Menu, webContents } from "electron";
 import type { MenuItemConstructorOptions } from "electron";
 import { mainBridge } from './main-manager';
 import { MAIN_CHANNELS } from './main-channels';
+import { PRODUCT_NAME } from './product';
 
 /** Native role undo only edits DOM text. Composition history lives in the renderer. */
 export function historyWindow(preferred?: BrowserWindow | null): BrowserWindow | null {
@@ -57,18 +58,19 @@ export function setupAppMenu() {
   const template: MenuItemConstructorOptions[] = []
 
   if (process.platform === "darwin") {
+    // The role labels are built from `app.name`, which is not what people call the app.
     template.push({
-      label: app.name,
+      label: PRODUCT_NAME,
       submenu: [
-        { role: "about" },
+        { role: "about", label: `About ${PRODUCT_NAME}` },
         { type: "separator" },
         { role: "services" },
         { type: "separator" },
-        { role: "hide" },
+        { role: "hide", label: `Hide ${PRODUCT_NAME}` },
         { role: "hideOthers" },
         { role: "unhide" },
         { type: "separator" },
-        { role: "quit" },
+        { role: "quit", label: `Quit ${PRODUCT_NAME}` },
       ],
     });
   }

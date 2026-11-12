@@ -191,16 +191,16 @@ export class AudioCatalogStore {
   /** Cutroom's entries for `kind`; none, with a warning, when the docs aren't installed. A damaged bundled file is an error: it ships tested. */
   private async defaults(kind: AudioCatalogKind): Promise<Defaults> {
     const path = this.defaultsPath(kind);
-    if (!path) return { entries: [], updated: null, path: null, warning: `Cutroom's ${kind} catalog isn't installed with this app; only personal entries are listed.` };
+    if (!path) return { entries: [], updated: null, path: null, warning: `Blackout's ${kind} catalog isn't installed with this app; only personal entries are listed.` };
     let text: string;
     try {
       text = await readFile(path, "utf8");
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return { entries: [], updated: null, path, warning: `Cutroom's ${kind} catalog is missing from ${path}; only personal entries are listed.` };
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return { entries: [], updated: null, path, warning: `Blackout's ${kind} catalog is missing from ${path}; only personal entries are listed.` };
       throw error;
     }
     const parsed = AudioCatalogFile.safeParse(safeJson(text));
-    if (!parsed.success || parsed.data.kind !== kind) throw new DapiError("unsupported", `Cutroom's ${kind} catalog at ${path} is damaged. Reinstall Cutroom to restore it.`);
+    if (!parsed.success || parsed.data.kind !== kind) throw new DapiError("unsupported", `Blackout's ${kind} catalog at ${path} is damaged. Reinstall Blackout to restore it.`);
     return { entries: parsed.data.entries as AudioCatalogEntry[], updated: parsed.data.updated, path };
   }
 

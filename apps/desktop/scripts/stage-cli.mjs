@@ -45,7 +45,7 @@ while [ -L "$SELF" ]; do
 done
 DIR="$(cd "$(dirname "$SELF")" && pwd)"
 export CUTROOM_APP_PATH="$(cd "$DIR/../../../.." && pwd)"
-ELECTRON_RUN_AS_NODE=1 exec "$DIR/../../../MacOS/Cutroom" "$DIR/../dapi.js" "$@"
+ELECTRON_RUN_AS_NODE=1 exec "$DIR/../../../MacOS/Blackout" "$DIR/../dapi.js" "$@"
 `;
 
 if (all || process.platform !== "win32") {
@@ -58,7 +58,7 @@ const cmdWrapper = [
   "@echo off",
   "setlocal",
   'set "ELECTRON_RUN_AS_NODE=1"',
-  '"%~dp0..\\..\\..\\Cutroom.exe" "%~dp0..\\dapi.js" %*',
+  '"%~dp0..\\..\\..\\Blackout.exe" "%~dp0..\\dapi.js" %*',
   "",
 ].join("\r\n");
 

@@ -165,7 +165,7 @@ export class GeminiStore {
       if (change.key !== undefined) {
         const clean = cleanKey(change.key);
         if (!clean) throw new GeminiSettingsError("That doesn't look like a Google AI Studio key. Copy the whole key from aistudio.google.com/apikey.");
-        if (!this.encryption()) throw new GeminiSettingsError("This Mac can't store the key encrypted, so Cutroom won't save it.");
+        if (!this.encryption()) throw new GeminiSettingsError("This Mac can't store the key encrypted, so Blackout won't save it.");
         key = clean;
         encrypted = this.options.secureStorage.encryptString(clean).toString("base64");
       }

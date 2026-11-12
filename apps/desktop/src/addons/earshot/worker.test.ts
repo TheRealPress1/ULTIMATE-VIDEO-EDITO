@@ -239,7 +239,7 @@ describe("EarshotWorker", () => {
       await w.call("describe", {}, { timeoutMs: 1000 });
       FakeServer.started.at(-1)!.crash();
     }
-    await expect(w.call("describe", {}, { timeoutMs: 1000 })).rejects.toThrow(/isn't being restarted for now\. Try again in a few minutes, or reinstall audio intelligence in Cutroom's Settings \(Remove, then Install now\)\./);
+    await expect(w.call("describe", {}, { timeoutMs: 1000 })).rejects.toThrow(/isn't being restarted for now\. Try again in a few minutes, or reinstall audio intelligence in Blackout's Settings \(Remove, then Install now\)\./);
     await w.stop();
     w.forgetCrashes();
     await expect(w.call("describe", {}, { timeoutMs: 1000 })).resolves.toMatchObject({ content: [{ text: "describe ok" }] });
@@ -255,7 +255,7 @@ describe("EarshotWorker", () => {
     await expect(call).rejects.toThrow("canceled by the caller");
     w.dispose();
     await vi.waitFor(() => expect(FakeServer.started[0]!.closed).toBe(true));
-    await expect(w.call("describe", {}, { timeoutMs: 1000 })).rejects.toThrow("Cutroom is quitting.");
+    await expect(w.call("describe", {}, { timeoutMs: 1000 })).rejects.toThrow("Blackout is quitting.");
   });
 });
 
