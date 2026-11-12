@@ -264,6 +264,7 @@ const mediaDownloads = configureMediaDownloads({
   startWrite,
   isWebResult: (url) => webMedia.recall(url) !== undefined,
   instagramMedia: async (url) => findInstagramMedia(await instagramService().snapshot(), url),
+  instagramFresh: (url, signal) => instagramService().freshPost(url, signal),
   version: app.getVersion(),
 });
 

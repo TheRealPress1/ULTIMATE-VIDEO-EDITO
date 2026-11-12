@@ -5,12 +5,19 @@ import { randomUUID } from "node:crypto";
 import { requestInstagramPublishing } from './instagram-publishing-api';
 import type { InstagramPublishOperation, InstagramPublishResponse } from './instagram-publishing-types';
 
-import { INSTAGRAM_METRICS, type InstagramAccount, type InstagramDashboard, type InstagramMetrics, type InstagramPost } from "./instagram-types";
+import { INSTAGRAM_METRICS, type InstagramAccount, type InstagramDashboard, type InstagramFreshPost, type InstagramMetrics, type InstagramPost } from "./instagram-types";
+import { sameInstagramLink } from "./platform-url";
 
 const API_VERSION = "v24.0";
 const POST_LIMIT = 25;
 const HISTORY_DAYS = 90;
 const MAX_CACHE_BYTES = 8 * 1024 * 1024;
+/** What a post's file is asked of Instagram with: no metrics, so one request answers for one post. */
+const FILE_FIELDS = "id,caption,media_type,media_product_type,permalink,media_url";
+/** A post the cache doesn't know is looked for in this many pages of the account's recent posts (300), and for no longer than FIND_BUDGET_MS. */
+const FIND_PAGES = 3;
+const FIND_BUDGET_MS = 15_000;
+const FIND_PAGE_SIZE = "100";
 
 export interface InstagramSecureStorage {
   isEncryptionAvailable(): boolean;
@@ -59,6 +66,24 @@ const messages = {
   storage: "Secure credential storage is unavailable. Unlock your system keychain and try again.",
   account: "Instagram analytics requires a Creator or Business account using an Instagram Login access token.",
 } satisfies Record<ErrorKind, string>;
+
+/**
+ * What a failed request for one post's file comes to, in a sentence for the
+ * person or agent that asked. The API's own text is never passed on (it can
+ * echo credentials); the fixed stage and numeric codes are.
+ */
+function fileFailure(error: unknown): string {
+  const kind: ErrorKind = error instanceof InstagramError ? error.kind : "response";
+  const details = error instanceof InstagramError ? / Details: .*$/.exec(error.message)?.[0] ?? "" : "";
+  switch (kind) {
+    case "auth": return `Instagram authorization has expired or is invalid. Reconnect your account in Analytics, then try again.${details}`;
+    case "permission": return `Instagram denied access to this post. Check that the access token has the basic permission, then try again.${details}`;
+    case "rate": return `Instagram is limiting requests. Wait a while, then try again.${details}`;
+    case "network": return "Couldn't reach Instagram. Check the internet connection, then try again.";
+    case "storage": return messages.storage;
+    default: return `Instagram returned an unexpected response. Try once more in a moment.${details}`;
+  }
+}
 
 function emptyDashboard(): InstagramDashboard {
   return { status: "disconnected", account: null, lastSyncedAt: null, error: null, posts: [], followerHistory: [], coverage: { fetchedPosts: 0, limit: POST_LIMIT, hasMore: false } };
@@ -268,6 +293,69 @@ export class InstagramService {
         this.current = next;
         return this.copy();
       } catch (error) { return this.fail(error, true); }
+    });
+  }
+
+  /**
+   * One of the connected account's posts a link names (a permalink in any of
+   * its forms, or one of its file links), as Instagram describes it now. The
+   * file link a cached post holds is only as new as the last sync, predates
+   * links being kept, or has expired; the analytics tools only read that
+   * cache. A post the cache knows is asked for by its id, one request; any
+   * other is looked for in the account's recent posts. Nothing is written:
+   * the cache stays as the last sync left it.
+   */
+  freshPost(link: string, signal?: AbortSignal): Promise<InstagramFreshPost> {
+    return this.serialized(async (): Promise<InstagramFreshPost> => {
+      await this.load();
+      const token = this.token;
+      // No token: either no account is connected, or the stored credentials couldn't be read, and then the reason is already known.
+      if (!token) return this.current.error ? { kind: "failed", reason: this.current.error } : { kind: "none" };
+      try {
+        this.secure();
+        const budget = AbortSignal.any([...(signal ? [signal] : []), AbortSignal.timeout(FIND_BUDGET_MS)]);
+        const names = (row: Record<string, unknown>) => [row.permalink, row.media_url].some(value => typeof value === "string" && sameInstagramLink(value, link));
+        const known = this.current.posts.find(post => [post.permalink, post.mediaUrl].some(value => !!value && sameInstagramLink(value, link)));
+        let username = this.current.account?.username ?? null;
+        let row: Record<string, unknown> | null = null;
+        if (known) {
+          row = await this.get(token, known.id, { fields: FILE_FIELDS }, budget);
+        } else {
+          let ownerId = this.current.account?.id ?? null;
+          if (!ownerId) {
+            const profile = await this.get(token, "me", { fields: "id,user_id,username" }, budget);
+            ownerId = identifier(profile.user_id) ?? identifier(profile.id);
+            if (!ownerId) throw new InstagramError("response", messages.response, { stage: "profile" });
+            if (typeof profile.username === "string" && /^[A-Za-z0-9._]{1,100}$/.test(profile.username)) username = profile.username;
+          }
+          let after: string | null = null;
+          for (let page = 0; page < FIND_PAGES && !row; page++) {
+            const response = await this.get(token, `${ownerId}/media`, { fields: FILE_FIELDS, limit: FIND_PAGE_SIZE, ...(after ? { after } : {}) }, budget);
+            if (!Array.isArray(response.data)) throw new InstagramError("response", messages.response, { stage: "posts" });
+            row = response.data.map(object).find((candidate): candidate is Record<string, unknown> => !!candidate && names(candidate)) ?? null;
+            const paging = object(response.paging);
+            const cursor = object(paging?.cursors)?.after;
+            after = typeof paging?.next === "string" && typeof cursor === "string" && cursor ? cursor : null;
+            if (!after) break;
+          }
+        }
+        if (!row) return { kind: "none" };
+        const id = identifier(row.id);
+        if (!id || typeof row.media_type !== "string") throw new InstagramError("response", messages.response, { stage: "posts" });
+        return {
+          kind: "post",
+          post: {
+            id,
+            permalink: safeUrl(row.permalink),
+            caption: typeof row.caption === "string" ? row.caption.slice(0, 10_000) : "",
+            mediaType: row.media_type.slice(0, 30),
+            mediaUrl: safeUrl(row.media_url, true),
+            username,
+          },
+        };
+      } catch (error) {
+        return { kind: "failed", reason: fileFailure(error) };
+      }
     });
   }
 

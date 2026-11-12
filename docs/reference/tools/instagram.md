@@ -29,5 +29,6 @@ cutroom instagram_account_insights
 - `null` means Instagram did not provide the metric. Zero means an actual zero; never substitute one for the other.
 - `historySource: "local_sync_observations"` means values saved when the app synced. There is no pre-connection backfill and no guarantee of daily observations. Do not label a change between two syncs as daily follower growth unless those timestamps support it.
 - `coverage` describes the downloaded post page. When `hasMore` is true, rankings cover only those cached posts and may exclude the account's best older post.
+- A post's `mediaUrl` is a file link from the last sync: often null (a sync from before links were kept has none) or expired. These four tools never refresh it. To save one of the account's videos into a project, pass its `permalink` to [`media_download`](./media.md), which asks Instagram for a current link itself.
 
 The four tools advertise MCP `readOnlyHint: true`. Their output schemas include only public analytics fields; tokens are never sent to the editing agent.

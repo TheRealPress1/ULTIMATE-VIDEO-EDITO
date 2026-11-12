@@ -71,6 +71,25 @@ export function isInstagramCdn(value: string | URL): boolean {
   return !!url && url.protocol === "https:" && INSTAGRAM_CDN.test(host(url));
 }
 
+/**
+ * Whether two links name the same Instagram post or file: the same shortcode
+ * whichever page form carries it (Instagram serves one post under `/p/`,
+ * `/reel/`, `/reels/` and `/tv/`, and its API gives one of them), or the same
+ * file on Instagram's CDN, compared without its query, which is signed anew
+ * with every link.
+ */
+export function sameInstagramLink(a: string | URL, b: string | URL): boolean {
+  const left = parse(a);
+  const right = parse(b);
+  if (!left || !right) return false;
+  const pages = platformOf(left) === "instagram" && platformOf(right) === "instagram";
+  if (!pages && !(isInstagramCdn(left) && isInstagramCdn(right))) return false;
+  const id = pages ? mediaIdOf(left)?.id : undefined;
+  if (id && id === mediaIdOf(right)?.id) return true;
+  const path = (url: URL) => `${host(url).replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
+  return path(left) === path(right);
+}
+
 const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 
 /**
