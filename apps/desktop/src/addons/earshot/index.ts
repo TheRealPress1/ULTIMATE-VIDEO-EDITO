@@ -164,7 +164,7 @@ export class ProjectJobs {
   /** The app is quitting: every job stops, and its temporary files go now, as nothing waits for the cleanup that would follow. */
   dispose(): void {
     for (const job of this.jobs) {
-      job.controller.abort(new DapiError("canceled", "Cutroom quit while the sound effect rendered."));
+      job.controller.abort(new DapiError("canceled", "Blackout quit while the sound effect rendered."));
       for (const path of job.temps) rmSync(path, { recursive: true, force: true });
       job.temps.clear();
     }
@@ -191,7 +191,7 @@ export class EarshotService {
     this.installer = options.installer ?? new EarshotInstaller({
       root: join(options.userData, "addons", "earshot"),
       userData: options.userData,
-      userAgent: `Cutroom/${options.version} (desktop video editor; https://github.com/diffusionstudio/editor)`,
+      userAgent: `Blackout/${options.version} (desktop video editor; https://github.com/diffusionstudio/editor)`,
       ...options.install,
     });
     const installer = this.installer;
@@ -284,10 +284,10 @@ export class EarshotService {
       throw new DapiError("busy", `Audio intelligence is installing (${where}). Continue with other work and call this tool again in a few minutes.`);
     }
     const error = outcome.error;
-    if (error instanceof InstallCanceled) throw new DapiError("canceled", "Audio intelligence was removed from Cutroom's Settings while installing, so the sound tools can't run right now.");
+    if (error instanceof InstallCanceled) throw new DapiError("canceled", "Audio intelligence was removed from Blackout's Settings while installing, so the sound tools can't run right now.");
     const reason = (error as Error)?.message ?? String(error);
     if (/Apple silicon|macOS only/.test(reason)) throw new DapiError("unsupported", reason);
-    throw new DapiError("unsupported", `Audio intelligence couldn't be installed: ${reason.replace(/\.$/, "")}. Calling a sound tool again retries the install (it resumes where it stopped), or use Install now in Cutroom's Settings.`);
+    throw new DapiError("unsupported", `Audio intelligence couldn't be installed: ${reason.replace(/\.$/, "")}. Calling a sound tool again retries the install (it resumes where it stopped), or use Install now in Blackout's Settings.`);
   }
 
   /** One earshot MCP tool, installed and started as needed. */

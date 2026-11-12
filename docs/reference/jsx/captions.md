@@ -13,7 +13,7 @@
 
 ## Captioning a scene
 
-To caption a scene's audible mix, select the scene in Cutroom and run **Generate captions** from the command palette. With nothing selected, the command uses the active scene. It prepares the audio, transcribes it locally, saves a transcript asset, and adds or updates the scene's caption layer. Progress and cancellation appear in a notification. Select the caption layer to edit words and times in **Caption text**, apply changes, or choose a preset.
+To caption a scene's audible mix, select the scene in Blackout and run **Generate captions** from the command palette. With nothing selected, the command uses the active scene. It prepares the audio, transcribes it locally, saves a transcript asset, and adds or updates the scene's caption layer. Progress and cancellation appear in a notification. Select the caption layer to edit words and times in **Caption text**, apply changes, or choose a preset.
 
 Recognition uses multilingual Whisper base on this Mac. The first use downloads about 148 MB of model weights, then keeps them cached for offline use; no audio or video is uploaded for transcription. Scenes can be up to two hours long, analyzed in resumable two-minute sections. See [local transcription setup](../../../README.md#local-transcription-and-captions) for development requirements.
 

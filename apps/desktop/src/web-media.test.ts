@@ -99,7 +99,7 @@ function searchRoutes(args = searchArgs()) {
 }
 
 describe("web media search", () => {
-  it("asks both providers as Cutroom, interleaves their results and inlines the leading thumbnails", async () => {
+  it("asks both providers as Blackout, interleaves their results and inlines the leading thumbnails", async () => {
     const args = searchArgs({ preview: 2, limit: 5 });
     searchRoutes(args);
     routes["https://api.openverse.org/v1/images/f9384235-b72e-4f1e-9b05-e1b116262a29/thumb/"] = file(jpeg(500));
@@ -112,7 +112,7 @@ describe("web media search", () => {
     ]);
     expect(result.previews.map(({ index, mimeType, bytes }) => [index, mimeType, bytes.byteLength])).toEqual([[1, "image/jpeg", 500], [2, "image/png", 300]]);
     for (const call of fetch.mock.calls) {
-      expect(call[1].headers["user-agent"]).toBe("Cutroom/1.2.3 (desktop video editor; https://github.com/diffusionstudio/editor)");
+      expect(call[1].headers["user-agent"]).toBe("Blackout/1.2.3 (desktop video editor; https://github.com/diffusionstudio/editor)");
     }
     expect(fetch.mock.calls.map(([url]) => url)).not.toContain(result.results[2]!.thumbnailUrl);
     expect(toolByName("web_media_search").result!.safeParse(result).success).toBe(true);
@@ -342,7 +342,7 @@ describe("web media download", () => {
     expect(readdirSync(join(project, "assets", "music"))).toEqual([]);
   });
 
-  it("credits a file Cutroom's audio catalog ships with the catalog's checked rights and credit line", async () => {
+  it("credits a file Blackout's audio catalog ships with the catalog's checked rights and credit line", async () => {
     const whoosh = "https://cdn.freesound.org/previews/60/60026_71257-hq.mp3";
     const holst = "https://upload.wikimedia.org/wikipedia/commons/8/85/Holst-_mars.ogg";
     const shipped: Record<string, WebMediaCatalogCredit> = {
@@ -680,7 +680,7 @@ describe("web media download", () => {
     routes["https://e.example/a.jpg"] = refused;
     const proxied = service({ proxy: () => "HTTPS_PROXY is set" });
     await expect(download(proxied, "https://e.example/a.jpg")).rejects.toThrow(
-      "Couldn't reach e.example (ECONNREFUSED). This Mac is set up to use a proxy (HTTPS_PROXY is set), which Cutroom's downloader doesn't go through: allow direct connections to e.example, or download the file in a browser and import it.",
+      "Couldn't reach e.example (ECONNREFUSED). This Mac is set up to use a proxy (HTTPS_PROXY is set), which Blackout's downloader doesn't go through: allow direct connections to e.example, or download the file in a browser and import it.",
     );
     await expect(download(service({ proxy: () => undefined }), "https://e.example/a.jpg")).rejects.toThrow("Couldn't reach e.example (ECONNREFUSED). Check the link or try again.");
     // A name that doesn't resolve, the way a proxy-only network answers.
@@ -703,7 +703,7 @@ describe("web media download", () => {
     const proxied = service({ timeouts: { header: 20 }, proxy: async (url) => { asked.push(url.href); return "HTTPS proxy proxy.corp:3128 in System Settings"; } });
     await expect(download(proxied, "https://e.example/a.jpg")).rejects.toMatchObject({
       code: "canceled",
-      message: "e.example didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS proxy proxy.corp:3128 in System Settings), which Cutroom's downloader doesn't go through: allow direct connections to e.example, or download the file in a browser and import it.",
+      message: "e.example didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS proxy proxy.corp:3128 in System Settings), which Blackout's downloader doesn't go through: allow direct connections to e.example, or download the file in a browser and import it.",
     });
     expect(asked).toEqual(["https://e.example/a.jpg"]);
     await expect(download(service({ timeouts: { header: 20 } }), "https://e.example/a.jpg")).rejects.toThrow("e.example didn't answer within 0 seconds. Try again later or pick another result.");
@@ -718,13 +718,13 @@ describe("web media download", () => {
     const error = await service({ timeouts: { provider: 20 }, proxy: () => "HTTPS_PROXY is set" }).search(args, signal()).catch((failure: Error) => failure);
     expect(error).toMatchObject({
       code: "unsupported",
-      message: "Web media search failed. Openverse: didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS_PROXY is set), which Cutroom's web media search doesn't go through: allow direct connections to api.openverse.org. Wikimedia Commons: didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS_PROXY is set), which Cutroom's web media search doesn't go through: allow direct connections to commons.wikimedia.org.",
+      message: "Web media search failed. Openverse: didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS_PROXY is set), which Blackout's web media search doesn't go through: allow direct connections to api.openverse.org. Wikimedia Commons: didn't answer within 0 seconds. This Mac is set up to use a proxy (HTTPS_PROXY is set), which Blackout's web media search doesn't go through: allow direct connections to commons.wikimedia.org.",
     });
     // As does a provider that refuses the connection.
     routes[wikimediaUrl(args)] = () => { throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }); };
     const refused = await service({ proxy: () => "HTTPS_PROXY is set" }).search(searchArgs({ preview: 0, sources: ["wikimedia"] }), signal()).catch((failure: Error) => failure);
     expect((refused as Error).message).toBe(
-      "Web media search failed. Wikimedia Commons: Couldn't reach commons.wikimedia.org (ECONNREFUSED). This Mac is set up to use a proxy (HTTPS_PROXY is set), which Cutroom's web media search doesn't go through: allow direct connections to commons.wikimedia.org.",
+      "Web media search failed. Wikimedia Commons: Couldn't reach commons.wikimedia.org (ECONNREFUSED). This Mac is set up to use a proxy (HTTPS_PROXY is set), which Blackout's web media search doesn't go through: allow direct connections to commons.wikimedia.org.",
     );
   });
 
@@ -841,7 +841,7 @@ describe("web media download", () => {
     await vi.waitFor(() => expect(partial()).toBe(true));
     media.dispose();
     expect(webFiles()).toEqual([]);
-    expect(await failure(pending)).toMatchObject({ code: "canceled", message: "Cutroom quit during the download." });
+    expect(await failure(pending)).toMatchObject({ code: "canceled", message: "Blackout quit during the download." });
   });
 
   it("reports a project folder that moved away mid-download as the project's, and never makes it again", async () => {
@@ -891,7 +891,7 @@ describe("web media download", () => {
     mkdirSync(join(project, "assets"));
     symlinkSync("../.claude", join(project, "assets", "web"));
     routes["https://e.example/a.jpg"] = file(jpeg());
-    await expect(download(service(), "https://e.example/a.jpg")).rejects.toThrow("The project's assets/web folder leads into .claude, which Cutroom keeps off-limits to editing sessions.");
+    await expect(download(service(), "https://e.example/a.jpg")).rejects.toThrow("The project's assets/web folder leads into .claude, which Blackout keeps off-limits to editing sessions.");
     expect(readdirSync(join(project, ".claude"))).toEqual([]);
   });
 
@@ -987,8 +987,8 @@ describe("pinnedFetch", () => {
   it("speaks HTTP: headers out, decoded bodies back, redirects left to the caller", async () => {
     const transport = pinnedFetch(async () => PUBLIC);
     // An address needs no lookup; the service has already refused private ones.
-    const plain = await transport(`http://127.0.0.1:${port}/`, { signal: signal(), headers: { "user-agent": "Cutroom/test" } });
-    expect([plain.status, plain.headers.get("x-agent"), await plain.text()]).toEqual([200, "Cutroom/test", "plain"]);
+    const plain = await transport(`http://127.0.0.1:${port}/`, { signal: signal(), headers: { "user-agent": "Blackout/test" } });
+    expect([plain.status, plain.headers.get("x-agent"), await plain.text()]).toEqual([200, "Blackout/test", "plain"]);
     const gz = await transport(`http://127.0.0.1:${port}/gz`, { signal: signal(), headers: {} });
     expect(await gz.json()).toEqual({ ok: true });
     const moved = await transport(`http://127.0.0.1:${port}/redirect`, { signal: signal(), headers: {} });

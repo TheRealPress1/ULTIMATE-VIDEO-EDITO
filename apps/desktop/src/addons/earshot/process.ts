@@ -129,12 +129,12 @@ export async function fetchVerified(
   dest: string,
   signal: AbortSignal,
   onBytes: (bytes: number) => void = () => {},
-  userAgent = "Cutroom",
+  userAgent = "Blackout",
 ): Promise<void> {
   let url = new URL(file.url);
   for (let hop = 0; ; hop++) {
     if (url.protocol !== "https:" || !DOWNLOAD_HOSTS.has(url.hostname)) {
-      throw new Error(`The download of ${new URL(file.url).pathname.split("/").pop()} was sent to ${url.hostname}, which Cutroom doesn't download from.`);
+      throw new Error(`The download of ${new URL(file.url).pathname.split("/").pop()} was sent to ${url.hostname}, which Blackout doesn't download from.`);
     }
     const response = await fetch(url.href, { signal, redirect: "manual", headers: { "user-agent": userAgent, accept: "application/octet-stream" } });
     if ([301, 302, 303, 307, 308].includes(response.status)) {

@@ -31,6 +31,8 @@ import menuQuit2x from "../assets/tray/menu/quit@2x.png";
 
 import type { NativeImage } from "electron";
 
+import { PRODUCT_NAME } from "./product";
+
 export type AppTrayDeps = {
   /** Whether the window is out for the user. */
   visible(): boolean;
@@ -140,19 +142,19 @@ export class AppTray {
     const status = this.busy ? "An agent is working…" : "Ready for agents";
 
     tray.setImage(this.busy ? this.busyIcon! : this.idleIcon!);
-    tray.setToolTip(`${app.name} — ${status}`);
+    tray.setToolTip(`${PRODUCT_NAME} — ${status}`);
     tray.setContextMenu(
       Menu.buildFromTemplate([
         visible ?
-          { label: `Hide ${app.name}`, icon: this.icon("hide"), click: () => this.deps.hide() }
-          : { label: `Open ${app.name}`, icon: this.icon("open"), click: () => this.deps.show() },
+          { label: `Hide ${PRODUCT_NAME}`, icon: this.icon("hide"), click: () => this.deps.hide() }
+          : { label: `Open ${PRODUCT_NAME}`, icon: this.icon("open"), click: () => this.deps.show() },
         { type: "separator" },
         { label: status, icon: this.icon(this.busy ? "busy" : "ready"), enabled: false },
         ...(project ?
           [{ label: `Project: ${basename(project)}`, icon: this.icon("project"), enabled: false }]
           : []),
         { type: "separator" },
-        { label: `Quit ${app.name}`, icon: this.icon("quit"), click: () => app.quit() },
+        { label: `Quit ${PRODUCT_NAME}`, icon: this.icon("quit"), click: () => app.quit() },
       ]),
     );
 
@@ -162,7 +164,7 @@ export class AppTray {
       this.toldStillRunning = true;
       tray.displayBalloon({
         iconType: "info",
-        title: `${app.name} is still running`,
+        title: `${PRODUCT_NAME} is still running`,
         content: "Agents can keep using it in the background. Open it again from here.",
       });
     }

@@ -55,7 +55,7 @@ export function DashboardSidebarHeader() {
       <Icon name="diffusion-logo-large" class="text-muted-foreground" />
       <div class="flex w-full flex-col items-start gap-1 text-muted-foreground">
         <p class="w-full text-2xl leading-5 font-450 text-muted-foreground">
-          Cutroom
+          Blackout
         </p>
         <div class="flex w-full items-center py-0.5">
           <p class="w-full overflow-hidden text-xxs whitespace-nowrap text-ellipsis text-muted-foreground opacity-50">
@@ -75,7 +75,7 @@ export function DashboardSidebarTitleBar() {
   return (
     <div class="flex h-10 shrink-0 items-center gap-2 pl-3 pr-4">
       <Icon name="diffusion-logo" class="shrink-0 text-muted-foreground" />
-      <p class="min-w-0 flex-1 truncate text-xs font-450 text-muted-foreground">Cutroom</p>
+      <p class="min-w-0 flex-1 truncate text-xs font-450 text-muted-foreground">Blackout</p>
       <p class="shrink-0 text-xxs text-muted-foreground">v{APP_VERSION}</p>
     </div>
   );

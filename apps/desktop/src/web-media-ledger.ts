@@ -103,7 +103,7 @@ export function creditsSection(items: WebMediaLedgerItem[]): string {
     START,
     "## Web media",
     "",
-    "Cutroom rewrites this section from `.cutroom/web-media.json` after each `web_media_download`. Check each license before publishing, and paste the credit lines into the post's caption or description where a license asks for attribution.",
+    "Blackout rewrites this section from `.cutroom/web-media.json` after each `web_media_download`. Check each license before publishing, and paste the credit lines into the post's caption or description where a license asks for attribution.",
     "",
     body,
     END,

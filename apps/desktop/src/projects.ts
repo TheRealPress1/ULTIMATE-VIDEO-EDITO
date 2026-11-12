@@ -629,7 +629,7 @@ const EMPTY_MANIFEST = { version: 1, folders: [], assets: [] };
  */
 const readme = (displayName: string): string => `# ${displayName}
 
-A Cutroom project: a video composition authored as code. The folder is
+A Blackout project: a video composition authored as code. The folder is
 a plain npm package whose entry file is a [Solid](https://www.solidjs.com)
 component; the app compiles it and renders every element into an editable node
 on the canvas.
@@ -647,7 +647,7 @@ a new session.
 | Path | What it is |
 | ---- | ---------- |
 | \`index.tsx\` | The entry. Its default export renders the composition. |
-| \`package.json\` | The project record: \`projectId\` (its identity, kept across renames), \`displayName\` (the name shown in the app), \`main\` (the entry), \`diffusion\` (how each scene is exported, and whether the stage has ever had anything on it), and the Cutroom commands as scripts. |
+| \`package.json\` | The project record: \`projectId\` (its identity, kept across renames), \`displayName\` (the name shown in the app), \`main\` (the entry), \`diffusion\` (how each scene is exported, and whether the stage has ever had anything on it), and the Blackout commands as scripts. |
 | \`tsconfig.json\` | Types for the composition tags, through \`jsxImportSource\`. |
 | \`assets.yml\` | The asset library: for every asset its library path, where its bytes are, and what it was found to be. Written by the app; hand edits are read on the next load. |
 | \`assets/\` | The library's files: put one here and it is taken in while the app watches, and the app writes its own here too. Media imported through the app is linked where it lies instead, never copied. |
@@ -708,7 +708,7 @@ yourself with \`npx tsc --noEmit\`.
 
 ## Commands
 
-Every Cutroom command is a script here: \`npm run\` lists them, and
+Every Blackout command is a script here: \`npm run\` lists them, and
 \`npm run <name> -- <args>\` runs one (\`npm run grab -- b-roll/drone.mp4 -c 6\`).
 All of them talk to the running app, except \`fonts\`.
 
@@ -1199,7 +1199,7 @@ export async function writeManifest(dir: string, manifest: unknown): Promise<voi
   try {
     await withProjectLock(dir, async () => {
     const path = join(dir, MANIFEST_FILE);
-    const text = `# Cutroom asset library. Edited by the app; hand edits are read on the next load.
+    const text = `# Blackout asset library. Edited by the app; hand edits are read on the next load.
 ${stringifyYaml(manifest, { lineWidth: 0 })}`;
     noteContent(path, text);
     await writeFileAtomic(path, text);

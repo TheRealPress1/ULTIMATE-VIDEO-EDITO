@@ -4,7 +4,7 @@ import { nextVersion } from './release.mjs';
 import { mergeRelease, staticManifest } from './prepare-release-manifest.mjs';
 import { validateArchiveEntries } from './lib/release-artifacts.mjs';
 
-const release = (version, arch = 'arm64') => ({ platform: 'darwin', arch, version, url: `https://downloads.example.com/Cutroom-${arch}-${version}.zip`, notes: 'Release notes', pub_date: '2026-10-25T12:00:00.000Z', sha256: 'a'.repeat(64) });
+const release = (version, arch = 'arm64') => ({ platform: 'darwin', arch, version, url: `https://downloads.example.com/Blackout-${arch}-${version}.zip`, notes: 'Release notes', pub_date: '2026-10-25T12:00:00.000Z', sha256: 'a'.repeat(64) });
 
 test('version preparation increases stable versions and rejects ambiguous or unsafe inputs', () => {
   assert.equal(nextVersion('0.216.0', 'patch'), '0.216.1');
@@ -37,21 +37,21 @@ test('static Squirrel metadata picks only the latest matching architecture', () 
 
 test('ZIP verification accepts framework symlinks and rejects path escapes or writes through them', () => {
   const entries = [
-    { name: 'Cutroom.app/', size: 0 },
-    { name: 'Cutroom.app/Contents/Framework.framework/Versions/A/', size: 0 },
-    { name: 'Cutroom.app/Contents/Framework.framework/Versions/A/bin', size: 10 },
-    { name: 'Cutroom.app/Contents/Framework.framework/Versions/Current', size: 1, link: 'A' },
+    { name: 'Blackout.app/', size: 0 },
+    { name: 'Blackout.app/Contents/Framework.framework/Versions/A/', size: 0 },
+    { name: 'Blackout.app/Contents/Framework.framework/Versions/A/bin', size: 10 },
+    { name: 'Blackout.app/Contents/Framework.framework/Versions/Current', size: 1, link: 'A' },
   ];
   validateArchiveEntries(entries);
-  for (const name of ['/etc/file', '../file', 'Cutroom.app/../file', 'Cutroom.app/./file', 'Cutroom.app//file', 'other.app/file', 'Cutroom.app\\file']) {
+  for (const name of ['/etc/file', '../file', 'Blackout.app/../file', 'Blackout.app/./file', 'Blackout.app//file', 'other.app/file', 'Blackout.app\\file']) {
     assert.throws(() => validateArchiveEntries([{ name, size: 1 }]));
   }
   assert.throws(() => validateArchiveEntries([...entries, { name: entries[1].name, size: 10 }]), /Duplicate/);
-  assert.throws(() => validateArchiveEntries([...entries, { name: 'Cutroom.app/contents/framework.framework/versions/CURRENT/bin', size: 1 }]), /through a symlink/);
-  assert.throws(() => validateArchiveEntries([{name:'Cutroom.app/Contents/nested/alias',link:'../',size:2},{name:'Cutroom.app/link',link:'Contents/nested/alias/../../outside',size:32}]), /symlink/);
-  assert.throws(() => validateArchiveEntries([{name:'Cutroom.app/link',link:'link',size:4}]), /cyclic/);
-  assert.throws(() => validateArchiveEntries([...entries, { name: 'Cutroom.app/Contents/Framework.framework/Versions/Current/bin', size: 1 }]), /through a symlink/);
-  assert.throws(() => validateArchiveEntries([{ name: 'Cutroom.app/link', size: 5, link: '../../outside' }]), /escapes/);
-  assert.throws(() => validateArchiveEntries([{ name: 'Cutroom.app/link', size: 5, link: '/outside' }]), /Unsafe/);
-  assert.throws(() => validateArchiveEntries([{ name: 'Cutroom.app/large', size: 9 * 1024 ** 3 }]), /size limit/);
+  assert.throws(() => validateArchiveEntries([...entries, { name: 'Blackout.app/contents/framework.framework/versions/CURRENT/bin', size: 1 }]), /through a symlink/);
+  assert.throws(() => validateArchiveEntries([{name:'Blackout.app/Contents/nested/alias',link:'../',size:2},{name:'Blackout.app/link',link:'Contents/nested/alias/../../outside',size:32}]), /symlink/);
+  assert.throws(() => validateArchiveEntries([{name:'Blackout.app/link',link:'link',size:4}]), /cyclic/);
+  assert.throws(() => validateArchiveEntries([...entries, { name: 'Blackout.app/Contents/Framework.framework/Versions/Current/bin', size: 1 }]), /through a symlink/);
+  assert.throws(() => validateArchiveEntries([{ name: 'Blackout.app/link', size: 5, link: '../../outside' }]), /escapes/);
+  assert.throws(() => validateArchiveEntries([{ name: 'Blackout.app/link', size: 5, link: '/outside' }]), /Unsafe/);
+  assert.throws(() => validateArchiveEntries([{ name: 'Blackout.app/large', size: 9 * 1024 ** 3 }]), /size limit/);
 });

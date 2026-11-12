@@ -13,7 +13,7 @@ export function ScreenTooSmall() {
         </span>
         <h2 class="text-xl font-450 text-foreground">Your screen is too small</h2>
         <p class="text-xs text-muted-foreground">
-          Cutroom needs at least 720×480 to work properly. Please resize your window or switch to a larger display.
+          Blackout needs at least 720×480 to work properly. Please resize your window or switch to a larger display.
         </p>
       </div>
     </div>

@@ -39,9 +39,9 @@ export interface LocalTranscriptionOptions {
   assertCurrent?: () => void;
 }
 export async function assertLocalTranscriptionAvailable(): Promise<void> {
-  if (!window.desktop) throw new Error('Local transcription is available in the Cutroom desktop app.');
+  if (!window.desktop) throw new Error('Local transcription is available in the Blackout desktop app.');
   const status = await mainBridge.call(MAIN_CHANNELS.SPEECH_STATUS, undefined);
-  if (!status.available) throw new Error(status.error || 'Local transcription is not installed. Rebuild or update Cutroom and try again.');
+  if (!status.available) throw new Error(status.error || 'Local transcription is not installed. Rebuild or update Blackout and try again.');
 }
 
 /** Bounded five-minute PCM sections; original compressed media is never loaded whole. */

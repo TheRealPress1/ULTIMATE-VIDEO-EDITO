@@ -66,7 +66,7 @@ export function UpdateSettings() {
       <Button variant="outline" disabled={busy()} onClick={() => void action(state()?.state === 'ready')}>{buttonLabel()}</Button>
     </Show>
     <Show when={state()?.privateDownloadUrl}>
-      <p class="text-sm text-muted-foreground">New versions are published as signed installers on Cutroom's public GitHub releases page; no account is needed. Download the DMG, save your work, quit Cutroom and replace the app in Applications.</p>
+      <p class="text-sm text-muted-foreground">New versions are published as signed installers on Blackout's public GitHub releases page; no account is needed. Download the DMG, save your work, quit Blackout and replace the app in Applications.</p>
       <Button variant="outline" disabled={openingDownloads() || busy()} onClick={() => void openDownloads()}>Open releases page</Button>
     </Show>
     <Show when={error()}><p role="alert" class="text-sm text-destructive">{error()}</p></Show>

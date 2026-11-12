@@ -10,7 +10,7 @@ import { version } from "../../../package.json";
 
 import type { ToolInput, ToolName, ToolOutput } from "@diffusionstudio/dapi";
 
-export const APP_NAME = "Cutroom";
+export const APP_NAME = "Blackout";
 
 // Renders, media analysis and file transfers outlive the 60s default.
 const TIMEOUTS: Record<string, number> = {

@@ -74,14 +74,14 @@ describe("AgentSkillsStore", () => {
     await expect(write(store, [{ action: "rewrite", id: "missing-skill", content: skill("missing-skill") }])).rejects.toThrow(/no user skill named missing-skill/);
   });
 
-  it("keeps Cutroom's own ids and the uve- prefix", async () => {
+  it("keeps Blackout's own ids and the uve- prefix", async () => {
     const store = new AgentSkillsStore(dir, { now });
-    expect(userSkillIdRefusal("uve-my-pacing")).toMatch(/kept for Cutroom's own skills/);
-    expect(userSkillIdRefusal("editor")).toMatch(/one of Cutroom's own skills/);
-    expect(userSkillIdRefusal("earshot-listening")).toMatch(/one of Cutroom's own skills/);
+    expect(userSkillIdRefusal("uve-my-pacing")).toMatch(/kept for Blackout's own skills/);
+    expect(userSkillIdRefusal("editor")).toMatch(/one of Blackout's own skills/);
+    expect(userSkillIdRefusal("earshot-listening")).toMatch(/one of Blackout's own skills/);
     expect(userSkillIdRefusal("weekly-recap")).toBeNull();
-    await expect(store.write([{ action: "create", id: "uve-music", content: skill("uve-music") }])).rejects.toThrow(/kept for Cutroom's own skills/);
-    await expect(store.write([{ action: "archive", id: "watch" }])).rejects.toThrow(/one of Cutroom's own skills/);
+    await expect(store.write([{ action: "create", id: "uve-music", content: skill("uve-music") }])).rejects.toThrow(/kept for Blackout's own skills/);
+    await expect(store.write([{ action: "archive", id: "watch" }])).rejects.toThrow(/one of Blackout's own skills/);
   });
 
   it("keeps supporting files inside the skill's own folders", () => {

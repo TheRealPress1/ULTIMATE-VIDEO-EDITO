@@ -47,4 +47,12 @@ describe('native Undo/Redo routes', () => {
     expect(entries[1]).toMatchObject({ label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', click: expect.any(Function) });
     expect(entries[0]!.role).toBeUndefined(); expect(entries.some((item) => item.role === 'paste')).toBe(true);
   });
+  // `app.name` stays the internal name (the mock above says 'UVE'); the menu must say what people call the app.
+  it.runIf(process.platform === 'darwin')('names the macOS app menu after the product, not the internal app name', () => {
+    setupAppMenu(); const template = mocks.buildMenu.mock.calls[0]![0] as MenuItemConstructorOptions[];
+    expect(template[0]!.label).toBe('Blackout');
+    const entries = template[0]!.submenu as MenuItemConstructorOptions[];
+    expect(entries.filter((item) => ['about', 'hide', 'quit'].includes(item.role ?? '')).map((item) => item.label))
+      .toEqual(['About Blackout', 'Hide Blackout', 'Quit Blackout']);
+  });
 });

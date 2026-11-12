@@ -120,7 +120,7 @@ export const mediaDownload = defineTool({
     sourceUrl: z.string().describe("the page the media came from"),
     reused: z.boolean().describe("true when the file was already there and nothing new was saved"),
     reencoded: z.boolean().describe("true when the sound or picture had to be converted rather than saved as the site served it"),
-    rights: z.literal("unverified").describe("Cutroom doesn't know who may use this; ask the user before publishing"),
+    rights: z.literal("unverified").describe("Blackout doesn't know who may use this; ask the user before publishing"),
     downloader: z.string().describe("what fetched it, e.g. `yt-dlp 2026.10.26`"),
     creditsFile: z.string().nullable().describe("absolute path of the project's CREDITS.md; null outside a project"),
     warnings: z.array(z.string()),

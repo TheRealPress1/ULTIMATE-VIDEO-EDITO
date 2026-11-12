@@ -73,7 +73,7 @@ describe("the motion craft page", () => {
     expect(text).toContain("brand/design.md#916-text-safe-area");
   });
 
-  it("uses Cutroom's own wording and no other product's names or shell recipes", async () => {
+  it("uses Blackout's own wording and no other product's names or shell recipes", async () => {
     const text = (await read(craft)).toLowerCase();
     for (const foreign of ["fframes", "remotion", "compound", "rust", "cargo", "curl ", "pip install", "npx ", "yt-dlp"]) expect(text, foreign).not.toContain(foreign);
   });

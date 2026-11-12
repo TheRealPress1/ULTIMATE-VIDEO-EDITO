@@ -40,7 +40,7 @@ function buildIssueBody(input: { body?: string; commands?: string[]; logs: strin
 // goes over stdin so a long log tail can't blow the argv size limit.
 function createIssue(title: string, body: string): Promise<string> {
   if (!REPO) {
-    return Promise.reject(new DapiError("unsupported", "Issue reporting is not configured for this Cutroom build. Save the app logs locally instead."));
+    return Promise.reject(new DapiError("unsupported", "Issue reporting is not configured for this Blackout build. Save the app logs locally instead."));
   }
   return new Promise((resolve, reject) => {
     const gh = spawn("gh", ["issue", "create", "--repo", REPO, "--title", title, "--body-file", "-"]);

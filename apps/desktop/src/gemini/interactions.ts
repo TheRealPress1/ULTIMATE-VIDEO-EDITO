@@ -116,7 +116,7 @@ export class GeminiInteractions {
     try {
       interaction = JSON.parse(text) as Interaction;
     } catch {
-      throw new GeminiError("response", "Google answered in a way this version of Cutroom can't read.");
+      throw new GeminiError("response", "Google answered in a way this version of Blackout can't read.");
     }
     const status = typeof interaction.status === "string" ? interaction.status : undefined;
     if (interaction.error || status === "failed" || status === "cancelled") {

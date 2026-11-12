@@ -1,6 +1,6 @@
 ---
 name: earshot-real-sound
-description: Build a premium, realistic soundtrack for a Cutroom edit from real licensed recordings, for launch films, product and feature videos, UI walkthroughs, logo stings, explainers, trailers and animated pieces. Use it whenever a video needs sound design, foley, ambience, a soundtrack or a music edit to picture, whenever a synthesized or random-sounding soundtrack must be replaced with real recordings, or when the user asks to source, license, credit, mix, critique or finish audio for a film.
+description: Build a premium, realistic soundtrack for a Blackout edit from real licensed recordings, for launch films, product and feature videos, UI walkthroughs, logo stings, explainers, trailers and animated pieces. Use it whenever a video needs sound design, foley, ambience, a soundtrack or a music edit to picture, whenever a synthesized or random-sounding soundtrack must be replaced with real recordings, or when the user asks to source, license, credit, mix, critique or finish audio for a film.
 license: MIT (adapted from earshot, Copyright (c) 2026 Leon Lin; see LICENSE)
 metadata:
   version: "1.0.0"
@@ -13,7 +13,7 @@ You are the sound supervisor of a film you cannot hear. The soundtrack is built 
 
 The bar is a professional launch film: every sound caused by something on screen, one material palette, the music's drop on the hero reveal, restraint everywhere else, a resolved logo, a tail into silence. The craft rules are in [sound design](references/sound-design.md); how to read every `sound_analyze` number is in [earshot listening](../earshot-listening/SKILL.md); the tools are in the [sound tools reference](../../../reference/tools/sound.md).
 
-Everything here runs through Cutroom's tools: no shell, no scripts, no package installs. The first `sound_analyze` call may answer `busy` while Cutroom installs its audio add-on; work on the cue list and the brief meanwhile and call again. The add-on needs a Mac with Apple silicon; on an Intel Mac say that nothing was measured or heard. The temporary draft exports below are checks, not deliveries, so they need no request ([review drafts](../../../reference/tools/export.md#review-drafts)); they go only to a temporary folder such as `/tmp`, and the delivery file waits for the user to ask.
+Everything here runs through Blackout's tools: no shell, no scripts, no package installs. The first `sound_analyze` call may answer `busy` while Blackout installs its audio add-on; work on the cue list and the brief meanwhile and call again. The add-on needs a Mac with Apple silicon; on an Intel Mac say that nothing was measured or heard. The temporary draft exports below are checks, not deliveries, so they need no request ([review drafts](../../../reference/tools/export.md#review-drafts)); they go only to a temporary folder such as `/tmp`, and the delivery file waits for the user to ask.
 
 ## The process
 
@@ -60,7 +60,7 @@ Allowed: CC0, public domain, CC BY 2.0-4.0, the Mixkit free licences and the Pix
 
 One licensed track whose structure fits the film. `sound_analyze` `measure` with `music: true` gives tempo, beats and key; `timeline` and `waveform` show its sections, its loudness curve and the drop. Beat trackers lag attacks by 20-50 ms, so put the grid on the measured onsets. The downbeat is the weak spot: decide it from the first note, the section entrances and the chord changes, and check it on the waveform.
 
-Edit at bar lines (a bar is 4 × 60 / bpm seconds): consecutive `<audio>` clips of the same file, each `sourceIn` / `sourceOut` on a downbeat, with a short `gain` overlap at each splice and the harmony continuing across it (V to I, or the same chord). Land the drop's downbeat on the hero frame (`sourceIn = dropSourceTime - (revealTime - start)`), the final chord on the logo, and a `gain` fade into the end. Cutroom has no pitch-preserving stretch (`playbackRate` resamples), so keep music at `playbackRate` 1 and cut the picture to the track's grid instead. Check every splice with `timeline` or `ab` around it and with `quality_review`'s join findings. Placement and ducking details: [music](../../uve-music/SKILL.md).
+Edit at bar lines (a bar is 4 × 60 / bpm seconds): consecutive `<audio>` clips of the same file, each `sourceIn` / `sourceOut` on a downbeat, with a short `gain` overlap at each splice and the harmony continuing across it (V to I, or the same chord). Land the drop's downbeat on the hero frame (`sourceIn = dropSourceTime - (revealTime - start)`), the final chord on the logo, and a `gain` fade into the end. Blackout has no pitch-preserving stretch (`playbackRate` resamples), so keep music at `playbackRate` 1 and cut the picture to the track's grid instead. Check every splice with `timeline` or `ab` around it and with `quality_review`'s join findings. Placement and ducking details: [music](../../uve-music/SKILL.md).
 
 ### 5. Placement, per category
 
@@ -72,7 +72,7 @@ Each category's clips carry an id prefix (`ui-click-3`, `kb-key-12`, `mo-whoosh-
 
 A repeated action draws from 4 or more takes (different `find` trims of one multi-take recording), never the same take twice in a row, with ±1-2 dB of `volume` jitter and at most ±0.3-0.5 semitones of pitch; real keyboards vary the take, not the pitch. The UI click is the exception: one voice, one level, every time. A run of pops climbs: `playbackRate = 2^(semitones / 12)` for +1 to +3 semitones across the run, which also shortens the clip and moves its attack, so recompute `start`. Clean every edge: `sourceIn` 3-5 ms before the attack, `sourceOut` after the decay, and a 20-50 ms `gain` fade-out wherever you cut inside a tail.
 
-Check a busy category alone: set `muted` on the other audio clips, export a temporary draft, run `timeline` with that category's cues, then unmute. Cutroom clips have no pan or EQ: effects stay as recorded, so choose the take for its tone and width.
+Check a busy category alone: set `muted` on the other audio clips, export a temporary draft, run `timeline` with that category's cues, then unmute. Blackout clips have no pan or EQ: effects stay as recorded, so choose the take for its tone and width.
 
 ### 6-7. Integrate, QA, listen
 
@@ -98,7 +98,7 @@ Test each fix before proposing it: make the change, export a new temporary draft
 
 ### 10. Finish, credit, export
 
-Target -14 LUFS integrated for web and social, true peak at most -1 dBTP after the AAC encode. With dialogue, use `audio_finish` `action: "finish"` with the `sceneId`, `musicIds`, `effectIds`, `targetLufs` and `truePeakDb`, then read `mixLoudness` ([audio finishing](../../uve-audio-finishing/SKILL.md)). Listed effects keep the `start`, trims and `volume` you set; an unlisted one is leveled with the dialogue and ducks the music. Without dialogue, set the scene's `volume` (the master fader) and the clip volumes until `audio_finish` measure reads the target; Cutroom has no master limiter, so lower the loudest peak (often the drop's first beat or one impact) with that clip's `volume` or a short keyframe dip. Check the exported file with `sound_analyze` `measure`, since the decoded AAC can overshoot. Offer the CC BY credit lines from `CREDITS.md` for the video description; credits never need to be on screen. Export the delivery file only when the user asks, then run `timeline` with the cues on it: the finished file, heard.
+Target -14 LUFS integrated for web and social, true peak at most -1 dBTP after the AAC encode. With dialogue, use `audio_finish` `action: "finish"` with the `sceneId`, `musicIds`, `effectIds`, `targetLufs` and `truePeakDb`, then read `mixLoudness` ([audio finishing](../../uve-audio-finishing/SKILL.md)). Listed effects keep the `start`, trims and `volume` you set; an unlisted one is leveled with the dialogue and ducks the music. Without dialogue, set the scene's `volume` (the master fader) and the clip volumes until `audio_finish` measure reads the target; Blackout has no master limiter, so lower the loudest peak (often the drop's first beat or one impact) with that clip's `volume` or a short keyframe dip. Check the exported file with `sound_analyze` `measure`, since the decoded AAC can overshoot. Offer the CC BY credit lines from `CREDITS.md` for the video description; credits never need to be on screen. Export the delivery file only when the user asks, then run `timeline` with the cues on it: the finished file, heard.
 
 ## Launch videos: the sound map
 
@@ -119,7 +119,7 @@ Levels: -14 LUFS, true peak at most -1 dBTP after AAC, LRA 5-9 LU, the loudest m
 
 ## Tools
 
-| need | Cutroom tool |
+| need | Blackout tool |
 |---|---|
 | measure a recording (levels, floor, bandwidth, onsets, tempo and key) | `sound_analyze` `measure`; `waveform` for the shape |
 | hear recordings: real or synthesized, what it sounds like, best match, best take in a long file | `sound_analyze` `realness`, `describe`, `match`, `rank`, `find`, `compare`, `ab` |
@@ -132,8 +132,8 @@ Levels: -14 LUFS, true peak at most -1 dBTP after AAC, LRA 5-9 LU, the loudest m
 
 ## What does not carry over
 
-earshot's real-sound scripts (the JSON sound design and its mixer, the QA, licence audit, credits, variant and mux scripts) and its sub-agent prompt templates are not part of Cutroom: the composition is the design, Cutroom's tools are the measurements, the app's `CREDITS.md` is the credits file and `export` is the mux. Cutroom's timeline has no EQ, pan, pitch-preserving stretch or master limiter; the steps above say what to do instead.
+earshot's real-sound scripts (the JSON sound design and its mixer, the QA, licence audit, credits, variant and mux scripts) and its sub-agent prompt templates are not part of Blackout: the composition is the design, Blackout's tools are the measurements, the app's `CREDITS.md` is the credits file and `export` is the mux. Blackout's timeline has no EQ, pan, pitch-preserving stretch or master limiter; the steps above say what to do instead.
 
 ## Provenance
 
-Adapted for Cutroom from `skills/real-sound/SKILL.md` and its `references/` and `templates/` in [earshot](https://github.com/Leonxlnx/earshot) v0.4.0 (commit `591fa3e028032e6dce56620a20e932e35667e8d8`). Copyright (c) 2026 Leon Lin, released under the MIT License; the full notice is in [LICENSE](LICENSE) and the import is recorded in [the import manifest](../provenance.json). Python and Node scripts, file layouts and sub-agent templates were replaced by Cutroom's tools and composition clips.
+Adapted for Blackout from `skills/real-sound/SKILL.md` and its `references/` and `templates/` in [earshot](https://github.com/Leonxlnx/earshot) v0.4.0 (commit `591fa3e028032e6dce56620a20e932e35667e8d8`). Copyright (c) 2026 Leon Lin, released under the MIT License; the full notice is in [LICENSE](LICENSE) and the import is recorded in [the import manifest](../provenance.json). Python and Node scripts, file layouts and sub-agent templates were replaced by Blackout's tools and composition clips.

@@ -83,7 +83,7 @@ export async function ensureDownloader(downloader: MediaDownloader, signal: Abor
     const detail = error instanceof Error ? error.message.replace(/\s+/g, " ").trim().slice(0, 300) : String(error);
     throw new DapiError(
       "unsupported",
-      `Cutroom couldn't set up its downloader (yt-dlp): ${detail.replace(/\.$/, "")}. Check the internet connection, then try again; Settings > Downloads shows its state.`,
+      `Blackout couldn't set up its downloader (yt-dlp): ${detail.replace(/\.$/, "")}. Check the internet connection, then try again; Settings > Downloads shows its state.`,
       { cause: error },
     );
   }
@@ -176,7 +176,7 @@ export function downloaderError(failure: YtDlpError, situation: Situation): Dapi
       return error("canceled", "The download was canceled.");
     case "unavailable":
       if (failure.reason === "private-address") {
-        return error("invalid-input", "That link leads to a local or private network address, which Cutroom doesn't download from. Use a public link.");
+        return error("invalid-input", "That link leads to a local or private network address, which Blackout doesn't download from. Use a public link.");
       }
       if (failure.reason === "drm") return error("unsupported", `${where} protects this with DRM${detail}, so it can't be downloaded. Choose another source or ask the user for their own copy.`);
       if (failure.reason === "geo") return error("not-found", `${where} doesn't offer this in this country${detail}. Choose another source; this link won't work on retry.`);
@@ -191,9 +191,9 @@ export function downloaderError(failure: YtDlpError, situation: Situation): Dapi
       }
       // Vimeo's site answers this for every video now, public ones included: it is about the downloader, not this upload.
       if (/only works when logged[- ]in/i.test(failure.detail)) {
-        return error("sign-in-required", `${where} lets the downloader read its videos only when signed in, public ones included${detail}, and Cutroom doesn't sign in to sites. Ask the user for their own copy of the file, or choose a source on another site.`);
+        return error("sign-in-required", `${where} lets the downloader read its videos only when signed in, public ones included${detail}, and Blackout doesn't sign in to sites. Ask the user for their own copy of the file, or choose a source on another site.`);
       }
-      return error("sign-in-required", `${where} only shows this to signed-in viewers${detail}. Cutroom doesn't sign in to sites: choose another source, or ask the user for their own copy of the file.`);
+      return error("sign-in-required", `${where} only shows this to signed-in viewers${detail}. Blackout doesn't sign in to sites: choose another source, or ask the user for their own copy of the file.`);
     case "outdated":
       if (situation.updateFailed) {
         return error("unsupported", `The downloader couldn't read this page${detail}, and updating it failed (${situation.updateFailed.replace(/\.$/, "")}). Check the internet connection, then try once more.`);
@@ -209,7 +209,7 @@ export function downloaderError(failure: YtDlpError, situation: Situation): Dapi
       if (failure.reason === "rate-limited") return error("busy", `${where} is limiting requests from this network${detail}. Wait several minutes before trying again, or choose another source.`);
       return error("unsupported", `macOS stopped the downloader from running${detail}. Reinstall it from Settings > Downloads, or allow it in System Settings > Privacy & Security.`);
     case "format":
-      return error("unsupported", `${where} offers no format Cutroom can use for this${detail}. Try \`kind: "audio"\`, a lower \`maxHeight\`, or another source.`);
+      return error("unsupported", `${where} offers no format Blackout can use for this${detail}. Try \`kind: "audio"\`, a lower \`maxHeight\`, or another source.`);
     case "too-large":
       if (failure.reason === "disk-full") return error("invalid-input", `The disk is full${detail}. Free some space, then download again.`);
       if (failure.reason === "timeout") {

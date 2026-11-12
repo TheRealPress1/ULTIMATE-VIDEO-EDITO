@@ -38,7 +38,7 @@ type Outcome =
 
 export const EMPTY_MEMORY: MemoryDocument = Object.freeze({ version: 1, enabled: true, revision: 0, profile: [], setup: [], updatedAt: null }) as MemoryDocument;
 
-const UNREADABLE = "Cutroom's saved agent memory (agent-memory/memory.json in the app's data) could not be read, so it has not been changed. Move that file aside to start over.";
+const UNREADABLE = "Blackout's saved agent memory (agent-memory/memory.json in the app's data) could not be read, so it has not been changed. Move that file aside to start over.";
 const HISTORY_FILE = /^(\d{6,})-(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)\.json$/;
 
 const count = (n: number) => n.toLocaleString("en-US");
@@ -253,15 +253,15 @@ export class AgentMemoryStore {
     if (args.action === "view") {
       const doc = await this.read();
       const usage = memoryUsage(doc);
-      if (!doc.enabled) return { ok: true, enabled: false, revision: doc.revision, message: "Memory is paused in Cutroom's Settings: agents neither read nor save it until the user turns it back on.", usage, appliesFrom: "next-session" };
+      if (!doc.enabled) return { ok: true, enabled: false, revision: doc.revision, message: "Memory is paused in Blackout's Settings: agents neither read nor save it until the user turns it back on.", usage, appliesFrom: "next-session" };
       const total = doc.profile.length + doc.setup.length;
       const message = total
         ? `${doc.profile.length} profile and ${doc.setup.length} setup ${total === 1 ? "entry" : "entries"} at revision ${doc.revision}.`
         : "Nothing is saved yet.";
       const held = [...doc.profile, ...doc.setup].filter((entry) => withheldAs(entry)).length;
       const note = !held ? "" : held === 1
-        ? " One fails Cutroom's safety check, so its text is left out (`withheld`); the user can review it in Settings, and you can remove it by id when asked."
-        : ` ${held} fail Cutroom's safety check, so their text is left out (\`withheld\`); the user can review them in Settings, and you can remove them by id when asked.`;
+        ? " One fails Blackout's safety check, so its text is left out (`withheld`); the user can review it in Settings, and you can remove it by id when asked."
+        : ` ${held} fail Blackout's safety check, so their text is left out (\`withheld\`); the user can review them in Settings, and you can remove them by id when asked.`;
       return { ok: true, enabled: true, revision: doc.revision, message: message + note, profile: forAgents(doc.profile), setup: forAgents(doc.setup), usage, appliesFrom: "next-session" };
     }
     const changes = changesFrom(args);
@@ -272,7 +272,7 @@ export class AgentMemoryStore {
         ok: false, enabled: doc.enabled, revision: doc.revision, message, usage: memoryUsage(doc), appliesFrom: "next-session",
         ...(doc.enabled ? { profile: forAgents(doc.profile), setup: forAgents(doc.setup) } : {}),
       });
-      if (!doc.enabled) return refuse("Memory is paused in Cutroom's Settings, so nothing was saved. The user can turn it back on under What agents remember.");
+      if (!doc.enabled) return refuse("Memory is paused in Blackout's Settings, so nothing was saved. The user can turn it back on under What agents remember.");
       if (args.expectedRevision !== undefined && args.expectedRevision !== doc.revision) {
         return refuse(`Memory changed since revision ${args.expectedRevision}; it is now at revision ${doc.revision}. Nothing was saved: review the entries returned and retry.`);
       }

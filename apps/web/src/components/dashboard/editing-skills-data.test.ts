@@ -67,7 +67,7 @@ describe("the skill library in Settings", () => {
     expect(userSkillsNotice("on", 2)).toBeNull();
     for (const count of [0, 2]) {
       expect(userSkillsNotice("paused", count), String(count)).toMatch(/^Paused with agent memory: agents .*What agents remember\.$/);
-      expect(userSkillsNotice("off", count), String(count)).toMatch(/turned off in this Cutroom session/);
+      expect(userSkillsNotice("off", count), String(count)).toMatch(/turned off in this Blackout session/);
       for (const state of ["paused", "off"] as const) expect(userSkillsNotice(state, count)).not.toMatch(/ask your agent to save/);
     }
     expect(userSkillsNotice("paused", 2)).toMatch(/don't see these skills/);

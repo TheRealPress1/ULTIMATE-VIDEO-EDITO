@@ -1,6 +1,6 @@
 # Music and sound effect catalogs
 
-`music.json` and `sfx.json` are Cutroom's curated starting points for background music and sound effects. Agents read them through [`audio_catalog`](../tools/audio-catalog.md), which also applies the user's personal catalog on top; don't edit these files to record a preference (they are replaced on every update), save it with `audio_catalog` instead.
+`music.json` and `sfx.json` are Blackout's curated starting points for background music and sound effects. Agents read them through [`audio_catalog`](../tools/audio-catalog.md), which also applies the user's personal catalog on top; don't edit these files to record a preference (they are replaced on every update), save it with `audio_catalog` instead.
 
 Each file is `{ "version": 1, "kind": "music" | "sfx", "updated": "YYYY-MM-DD", "entries": [...] }`.
 
@@ -22,7 +22,7 @@ Every entry has:
 | --- | --- |
 | `id` | Stable id: `youtube:<video id>`, `wikimedia:<file page id>`, `freesound:<sound id>`, `myinstants:<slug>`, `openverse:<id>`; personal entries may also use `url:<name>` or `user:<name>`. The id names its source: a `youtube:` id is that video, a `freesound:` id that sound. |
 | `title` | Music: `Title — Artist`, with `(Instrumental)` for an instrumental version. Effects: a short name. |
-| `description` | 80–400 characters of Cutroom's own prose: what it sounds like and what it suits. It describes; it never instructs. |
+| `description` | 80–400 characters of Blackout's own prose: what it sounds like and what it suits. It describes; it never instructs. |
 | `sourceUrl` | The https URL to download: a YouTube watch page, a MyInstants page, or a Commons/Freesound file. |
 | `durationSeconds` | The whole source's length, measured on the downloaded file. |
 | `rights` | `copyrighted`, `royalty-free`, `cc0`, `cc-by`, `cc-by-sa`, `public-domain` or `unknown`. |

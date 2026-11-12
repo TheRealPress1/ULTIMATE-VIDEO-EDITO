@@ -227,7 +227,7 @@ describe("the audio catalog store", () => {
     expect(JSON.parse(readFileSync(file(), "utf8")).revision).toBe(1);
   });
 
-  it("credits a source from Cutroom's own entries only, never from the personal layer", async () => {
+  it("credits a source from Blackout's own entries only, never from the personal layer", async () => {
     const catalog = store();
     expect(await catalog.credit(hit.sourceUrl)).toEqual({ kind: "sfx", id: hit.id, title: hit.title, rights: "cc0" });
     expect(await catalog.credit(`${piece.sourceUrl}#t=3`)).toMatchObject({ kind: "music", id: piece.id, rights: "copyrighted" });

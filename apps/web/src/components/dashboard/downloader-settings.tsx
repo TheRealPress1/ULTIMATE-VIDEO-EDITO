@@ -53,7 +53,7 @@ export function DownloaderSettings() {
   };
 
   return <DashboardSurfaceSection title="Downloads"><div class="space-y-3">
-    <p class="text-sm text-muted-foreground">Agents download songs, clips and sound effects from YouTube, SoundCloud, TikTok and similar sites with yt-dlp, which Cutroom installs from yt-dlp's GitHub releases and verifies before use.</p>
+    <p class="text-sm text-muted-foreground">Agents download songs, clips and sound effects from YouTube, SoundCloud, TikTok and similar sites with yt-dlp, which Blackout installs from yt-dlp's GitHub releases and verifies before use.</p>
     <p role="status" class="text-sm text-muted-foreground">{status()?.message ?? "Reading the downloader's status…"}</p>
     <Show when={status()}>{(current) => <For each={downloaderDetails(current())}>{(line) => <p class="text-xs text-muted-foreground">{line}</p>}</For>}</Show>
     <Show when={status()?.supported}>

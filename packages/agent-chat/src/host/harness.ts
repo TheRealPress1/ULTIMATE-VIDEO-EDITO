@@ -234,15 +234,15 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
   // Codex is declined only what its sandbox enforces, while Claude's hooks
   // also refuse shell deletes and credential reads.
   const automatic = harness === "codex"
-    ? "Cutroom never shows permission prompts: project edits, cutroom tools and sandboxed commands run automatically; sandboxed commands have no network access. " +
+    ? "Blackout never shows permission prompts: project edits, cutroom tools and sandboxed commands run automatically; sandboxed commands have no network access. " +
       "Never delete files: no `rm`, `find -delete`, `unlink` or scripted deletes in commands, and no Delete File hunks in patches. " +
       "Never create, change or delete anything in `.cutroom`, `.git`, `.claude`, `.codex` or `.mcp.json`: `.cutroom` holds the project's version history and web-media ledger. " +
       "Leave unused files in place; media in `assets/` and `exports/` may be the only copy. " +
       "Writes outside the project and temporary folders, network access from commands and requests for extra permissions are declined automatically. "
-    : "Cutroom never shows permission prompts: project edits, cutroom tools, web search/fetch and sandboxed commands run automatically; sandboxed commands reach public hosts for packages and pages, not media. " +
+    : "Blackout never shows permission prompts: project edits, cutroom tools, web search/fetch and sandboxed commands run automatically; sandboxed commands reach public hosts for packages and pages, not media. " +
       "Actions outside that boundary are refused automatically with a reason — deleting files or running system commands from the shell, replacing files outside the project, reading credential stores. ";
   const base =
-    `You are running in Cutroom's chat panel. The open project is at \`${cwd}\`. ` +
+    `You are running in Blackout's chat panel. The open project is at \`${cwd}\`. ` +
     "The `cutroom` MCP tools act on it live — use `capture`/`check` to verify edits. " +
     "For substantial editing, call `skills` to select and read the relevant UVE workflows; load only the guides needed. " +
     "Read `editing_style` for user-approved preferences; the current brief takes precedence. " +
@@ -255,7 +255,7 @@ export function chatInstructions(cwd: string, custom?: string, harness?: Harness
     "Media from outside the project comes through the cutroom tools, never a shell download: `media_search` and `media_download` for YouTube, YouTube Music, SoundCloud, TikTok, Instagram and other platforms, " +
     "picture included (`kind: \"video\"`: footage of an event or another creator's video comes this way, and the whole upload is kept, so trim it in the project); " +
     "`web_media_search` and `web_media_download` for openly licensed images, video and audio, which refuses those platforms' pages. " +
-    "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Cutroom's own approval queue, which agents cannot use.";
+    "Ask the user only when the creative brief itself is ambiguous; never ask before publishing externally — publishing happens only through Blackout's own approval queue, which agents cannot use.";
   return [base, custom, memory].filter((part): part is string => !!part).join("\n\n");
 }
 
@@ -272,7 +272,7 @@ export function instructionsHash(instructions: string): string {
  */
 export function withRefreshedInstructions(instructions: string, message: string): string {
   return "<system-reminder>\n" +
-    "Cutroom has been updated since this conversation began, so the instructions and tool descriptions you were given at the start may be out of date. " +
+    "Blackout has been updated since this conversation began, so the instructions and tool descriptions you were given at the start may be out of date. " +
     "The text below replaces your original instructions from now on. A tool it names that you have not loaded yet is loaded with ToolSearch; " +
     "where a tool description you loaded earlier disagrees with this text, follow this text.\n\n" +
     `${instructions}\n</system-reminder>\n\n${message}`;

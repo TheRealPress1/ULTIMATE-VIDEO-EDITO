@@ -57,4 +57,4 @@ The API's job, with the files it made saved locally: each file's `url` is replac
 ## Errors
 
 - `not-found` — no job of this account has the id, or a local job's id from before the app restarted.
-- `sign-in-required` — an API job, and the app is not signed in to a Cutroom account.
+- `sign-in-required` — an API job, and the app is not signed in to a Blackout account.

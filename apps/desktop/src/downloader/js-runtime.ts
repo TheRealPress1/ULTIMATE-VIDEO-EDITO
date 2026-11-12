@@ -41,7 +41,7 @@ export function shellQuote(value: string): string {
 export function shimScript(execPath: string): string {
   return [
     "#!/bin/sh",
-    "# Written by Cutroom: runs Cutroom's own binary as Node for yt-dlp.",
+    "# Written by Blackout: runs Blackout's own binary as Node for yt-dlp.",
     "unset NODE_OPTIONS NODE_PATH",
     `ELECTRON_RUN_AS_NODE=1 exec ${shellQuote(execPath)} "$@"`,
     "",

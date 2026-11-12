@@ -34,7 +34,7 @@ const HINTS: Record<GeminiErrorKind, string> = {
   rejected: "Google refused the request.",
   service: "Google had a server error. Try again shortly.",
   network: "Couldn't reach Google (generativelanguage.googleapis.com). Check the connection.",
-  response: "Google answered in a way this version of Cutroom can't read.",
+  response: "Google answered in a way this version of Blackout can't read.",
   upload: "The clip couldn't be uploaded to Google or prepared there.",
   timeout: "Google took too long to answer.",
   canceled: "The call was canceled.",
@@ -224,7 +224,7 @@ export class GeminiFiles {
     }
     const sameHost = target.origin === new URL(this.base).origin;
     if (!sameHost && !(target.protocol === "https:" && /(?:^|\.)googleapis\.com$/i.test(target.hostname))) {
-      throw new GeminiError("upload", "Google returned an upload address Cutroom doesn't trust, so nothing was sent.");
+      throw new GeminiError("upload", "Google returned an upload address Blackout doesn't trust, so nothing was sent.");
     }
     return { url: target.href, sameHost };
   }

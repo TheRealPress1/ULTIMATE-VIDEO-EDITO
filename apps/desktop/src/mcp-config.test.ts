@@ -16,7 +16,7 @@ import {
 
 const spec = {
   url: "http://127.0.0.1:43127/mcp",
-  command: "/Applications/Cutroom.app/Contents/Resources/cli/bin/dapi",
+  command: "/Applications/Blackout.app/Contents/Resources/cli/bin/dapi",
   args: ["mcp"],
 };
 
@@ -76,7 +76,7 @@ describe("json configs", () => {
     expect(after.mcpServers.cutroom).toEqual({ url: spec.url });
   });
 
-  it("preserves an installed Diffusion server when Cutroom is connected or removed", () => {
+  it("preserves an installed Diffusion server when Blackout is connected or removed", () => {
     const diffusion = { type: "http", url: "http://127.0.0.1:3274/mcp" };
     const before = JSON.stringify({ mcpServers: { diffusion } });
     expect(readServer(before, "mcpServers")).toBeNull();
@@ -203,7 +203,9 @@ describe("stdio entries across platforms", () => {
 
   it("recognises our proxy by its path, as the command or as an argument", () => {
     expect(runsOurProxy({ command: spec.command, args: ["mcp"] })).toBe(true);
-    expect(runsOurProxy({ command: "/private/var/folders/x/AppTranslocation/y/d/Cutroom.app/Contents/Resources/cli/bin/dapi" })).toBe(true);
+    expect(runsOurProxy({ command: "/private/var/folders/x/AppTranslocation/y/d/Blackout.app/Contents/Resources/cli/bin/dapi" })).toBe(true);
+    // An entry written before the app was renamed is still ours to repair.
+    expect(runsOurProxy({ command: "/Applications/Cutroom.app/Contents/Resources/cli/bin/dapi" })).toBe(true);
     expect(runsOurProxy({ command: "/Applications/Diffusion Studio.app/Contents/Resources/cli/bin/dapi" })).toBe(false);
     expect(runsOurProxy({ command: "/private/var/folders/x/AppTranslocation/y/d/cli/bin/dapi" })).toBe(false);
     expect(runsOurProxy({ command: "cmd", args: ["/c", shim, "mcp"] })).toBe(true);

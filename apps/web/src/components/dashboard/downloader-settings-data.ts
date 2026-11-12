@@ -17,7 +17,7 @@ export function downloaderDetails(status: DownloaderStatus, format: (iso: string
   if (!status.supported) return lines;
   if (status.version && status.installedAt) lines.push(`yt-dlp ${status.version}, installed ${format(status.installedAt)}.`);
   if (status.checkedAt) lines.push(`Last checked GitHub for a newer release ${format(status.checkedAt)}.`);
-  if (status.jsRuntime?.kind === "node") lines.push(`YouTube's playback challenges are solved locally with Cutroom's built-in Node ${status.jsRuntime.version}.`);
+  if (status.jsRuntime?.kind === "node") lines.push(`YouTube's playback challenges are solved locally with Blackout's built-in Node ${status.jsRuntime.version}.`);
   else if (status.jsRuntime?.kind === "none") lines.push(`No JavaScript runtime passed its check, so YouTube may offer fewer formats (${status.jsRuntime.error.replace(/\.$/, "")}).`);
   if (status.state === "ready" && status.error) lines.push(`The last check didn't finish: ${status.error.replace(/\.$/, "")}. The installed release keeps working.`);
   return lines;

@@ -12,7 +12,7 @@ export const report = defineTool({
   name: "report",
   title: "Report a bug",
   description:
-    "Report a bug in Cutroom. Disabled unless this build explicitly configures CUTROOM_REPORT_REPO. When configured, files a GitHub issue in that repository with app version, platform and recent logs, using the authenticated gh CLI, and returns its URL. Request the user's approval before publishing diagnostics. Use logs to collect local diagnostics without publishing.",
+    "Report a bug in Blackout. Disabled unless this build explicitly configures CUTROOM_REPORT_REPO. When configured, files a GitHub issue in that repository with app version, platform and recent logs, using the authenticated gh CLI, and returns its URL. Request the user's approval before publishing diagnostics. Use logs to collect local diagnostics without publishing.",
   input: z.object({
     title: z.string().min(1).describe("one-line summary of the problem"),
     body: z.string().optional().describe("what happened, in markdown: expected vs actual, and anything the diagnostics won't show"),

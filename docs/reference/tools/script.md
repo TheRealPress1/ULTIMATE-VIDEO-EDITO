@@ -65,7 +65,7 @@ Numerals count as one word each. `⟦ask: …⟧` placeholders, `[stage directio
 | `hedge` | Softeners such as "maybe", "kind of", "I think" |
 | `jargon` | Business-speak such as "leverage" or "synergy" |
 | `avoided-word` | A word from `avoidWords` or the profile's words to avoid |
-| `stale-phrase` | A worn phrase from Cutroom's list or `extraStalePhrases` |
+| `stale-phrase` | A worn phrase from Blackout's list or `extraStalePhrases` |
 | `missing-emotion` | Lines without an emotion label (one grouped flag) |
 | `too-many-points` | More than four separate `point` beats. Lines with the same label in a row count as one point |
 | `weak-close` | The last line is a question, trails off, ends on "and" or "so", or signs off ("thanks for watching") |

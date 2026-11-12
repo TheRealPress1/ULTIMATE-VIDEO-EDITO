@@ -146,7 +146,7 @@ const BENIGN_TOOLS = new Set([
  * hook refuses it; the callback refuses it too, as a backstop.
  */
 const ENTER_PLAN_MODE = "EnterPlanMode";
-export const PLAN_MODE_MESSAGE = "Plan mode isn't used in Cutroom chats; work directly and outline your plan in the reply.";
+export const PLAN_MODE_MESSAGE = "Plan mode isn't used in Blackout chats; work directly and outline your plan in the reply.";
 const INACTIVE = "The editing request is no longer active.";
 
 /**
@@ -476,12 +476,12 @@ class ClaudeSession implements HarnessSession {
       const prefix = this.options.mcp ? `mcp__${this.options.mcp.name}__` : null;
       return prefix && toolName.startsWith(prefix) && toolName.length > prefix.length
         ? { decision: ALLOW, scope: 'local-editor-tool' }
-        : { decision: deny("Only Cutroom's tools are connected in this chat."), scope: 'other-mcp' };
+        : { decision: deny("Only Blackout's tools are connected in this chat."), scope: 'other-mcp' };
     }
     if (BENIGN_TOOLS.has(toolName)) return { decision: ALLOW, scope: 'built-in' };
     if (toolName === ENTER_PLAN_MODE) return { decision: deny(PLAN_MODE_MESSAGE), scope: 'unavailable-tool' };
     return {
-      decision: deny(`${toolName} isn't available in Cutroom editing sessions; use the cutroom tools or a sandboxed shell command.`),
+      decision: deny(`${toolName} isn't available in Blackout editing sessions; use the cutroom tools or a sandboxed shell command.`),
       scope: 'unavailable-tool',
     };
   }

@@ -17,7 +17,7 @@ export const INSTRUCTIONS_FILE = "INSTRUCTIONS.md";
 export const INSTRUCTIONS_LIMIT = 3900;
 
 const FALLBACK_INSTRUCTIONS =
-  "Cutroom, a video editor, is running on this machine and you are connected to it. The tools are the whole API; their descriptions are authoritative.";
+  "Blackout, a video editor, is running on this machine and you are connected to it. The tools are the whole API; their descriptions are authoritative.";
 
 /**
  * The text every client gets on connect: where the docs sit on disk, then
@@ -32,7 +32,7 @@ export function instructions(docsDir: string | null): string {
   const body = text?.trim() || FALLBACK_INSTRUCTIONS;
   if (!docsDir) return body;
   return [
-    `Cutroom's docs are the files at \`${docsDir}\`: the skills, the tool and JSX reference, guides, runnable examples, and the brand kit (fonts, imagery, components to copy). Every page path below is relative to that folder. They belong to the app; read them, never edit them.`,
+    `Blackout's docs are the files at \`${docsDir}\`: the skills, the tool and JSX reference, guides, runnable examples, and the brand kit (fonts, imagery, components to copy). Every page path below is relative to that folder. They belong to the app; read them, never edit them.`,
     body,
   ].join("\n\n");
 }

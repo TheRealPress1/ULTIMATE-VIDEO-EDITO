@@ -14,11 +14,11 @@ import type { MainHandler } from "../handler";
  * already saved stay listed by `skills`.
  */
 export const skillWrite: MainHandler<"skill_write"> = async (args, ctx) => {
-  if (!ctx.agentSkillsDir || !ctx.agentMemoryFile) throw new DapiError("unsupported", "Saving user skills is turned off in this Cutroom session.");
+  if (!ctx.agentSkillsDir || !ctx.agentMemoryFile) throw new DapiError("unsupported", "Saving user skills is turned off in this Blackout session.");
   // A memory file that can't be read is Settings' to report; it doesn't hold up skills.
   const paused = await agentMemoryStore(ctx.agentMemoryFile).read().then((doc) => !doc.enabled, () => false);
   if (paused) {
-    throw new DapiError("unsupported", "Agent memory is paused in Cutroom's Settings, which pauses saved skills too, so nothing was written. The user can turn it back on under What agents remember.");
+    throw new DapiError("unsupported", "Agent memory is paused in Blackout's Settings, which pauses saved skills too, so nothing was written. The user can turn it back on under What agents remember.");
   }
   return agentSkillsStore(ctx.agentSkillsDir).write(args.operations, "agent");
 };

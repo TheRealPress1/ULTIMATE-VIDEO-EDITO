@@ -78,7 +78,7 @@ export async function installCli(): Promise<CliInstallResult> {
   return {
     status: "error",
     error: process.platform === "win32"
-      ? "Install the packaged Cutroom app to use its CLI on Windows."
+      ? "Install the packaged Blackout app to use its CLI on Windows."
       : "Installing the CLI is only available on Windows and macOS.",
   };
 }

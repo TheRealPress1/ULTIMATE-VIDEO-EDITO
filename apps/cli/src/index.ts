@@ -99,7 +99,7 @@ const program = new Command();
 program
   .name("cutroom")
   .description(
-    `The Cutroom CLI: understand and edit footage.
+    `The Blackout CLI: understand and edit footage.
 Analyze video/audio/images and compose assets.
 Use for any media analysis or video editing task. No ffmpeg needed.`)
   .version(version);

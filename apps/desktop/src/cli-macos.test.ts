@@ -169,4 +169,41 @@ describe.skipIf(process.getuid?.() === 0)("administrator fallback", () => {
     expect(await installMacCli({ ...options, elevate })).toEqual({ status: "cancelled" });
     expect(lstatSync(link(), { throwIfNoEntry: false })).toBeUndefined();
   });
+
+  describe("a link left by a build from before the app was renamed", () => {
+    // Those builds were Cutroom.app and linked the command into their own bundle.
+    const earlier = (): string => join(root, "Applications", "Cutroom.app", "Contents", "Resources", "cli", "bin", "dapi");
+    const leaveLink = (installed: boolean): void => {
+      mkdirSync(directories[0]!);
+      if (installed) {
+        mkdirSync(dirname(earlier()), { recursive: true });
+        writeFileSync(earlier(), "#!/bin/sh\n", { mode: 0o755 });
+      }
+      symlinkSync(earlier(), link());
+    };
+
+    it("points a dangling one at this build instead of calling it another installation's", async () => {
+      leaveLink(false);
+      expect(macCliStatus(options)).toEqual({ installed: false, path: link(), managed: true, available: true });
+      expect(await installMacCli(options)).toEqual({ status: "installed" });
+      expect(readlinkSync(link())).toBe(target);
+      expect(macCliStatus(options)).toEqual({ installed: true, path: link(), managed: true, available: true });
+    });
+
+    it("leaves one alone while that earlier app is still installed", async () => {
+      leaveLink(true);
+      expect(await installMacCli(options)).toEqual({
+        status: "error",
+        error: `${link()} already exists and belongs to another installation. It was left alone.`,
+      });
+      expect(readlinkSync(link())).toBe(earlier());
+      expect(await uninstallMacCli(options)).toEqual({ status: "absent" });
+    });
+
+    it("removes a dangling one when the command is uninstalled", async () => {
+      leaveLink(false);
+      expect(await uninstallMacCli(options)).toEqual({ status: "removed" });
+      expect(lstatSync(link(), { throwIfNoEntry: false })).toBeUndefined();
+    });
+  });
 });

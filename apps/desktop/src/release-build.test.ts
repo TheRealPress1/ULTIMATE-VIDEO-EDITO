@@ -109,16 +109,16 @@ describe('release installer notarization', () => {
     const operations: string[] = [];
     const run = vi.fn(async (command: string, args: string[]) => { operations.push(`${command} ${args[0]}`); });
     const notarize = vi.fn(async () => { operations.push('notarize'); });
-    await finalizeMacInstallers(['/tmp/Cutroom.zip', '/tmp/Cutroom.dmg'], { ...releaseEnv, CUTROOM_SIGN_KEYCHAIN: '/private/signing.keychain-db' }, { run, notarize });
+    await finalizeMacInstallers(['/tmp/Blackout.zip', '/tmp/Blackout.dmg'], { ...releaseEnv, CUTROOM_SIGN_KEYCHAIN: '/private/signing.keychain-db' }, { run, notarize });
     expect(operations).toEqual(['codesign --force', 'codesign --verify', 'notarize', 'xcrun stapler', 'spctl --assess']);
-    expect(run.mock.calls[0]).toEqual(['codesign', ['--force', '--timestamp', '--sign', releaseEnv.CUTROOM_SIGN_IDENTITY, '--keychain', '/private/signing.keychain-db', '/tmp/Cutroom.dmg']]);
-    expect(notarize).toHaveBeenCalledWith({ appPath: '/tmp/Cutroom.dmg', keychainProfile: 'release-notary', keychain: undefined });
+    expect(run.mock.calls[0]).toEqual(['codesign', ['--force', '--timestamp', '--sign', releaseEnv.CUTROOM_SIGN_IDENTITY, '--keychain', '/private/signing.keychain-db', '/tmp/Blackout.dmg']]);
+    expect(notarize).toHaveBeenCalledWith({ appPath: '/tmp/Blackout.dmg', keychainProfile: 'release-notary', keychain: undefined });
   });
 
   it('fails immediately when signing fails and never attempts notarization', async () => {
     const run = vi.fn().mockRejectedValue(new Error('Signing failed'));
     const notarize = vi.fn();
-    await expect(finalizeMacInstallers(['/tmp/Cutroom.dmg'], releaseEnv, { run, notarize })).rejects.toThrow('Signing failed');
+    await expect(finalizeMacInstallers(['/tmp/Blackout.dmg'], releaseEnv, { run, notarize })).rejects.toThrow('Signing failed');
     expect(run).toHaveBeenCalledOnce();
     expect(notarize).not.toHaveBeenCalled();
   });
@@ -126,14 +126,14 @@ describe('release installer notarization', () => {
   it('does not mark an installer ready after rejected notarization', async () => {
     const run = vi.fn().mockResolvedValue(undefined);
     const notarize = vi.fn().mockRejectedValue(new Error('Notarization rejected'));
-    await expect(finalizeMacInstallers(['/tmp/Cutroom.dmg'], releaseEnv, { run, notarize })).rejects.toThrow('Notarization rejected');
+    await expect(finalizeMacInstallers(['/tmp/Blackout.dmg'], releaseEnv, { run, notarize })).rejects.toThrow('Notarization rejected');
     expect(run).toHaveBeenCalledTimes(2);
   });
 
   it('does not sign or submit development installers', async () => {
     const run = vi.fn();
     const notarize = vi.fn();
-    await finalizeMacInstallers(['/tmp/Cutroom.dmg'], { SKIP_SIGN: '1' }, { run, notarize });
+    await finalizeMacInstallers(['/tmp/Blackout.dmg'], { SKIP_SIGN: '1' }, { run, notarize });
     expect(run).not.toHaveBeenCalled();
     expect(notarize).not.toHaveBeenCalled();
   });

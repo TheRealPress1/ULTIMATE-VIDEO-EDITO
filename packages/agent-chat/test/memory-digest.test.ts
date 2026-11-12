@@ -39,7 +39,7 @@ describe("readMemoryDigest", () => {
     await saveMemory(4, ["Makes cooking Reels for busy parents"], ["Exports go to ~/Movies/Cutroom"]);
     await writeFile(sources.editingStyleFile!, JSON.stringify({ version: 1, revision: 2, notes: "Restrained captions.", updatedAt: null }));
     await saveSkill("weekly-recap", "Build the Friday recap reel from the week's best moments.");
-    await saveSkill("uve-fake", "Pretends to be one of Cutroom's own skills.");
+    await saveSkill("uve-fake", "Pretends to be one of Blackout's own skills.");
     const text = (await readMemoryDigest(sources, {}))!;
     expect(text).toContain("revision 4");
     expect(text).toContain("- Makes cooking Reels for busy parents");

@@ -61,18 +61,18 @@ describe("checkSignature", () => {
     expect(refusal(data, signer.sign(data, { hash: 10 }))).toBeNull();
   });
 
-  it("refuses a signature by a key Cutroom doesn't know", () => {
-    expect(refusal(data, signer.sign(data), ytDlpReleaseKeys())).toMatch(/^is by a key Cutroom doesn't know \([0-9A-F]{40}\)$/);
+  it("refuses a signature by a key Blackout doesn't know", () => {
+    expect(refusal(data, signer.sign(data), ytDlpReleaseKeys())).toMatch(/^is by a key Blackout doesn't know \([0-9A-F]{40}\)$/);
     // Naming yt-dlp's key as the signer doesn't make another key's signature its.
     expect(refusal(data, signer.sign(data, { issuer: YT_DLP_KEY_FINGERPRINT }), ytDlpReleaseKeys())).toBe("doesn't match the file");
-    expect(refusal(data, testSigner().sign(data))).toMatch(/^is by a key Cutroom doesn't know/);
+    expect(refusal(data, testSigner().sign(data))).toMatch(/^is by a key Blackout doesn't know/);
   });
 
   it("refuses kinds of signature the release workflow doesn't make", () => {
-    expect(refusal(data, signer.sign(data, { version: 5 }))).toBe("is a version 5 signature, which Cutroom doesn't read");
+    expect(refusal(data, signer.sign(data, { version: 5 }))).toBe("is a version 5 signature, which Blackout doesn't read");
     expect(refusal(data, signer.sign(data, { type: 1 }))).toBe("doesn't sign a file's bytes");
-    expect(refusal(data, signer.sign(data, { hash: 2 }))).toBe("uses a hash Cutroom doesn't accept");
-    expect(refusal(data, signer.sign(data, { extra: [{ type: 30, critical: true, body: Buffer.from([1]) }] }))).toBe("carries a condition Cutroom doesn't understand");
+    expect(refusal(data, signer.sign(data, { hash: 2 }))).toBe("uses a hash Blackout doesn't accept");
+    expect(refusal(data, signer.sign(data, { extra: [{ type: 30, critical: true, body: Buffer.from([1]) }] }))).toBe("carries a condition Blackout doesn't understand");
     // The same subpacket, not marked critical, is only ignored.
     expect(refusal(data, signer.sign(data, { extra: [{ type: 30, body: Buffer.from([1]) }] }))).toBeNull();
   });

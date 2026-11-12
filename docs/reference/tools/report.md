@@ -1,6 +1,6 @@
 # report
 
-Report a bug in Cutroom. Issue publishing is disabled unless the build explicitly configures `CUTROOM_REPORT_REPO`. With a repository configured, this command publishes diagnostics through the authenticated `gh` CLI; request the user’s approval before publishing. Use `cutroom logs` to collect diagnostics locally.
+Report a bug in Blackout. Issue publishing is disabled unless the build explicitly configures `CUTROOM_REPORT_REPO`. With a repository configured, this command publishes diagnostics through the authenticated `gh` CLI; request the user’s approval before publishing. Use `cutroom logs` to collect diagnostics locally.
 
 | | |
 | --- | --- |

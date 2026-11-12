@@ -169,7 +169,7 @@ const YOUTUBE_TABS = new Set(["videos", "shorts", "streams", "featured", "about"
 export type CreatorTarget = { url: string; handle: string | null };
 
 function invalidCreator(platform: string, forms: string): DapiError {
-  return new DapiError("invalid-input", `That isn't a creator Cutroom can list on ${platform}: give ${forms}.`);
+  return new DapiError("invalid-input", `That isn't a creator Blackout can list on ${platform}: give ${forms}.`);
 }
 
 /** The link `creator` was given as, when it is one: http(s) only. */
@@ -254,7 +254,7 @@ export function creatorTarget(platform: MediaPlatform, creator: string, tab: "vi
     case "x":
       throw new DapiError(
         "unsupported",
-        "Cutroom can't list an X account's posts. Ask the user for the links to the posts they want, or find them with your own web search (`site:x.com <words> video`), then pass each link to media_download.",
+        "Blackout can't list an X account's posts. Ask the user for the links to the posts they want, or find them with your own web search (`site:x.com <words> video`), then pass each link to media_download.",
       );
     case "myinstants":
       throw new DapiError("unsupported", "MyInstants has no creator pages to list. Search it with `query` instead.");
@@ -293,22 +293,22 @@ export function queryTarget(platform: MediaPlatform, query: string, count: numbe
     case "instagram":
       throw new DapiError(
         "unsupported",
-        "Cutroom can't search Instagram by keyword. Ask the user for reel or post links, or find them with your own web search (`site:instagram.com/reel <words>`), then pass each link to media_download; to list one account's latest posts, pass `creator` instead. For music or general video, search YouTube.",
+        "Blackout can't search Instagram by keyword. Ask the user for reel or post links, or find them with your own web search (`site:instagram.com/reel <words>`), then pass each link to media_download; to list one account's latest posts, pass `creator` instead. For music or general video, search YouTube.",
       );
     case "x":
       throw new DapiError(
         "unsupported",
-        "Cutroom can't search X. Ask the user for the links to the posts they want, or find them with your own web search (`site:x.com <words> video`), then pass each link to media_download. For music or general video, search YouTube.",
+        "Blackout can't search X. Ask the user for the links to the posts they want, or find them with your own web search (`site:x.com <words> video`), then pass each link to media_download. For music or general video, search YouTube.",
       );
     case "tiktok":
       throw new DapiError(
         "unsupported",
-        "Cutroom can't search TikTok by keyword. Ask the user for video links, or find them with your own web search (`site:tiktok.com <words>`), then pass each link to media_download; to list one account's latest videos, pass `creator` instead.",
+        "Blackout can't search TikTok by keyword. Ask the user for video links, or find them with your own web search (`site:tiktok.com <words>`), then pass each link to media_download; to list one account's latest videos, pass `creator` instead.",
       );
     case "vimeo":
       throw new DapiError(
         "unsupported",
-        "Cutroom can't search Vimeo by keyword. Pass a Vimeo user as `creator` to list their videos, find links with your own web search (`site:vimeo.com <words>`), or search YouTube.",
+        "Blackout can't search Vimeo by keyword. Pass a Vimeo user as `creator` to list their videos, find links with your own web search (`site:vimeo.com <words>`), or search YouTube.",
       );
   }
 }

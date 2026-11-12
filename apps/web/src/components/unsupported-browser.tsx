@@ -22,7 +22,7 @@ export function UnsupportedBrowser() {
           </span>
           <h2 class="text-xl font-450 text-foreground">Unsupported browser</h2>
           <p class="text-xs text-muted-foreground">
-            Cutroom requires a Chromium-based browser. Please switch to Google Chrome, Microsoft Edge, Brave, or Arc.
+            Blackout requires a Chromium-based browser. Please switch to Google Chrome, Microsoft Edge, Brave, or Arc.
           </p>
         </div>
       </div>

@@ -119,7 +119,7 @@ def make_ico():
 
 W, H = 440, 280
 FPS, SECONDS = 20, 2.4
-LABEL = 'Installing Cutroom'
+LABEL = 'Installing Blackout'
 
 
 def font():

@@ -165,7 +165,7 @@ export class LocalSpeechService {
       modelDownloaded,
       modelName: MODEL_NAME,
       downloadBytes: this.models.fast.bytes,
-      error: available ? null : "The local speech engine is unavailable in this build of Cutroom.",
+      error: available ? null : "The local speech engine is unavailable in this build of Blackout.",
       // Present on disk is enough here: its digest is checked before each use, not on every status read.
       accurate: { modelName: accurate.name, downloadBytes: accurate.bytes, downloaded: await this.modelPresent(accurate) },
     };
@@ -199,7 +199,7 @@ export class LocalSpeechService {
     let temporaryDirectory: string | null = null;
     try {
       progress("preparing", null, "Preparing local transcription…");
-      if (!await this.runtimeAvailable()) throw new Error("The local speech engine is unavailable in this build of Cutroom.");
+      if (!await this.runtimeAvailable()) throw new Error("The local speech engine is unavailable in this build of Blackout.");
       signal.throwIfAborted();
       await mkdir(this.options.dataDir, { recursive: true, mode: 0o700 });
       await chmod(this.options.dataDir, 0o700);
@@ -373,7 +373,7 @@ export class LocalSpeechService {
           if (next > percentage && next <= 100) { percentage = next; progress(next / 100); }
         }
       });
-      child.once("error", () => finish(new Error("The local speech engine could not start. Restart Cutroom and try again.")));
+      child.once("error", () => finish(new Error("The local speech engine could not start. Restart Blackout and try again.")));
       child.once("close", (code) => finish(code === 0 ? undefined
         : new Error(`Local speech recognition stopped unexpectedly${typeof code === "number" ? ` (exit ${code})` : ""}. Try again.`)));
     });

@@ -190,7 +190,7 @@ export class GeminiMedia {
       streams = await this.deps.probe(path, signal);
     } catch {
       signal.throwIfAborted();
-      if (!looksLikeMedia(path)) throw invalid(`${path} isn't a video or audio file Cutroom can read.`);
+      if (!looksLikeMedia(path)) throw invalid(`${path} isn't a video or audio file Blackout can read.`);
     }
     if (streams && !streams.video && !streams.audio) throw invalid(`${path} holds no picture or sound.`);
     const duration = streams && streams.durationSeconds > 0 ? streams.durationSeconds : undefined;

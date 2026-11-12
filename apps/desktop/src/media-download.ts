@@ -151,7 +151,7 @@ const PROGRESS_TEMPLATE = "download:[cutroom] %(progress.downloaded_bytes)s %(pr
 
 export const WEB_MEDIA_REDIRECT =
   "This is an image or a web_media_search result, whose license web_media_download keeps. Download it with web_media_download instead.";
-const NO_DOWNLOADER = "This build of Cutroom has no downloader, so platform links can't be downloaded. Ask the user for the file, or use web_media_download for openly licensed media.";
+const NO_DOWNLOADER = "This build of Blackout has no downloader, so platform links can't be downloaded. Ask the user for the file, or use web_media_download for openly licensed media.";
 const PROJECT_GONE = "The project moved or closed during the download. Open it again and download again.";
 const PROJECT_SAVED = "The project was saved or moved during the download. Download again in the project where it is now.";
 const MYINSTANTS_LINK = "That isn't a MyInstants sound page (https://www.myinstants.com/<lang>/instant/<name>/). Search MyInstants with media_search for a sound's link.";
@@ -509,7 +509,7 @@ export class MediaDownloadService {
     this.timeouts = { ...TIMEOUTS, ...options.timeouts };
     this.caps = { ...MEDIA_CAPS, ...options.caps };
     this.networkRetryMs = options.networkRetryMs;
-    this.userAgent = `Cutroom/${options.version ?? "dev"} (desktop video editor)`;
+    this.userAgent = `Blackout/${options.version ?? "dev"} (desktop video editor)`;
   }
 
   /**
@@ -556,7 +556,7 @@ export class MediaDownloadService {
   /** Stops every download as the app quits, removing their work folders at once. */
   dispose(): void {
     for (const job of this.jobs) {
-      job.controller.abort(new DapiError("canceled", "Cutroom quit during the download."));
+      job.controller.abort(new DapiError("canceled", "Blackout quit during the download."));
       if (job.work) rmSync(job.work, { recursive: true, force: true });
     }
     for (const entry of this.pending.values()) clearTimeout(entry.timer);
@@ -1004,7 +1004,7 @@ export class MediaDownloadService {
       mediaId: sound.slug,
       title: sound.title,
       pageUrl: sound.pageUrl,
-      downloader: "Cutroom (MyInstants page)",
+      downloader: "Blackout (MyInstants page)",
       reencoded: false,
       maxSeconds: MYINSTANTS_DURATION_MAX,
     };
@@ -1087,7 +1087,7 @@ export class MediaDownloadService {
       title: caption || `Instagram post ${mediaId}`,
       ...(post?.username ? { channel: `@${post.username}`, channelUrl: `https://www.instagram.com/${post.username}/` } : {}),
       pageUrl,
-      downloader: "Cutroom (Instagram file)",
+      downloader: "Blackout (Instagram file)",
       reencoded: false,
     };
   }

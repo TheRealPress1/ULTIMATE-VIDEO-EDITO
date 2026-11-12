@@ -41,7 +41,7 @@ export function resolveLaunchProfile(defaultDirectory: string, override?: string
   const directory = canonicalPath(override);
   const normal = canonicalPath(defaultDirectory);
   if (contains(directory, normal, platform) || contains(normal, directory, platform)) {
-    throw new Error('--user-data-dir must not overlap the normal Cutroom profile. Choose a separate directory.');
+    throw new Error('--user-data-dir must not overlap the normal Blackout profile. Choose a separate directory.');
   }
   return { directory, isolated: true };
 }

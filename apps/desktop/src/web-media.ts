@@ -306,8 +306,8 @@ function errorCode(error: unknown): string | undefined {
 function proxySentence(proxy: string | undefined, url: URL, search: boolean): string {
   if (!proxy) return "";
   return search
-    ? ` This Mac is set up to use a proxy (${proxy}), which Cutroom's web media search doesn't go through: allow direct connections to ${hostOf(url)}.`
-    : ` This Mac is set up to use a proxy (${proxy}), which Cutroom's downloader doesn't go through: allow direct connections to ${hostOf(url)}, or download the file in a browser and import it.`;
+    ? ` This Mac is set up to use a proxy (${proxy}), which Blackout's web media search doesn't go through: allow direct connections to ${hostOf(url)}.`
+    : ` This Mac is set up to use a proxy (${proxy}), which Blackout's downloader doesn't go through: allow direct connections to ${hostOf(url)}, or download the file in a browser and import it.`;
 }
 
 /**
@@ -424,7 +424,7 @@ export class WebMediaService {
   constructor(options: WebMediaOptions = {}) {
     this.resolve = options.resolve ?? systemResolve;
     this.fetch = options.fetch ?? pinnedFetch(this.resolve);
-    this.userAgent = `Cutroom/${options.version ?? "dev"} (desktop video editor; https://github.com/diffusionstudio/editor)`;
+    this.userAgent = `Blackout/${options.version ?? "dev"} (desktop video editor; https://github.com/diffusionstudio/editor)`;
     this.noteContent = options.noteContent ?? (() => {});
     this.startWrite = options.startWrite ?? (() => () => {});
     this.now = options.now ?? (() => new Date());
@@ -778,7 +778,7 @@ export class WebMediaService {
   /** Stops every download as the app quits, removing their partial files at once: nothing waits for the cleanup that would follow. */
   dispose(): void {
     for (const job of this.jobs) {
-      job.controller.abort(new DapiError("canceled", "Cutroom quit during the download."));
+      job.controller.abort(new DapiError("canceled", "Blackout quit during the download."));
       if (job.temp) rmSync(job.temp, { force: true });
     }
   }

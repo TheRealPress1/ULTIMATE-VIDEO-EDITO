@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
 import { pathHas, pathWith, pathWithout, shimContent, shimDir, shimPath, stagedScript } from "./cli-windows";
 
 const local = "C:\\Users\\me\\AppData\\Local";
-const exe = `${local}\\Cutroom\\app-1.2.0\\Cutroom.exe`;
+const exe = `${local}\\Cutroom\\app-1.2.0\\Blackout.exe`;
 const dir = `${local}\\Cutroom\\bin`;
 
 describe("shim", () => {

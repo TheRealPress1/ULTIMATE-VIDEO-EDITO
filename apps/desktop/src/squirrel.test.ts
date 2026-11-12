@@ -12,7 +12,7 @@ vi.mock("electron", () => ({ app: { quit: () => {} } }));
 
 const { squirrelEvent } = await import("./squirrel");
 
-const exe = "C:\\Users\\me\\AppData\\Local\\Cutroom\\app-1.0.0\\Cutroom.exe";
+const exe = "C:\\Users\\me\\AppData\\Local\\Blackout\\app-1.0.0\\Blackout.exe";
 
 describe("squirrelEvent", () => {
   it("recognises each event flag on Windows", () => {
@@ -29,6 +29,6 @@ describe("squirrelEvent", () => {
   });
 
   it("is never an event off Windows", () => {
-    expect(squirrelEvent(["/Applications/Cutroom.app/Contents/MacOS/Cutroom", "--squirrel-install"], "darwin")).toBeNull();
+    expect(squirrelEvent(["/Applications/Blackout.app/Contents/MacOS/Blackout", "--squirrel-install"], "darwin")).toBeNull();
   });
 });

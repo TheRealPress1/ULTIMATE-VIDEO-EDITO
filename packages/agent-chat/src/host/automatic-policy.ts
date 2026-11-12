@@ -46,7 +46,7 @@ export const POLICY_MESSAGES = {
 } as const;
 
 export function protectedMessage(segment: string): string {
-  return `Cutroom keeps ${segment} off-limits to editing sessions. Write project files elsewhere in the project folder.`;
+  return `Blackout keeps ${segment} off-limits to editing sessions. Write project files elsewhere in the project folder.`;
 }
 
 export type AuditScope =

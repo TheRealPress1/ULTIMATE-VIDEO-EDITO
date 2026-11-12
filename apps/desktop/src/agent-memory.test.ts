@@ -254,7 +254,7 @@ describe("Settings", () => {
       { id: "m_bbbb", withheld: "instruction-override", updatedAt: "2026-11-03T12:00:00.000Z", origin: "agent" },
     ]);
     expect(view.setup).toEqual([{ id: "m_cccc", withheld: "secret", updatedAt: "2026-11-03T12:00:00.000Z", origin: "agent" }]);
-    expect(view.message).toMatch(/2 fail Cutroom's safety check/);
+    expect(view.message).toMatch(/2 fail Blackout's safety check/);
     expect(toolByName("memory").output.safeParse(view).success).toBe(true);
     // A refusal returns the entries the same way.
     const refused = await call(store, { action: "remove", target: "profile", match: "m_ffff" });

@@ -151,7 +151,7 @@ function installer(options: Partial<InstallerOptions> = {}): EarshotInstaller {
 
 beforeEach(async () => {
   base = await realpath(await mkdtemp(join(tmpdir(), "earshot-install-")));
-  userData = join(base, "Application Support", "Cutroom");
+  userData = join(base, "Application Support", "Blackout");
   root = join(userData, "addons", "earshot");
   await mkdir(userData, { recursive: true });
   tools = new FakeTools(root);
@@ -386,7 +386,7 @@ describe("EarshotInstaller", () => {
     const elsewhere = join(base, "elsewhere");
     await mkdir(elsewhere, { recursive: true });
     await writeFile(join(elsewhere, "keep.txt"), "mine");
-    await expect(installer({ root: elsewhere }).remove()).rejects.toThrow(/isn't Cutroom's audio intelligence folder/);
+    await expect(installer({ root: elsewhere }).remove()).rejects.toThrow(/isn't Blackout's audio intelligence folder/);
     expect(await readFile(join(elsewhere, "keep.txt"), "utf8")).toBe("mine");
 
     await mkdir(join(userData, "addons"), { recursive: true });

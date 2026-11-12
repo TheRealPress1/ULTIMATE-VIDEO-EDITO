@@ -89,7 +89,7 @@ describe("EarshotService.ready", () => {
     fail(new Error("Installing earshot failed: Failed to fetch: `https://pypi.org/simple/torch/`: dns error."));
     await expect(waiting).rejects.toMatchObject({
       code: "unsupported",
-      message: "Audio intelligence couldn't be installed: Installing earshot failed: Failed to fetch: `https://pypi.org/simple/torch/`: dns error. Calling a sound tool again retries the install (it resumes where it stopped), or use Install now in Cutroom's Settings.",
+      message: "Audio intelligence couldn't be installed: Installing earshot failed: Failed to fetch: `https://pypi.org/simple/torch/`: dns error. Calling a sound tool again retries the install (it resumes where it stopped), or use Install now in Blackout's Settings.",
     });
   });
 
@@ -106,7 +106,7 @@ describe("EarshotService.ready", () => {
     const waiting = service(removed.installer).ready();
     await vi.waitFor(() => expect(removed.installer.ensureInstalled).toHaveBeenCalled());
     removed.fail(new InstallCanceled("Audio intelligence is being removed."));
-    await expect(waiting).rejects.toMatchObject({ code: "canceled", message: expect.stringContaining("was removed from Cutroom's Settings") });
+    await expect(waiting).rejects.toMatchObject({ code: "canceled", message: expect.stringContaining("was removed from Blackout's Settings") });
 
     const { installer } = fakeInstaller();
     const controller = new AbortController();
@@ -250,7 +250,7 @@ describe("ProjectJobs", () => {
       expect([jobs.holds(work), jobs.holds(join(base, "other"))]).toEqual([true, false]);
       jobs.dispose();
       expect(job.signal.aborted).toBe(true);
-      expect(job.signal.reason).toMatchObject({ code: "canceled", message: "Cutroom quit while the sound effect rendered." });
+      expect(job.signal.reason).toMatchObject({ code: "canceled", message: "Blackout quit while the sound effect rendered." });
       expect(await readdir(base)).toEqual([]);
       job.done();
       expect(jobs.holds(work)).toBe(false);

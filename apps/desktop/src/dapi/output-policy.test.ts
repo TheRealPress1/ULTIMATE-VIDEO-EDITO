@@ -77,7 +77,7 @@ describe("writeRefusal", () => {
     await expect(refusal(join(project, ".mcp.json"))).resolves.toBe(protectedMessage(".mcp.json"));
     await expect(refusal(join(temp, ".ssh", "id_ed25519"))).resolves.toBe(protectedMessage(".ssh"));
     await expect(refusal(join(project, ".codex"), "fresh")).resolves.toBe(protectedMessage(".codex"));
-    expect(protectedMessage(".git")).toBe("Cutroom keeps .git off-limits to editing sessions. Write project files elsewhere in the project folder.");
+    expect(protectedMessage(".git")).toBe("Blackout keeps .git off-limits to editing sessions. Write project files elsewhere in the project folder.");
   });
 
   it.runIf(foldsCase)("knows a protected name however it is capitalized, as the disk does", async () => {
@@ -411,7 +411,7 @@ describe("media_download's folder", () => {
 
   it("judges an absolute folder as a place a new file is made in", async () => {
     await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Music") }, none)).resolves.toBeUndefined();
-    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Music", "Cutroom", "new") }, none)).resolves.toBeUndefined();
+    await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Music", "Blackout", "new") }, none)).resolves.toBeUndefined();
     await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, "Library") }, none)).rejects.toThrow(WRITABLE_PLACES);
     await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(home, ".ssh") }, none)).rejects.toThrow(WRITABLE_PLACES);
     await expect(checkToolOutputs("media_download", { url: "https://youtu.be/x", folder: join(project, ".git") }, policy)).rejects.toThrow(/off-limits/);
@@ -448,7 +448,7 @@ describe("openRefusal", () => {
     await expect(opening(join(project, "exports", ".."))).resolves.toBeNull();
   });
 
-  it("opens an existing Cutroom project wherever it is", async () => {
+  it("opens an existing Blackout project wherever it is", async () => {
     await expect(opening(show)).resolves.toBeNull();
     await expect(opening(draft)).resolves.toBeNull();
     await expect(opening(external)).resolves.toBeNull();

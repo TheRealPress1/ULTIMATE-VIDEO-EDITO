@@ -60,7 +60,7 @@ test('cancel is not promised to stop an analysis earshot already started', () =>
     assert.doesNotMatch(text, /canceling the call stops it/i);
     assert.match(text, /earshot (cannot interrupt|finishes) (an|the) analysis/);
     // What Cutroom does about it instead (worker.ts ends the process), and what that costs.
-    assert.match(text, /Cutroom ends (its|the) process/);
+    assert.match(text, /Blackout ends (its|the) process/);
     assert.match(text, /loads the models again/);
   }
 });

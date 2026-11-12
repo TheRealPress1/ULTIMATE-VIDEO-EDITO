@@ -113,7 +113,7 @@ export class DapiServer {
     this.instructionsText ??= instructions(this.deps.docsDir);
     // `name` is the machine identity, and matches the key we write into agent
     // configs; `title` is what a client shows a person.
-    const session = new McpServer({ name: SERVER_NAME, title: "Cutroom", version: this.deps.version }, { instructions: this.instructionsText });
+    const session = new McpServer({ name: SERVER_NAME, title: "Blackout", version: this.deps.version }, { instructions: this.instructionsText });
     serveCatalog(session, async (tool, args, signal, writes = this.writePolicy()) => {
       const release = this.deps.window.hold();
       const startedAt = performance.now();

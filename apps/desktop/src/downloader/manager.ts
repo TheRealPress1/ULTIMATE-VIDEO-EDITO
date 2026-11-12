@@ -122,9 +122,9 @@ export function installNextStep(error: unknown): string {
     case "network": return "Check the network, then try again.";
     case "disk": return "Free some disk space, then try again.";
     case "checksum": return "Try again later; if it keeps failing, something between this Mac and GitHub is changing the download.";
-    case "signature": return "Cutroom installs only yt-dlp releases signed with yt-dlp's release key, so it didn't install this one. Try again after yt-dlp's next release; if it keeps failing, Cutroom needs an update.";
+    case "signature": return "Blackout installs only yt-dlp releases signed with yt-dlp's release key, so it didn't install this one. Try again after yt-dlp's next release; if it keeps failing, Blackout needs an update.";
     case "smoke": return "Reinstall it from Settings > Downloads; if it still won't start, look for a blocked app in System Settings > Privacy & Security.";
-    case "invalid": return "This yt-dlp release isn't one Cutroom can use; try again after its next release, or reinstall from Settings > Downloads.";
+    case "invalid": return "This yt-dlp release isn't one Blackout can use; try again after its next release, or reinstall from Settings > Downloads.";
     default: return "Try again, or reinstall it from Settings > Downloads.";
   }
 }
@@ -244,7 +244,7 @@ export class YtDlpManager {
   }
 
   private get headers(): Record<string, string> {
-    return { "user-agent": `Cutroom/${this.options.version}`, accept: "*/*" };
+    return { "user-agent": `Blackout/${this.options.version}`, accept: "*/*" };
   }
 
   private exePath(release: InstalledRelease): string {
@@ -297,7 +297,7 @@ export class YtDlpManager {
     if (!this.supported) message = UNSUPPORTED;
     else if (status.state === "installing") message = "Installing the downloader (yt-dlp) from GitHub…";
     else if (status.state === "updating") message = "Looking for a newer downloader and installing it…";
-    else if (status.state === "missing") message = "Cutroom installs its downloader (yt-dlp) from GitHub the first time an agent downloads from a platform like YouTube.";
+    else if (status.state === "missing") message = "Blackout installs its downloader (yt-dlp) from GitHub the first time an agent downloads from a platform like YouTube.";
     else if (status.state === "failed") message = `The downloader couldn't be installed: ${status.error}.`;
     else {
       const newer = latest && status.version && compareTags(latest, status.version) > 0 ? ` ${latest} is available.` : "";
@@ -326,7 +326,7 @@ export class YtDlpManager {
   /** The installed release, installing one on first use. */
   async ensure(signal?: AbortSignal): Promise<{ path: string; version: string }> {
     if (!this.supported) throw this.unsupported();
-    if (this.disposed) throw new DapiError("canceled", "Cutroom is quitting.");
+    if (this.disposed) throw new DapiError("canceled", "Blackout is quitting.");
     if (!(await this.usable(this.state.current))) {
       if (this.state.current) this.log(`release ${this.state.current.tag} is missing on disk; installing again`);
       await waitFor(this.install(this.state.current ? "reinstall" : "install"), signal);
@@ -373,7 +373,7 @@ export class YtDlpManager {
 
   /** One install, update or reinstall at a time; a second caller shares it. */
   private install(mode: "install" | "update" | "reinstall"): Promise<{ version: string; changed: boolean }> {
-    if (this.disposed) return Promise.reject(new DapiError("canceled", "Cutroom is quitting."));
+    if (this.disposed) return Promise.reject(new DapiError("canceled", "Blackout is quitting."));
     this.job ??= this.installLatest(mode).finally(() => {
       this.job = null;
       this.busy = null;
@@ -387,7 +387,7 @@ export class YtDlpManager {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(new InstallError("network", "the install took longer than three minutes")), this.options.installTimeoutMs ?? INSTALL_TIMEOUT_MS);
     timer.unref?.();
-    this.abortJob = () => controller.abort(new DapiError("canceled", "Cutroom is quitting."));
+    this.abortJob = () => controller.abort(new DapiError("canceled", "Blackout is quitting."));
     const signal = controller.signal;
     const current = this.state.current;
     this.busy = current ? "updating" : "installing";
@@ -442,7 +442,7 @@ export class YtDlpManager {
       this.state.lastCheck = { at: this.now().toISOString(), ...(latest ? { latest } : {}), error: reason };
       await this.save();
       this.log(`install failed: ${reason}`);
-      throw new DapiError("unsupported", `Cutroom couldn't install its downloader (yt-dlp) from GitHub: ${reason}. ${installNextStep(error)}`, { cause: error });
+      throw new DapiError("unsupported", `Blackout couldn't install its downloader (yt-dlp) from GitHub: ${reason}. ${installNextStep(error)}`, { cause: error });
     } finally {
       clearTimeout(timer);
       this.abortJob = undefined;
@@ -598,7 +598,7 @@ export class YtDlpManager {
         activity: (fn) => { touch = fn; },
         stopper: (fn) => { stop = fn; },
         failureLines: () => [
-          ...gate.refusedPorts().map((target) => downloaderLine("port", `Refused to connect to ${target}: Cutroom's downloader only reaches ports 80 and 443.`)),
+          ...gate.refusedPorts().map((target) => downloaderLine("port", `Refused to connect to ${target}: Blackout's downloader only reaches ports 80 and 443.`)),
           ...gate.refused().map((host) => downloaderLine("private-address", `Refused to connect to ${host}: it is a local or private network address.`)),
         ],
       });

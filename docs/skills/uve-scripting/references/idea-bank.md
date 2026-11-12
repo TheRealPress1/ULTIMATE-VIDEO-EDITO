@@ -14,7 +14,7 @@ The viewer usually doesn't know about the need, and wouldn't click on it if they
 
 ## Five sources
 
-| Source | Where to look in Cutroom | Feeds |
+| Source | Where to look in Blackout | Feeds |
 | --- | --- | --- |
 | The creator's turning points | Ask, or `footage_search` past interviews for "the moment", "that's when", "I realized" | Thesis |
 | The viewer's false beliefs | The dossier in [audience](audience.md) | Thesis |
