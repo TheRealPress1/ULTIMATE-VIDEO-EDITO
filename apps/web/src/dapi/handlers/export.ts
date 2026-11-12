@@ -16,6 +16,7 @@ import { getDefaultExportTemplate, VIDEO_FORMAT_OPTIONS } from "@/components/sid
 import { mainBridge } from "@/lib/ipc";
 import { MAIN_CHANNELS } from "@desktop/main-channels";
 import { requireScene } from "../lib/scene";
+import { isDraftPath } from "../lib/temporary-path";
 
 import type { AudioCodec, OutputFormat, VideoCodec } from "mediabunny";
 import type { AssetLibrary } from "@diffusionstudio/assets";
@@ -174,10 +175,11 @@ export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
   const frames = workarea ? workarea.end - workarea.start : computed?.duration ?? 0;
   const duration = frames / (world.get(FrameRate)?.value || 30);
 
-  // renderScene owns the one render slot (it stops the live engine and
-  // raises the progress overlay), so refuse a second export rather than
-  // interleave. No await sits between this check and renderScene claiming
-  // the overlay, so two racing requests cannot both pass.
+  // renderScene owns the one render slot (it raises the progress overlay,
+  // and stops the live engine unless the render is a background one), so
+  // refuse a second export rather than interleave. No await sits between
+  // this check and renderScene claiming the overlay, so two racing requests
+  // cannot both pass.
   if (renderOverlay()) {
     throw new DapiError("busy", "An export is already running — wait for it to finish, or cancel it in the app.");
   }
@@ -191,6 +193,9 @@ export const exportScene: ToolHandler<"export"> = async ({ id, path }, ctx) => {
       dir: project.dir(),
       source: "agent",
       output: { name: target.split(/[\\/]/).pop()!, path: target },
+      // A draft in a temporary folder is a check the agent makes for itself: it must not take over
+      // the window the person is working in. A delivery, anywhere else, still does.
+      background: isDraftPath(target, project.dir()),
     }
     );
     if (result.type === "canceled") {

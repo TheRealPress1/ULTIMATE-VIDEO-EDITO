@@ -37,6 +37,8 @@ export type RenderOverlayState = {
   phase: "preparing" | "rendering" | "canceling";
   name?: string;
   remaining?: { minutes: number; seconds: number };
+  /** Rendering behind a corner indicator, with the editor still running, not behind the window-wide screen. */
+  background?: boolean;
 };
 
 const PROGRESS_LOG_STEP = 2;
@@ -75,11 +77,18 @@ export type RenderSceneOptions = {
   /** Who asked for the render: the in-app export, or an agent through the export tool. */
   source: "ui" | "agent";
   output?: { name: string; path?: string };
+  /**
+   * Renders without taking over the editor, for a draft an agent makes to check its own work: the
+   * live engine keeps running (the encode has a world of its own, see `createCapture`), a corner
+   * indicator replaces the window-wide screen, and no completion dialog opens. It still holds the
+   * one render slot.
+   */
+  background?: boolean;
 };
 
 export async function renderScene(
   engine: Engine,
-  { scene, target, config, dir, source, output }: RenderSceneOptions,
+  { scene, target, config, dir, source, output, background = false }: RenderSceneOptions,
 ): Promise<ExportResult> {
   if (overlay()) throw new Error("An export is already running. Wait for it to finish or cancel it first.");
   const world = engine.world;
@@ -101,8 +110,8 @@ export async function renderScene(
     cancelEncoder?.();
     if (target instanceof ElectronWritableFileHandle) void target.dispose().catch(() => {});
   };
-  setCompleted(null);
-  setOverlay({ audioOnly, progress: 0, phase: "preparing", name: output?.name });
+  if (!background) setCompleted(null);
+  setOverlay({ audioOnly, progress: 0, phase: "preparing", name: output?.name, background });
 
   let logged = -1;
   const logProgress = (percent: number) => {
@@ -111,7 +120,7 @@ export async function renderScene(
     console.info(`[export] ${percent}%`);
   };
 
-  engine.stop();
+  if (!background) engine.stop();
 
   const event = {
     source,
@@ -188,7 +197,7 @@ export async function renderScene(
 
     if (result.type === "success") {
       track("export_succeeded", { ...event, duration_ms: elapsed() });
-      if (output) {
+      if (output && !background) {
         const size = computeOutputSize(computed?.width || 1920, computed?.height || 1080, config?.video?.resolution ?? 1080);
         setCompleted({
           ...output,
@@ -213,6 +222,6 @@ export async function renderScene(
     cancelActive = undefined;
     setOverlay(null);
     capture?.dispose();
-    engine.start();
+    if (!background) engine.start();
   }
 }
