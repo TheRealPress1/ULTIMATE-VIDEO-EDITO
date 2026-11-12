@@ -18,9 +18,9 @@ vi.mock("@/lib/source-transcription", () => ({ transcribeSource: mocks.transcrib
 vi.mock("@/lib/local-transcription", () => ({ MAX_TRANSCRIPTION_SECONDS: 7200 }));
 import { listen } from "./listen";
 const screenshot = {
-  path: "/Users/gaspardseuge/Movies/Cutroom Standalone Test/assets/rheesa.mp4",
+  path: "/Users/me/Movies/Cutroom/Interview/assets/interview.mp4",
   prompt:
-    "Diarize this clip. For each stretch of speech give start and end in seconds and who is speaking, distinguishing voices (e.g. female host 1, Rheesa the guest in a news segment, male/female guests from the second pair, etc.), with the words spoken. Note which voice sounds like the host and which like Rheesa Theesdale. Be precise to about 0.5s.",
+    "Diarize this clip. For each stretch of speech give start and end in seconds and who is speaking, distinguishing voices (e.g. female host 1, the main guest in a news segment, male/female guests from the second pair, etc.), with the words spoken. Note which voice sounds like the host and which like the main guest. Be precise to about 0.5s.",
   end: 30,
 };
 const transcript = [
@@ -38,7 +38,7 @@ const ctx = (signal = new AbortController().signal) =>
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.resolve.mockResolvedValue({
-    id: "rheesa",
+    id: "interview",
     source: screenshot.path,
     type: "VIDEO",
     duration: 60,
@@ -55,7 +55,7 @@ describe("local listen speech evidence", () => {
       args = toolByName("listen").input.parse(screenshot);
     const result = await listen(args, context);
     expect(mocks.resolve).toHaveBeenCalledWith(context, screenshot.path);
-    expect(mocks.transcribe).toHaveBeenCalledWith(expect.objectContaining({ id: 'rheesa' }), expect.objectContaining({ signal: context.signal, window: { start: 0, end: 30 } }));
+    expect(mocks.transcribe).toHaveBeenCalledWith(expect.objectContaining({ id: 'interview' }), expect.objectContaining({ signal: context.signal, window: { start: 0, end: 30 } }));
     expect(result).toMatchObject({
       method: "local-speech-transcription",
       start: 0,
