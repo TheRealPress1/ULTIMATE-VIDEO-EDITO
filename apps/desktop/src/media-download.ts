@@ -37,12 +37,13 @@ import { UNKNOWN_LICENSE } from "./web-media-providers";
 import { pinnedFetch } from "./web-media";
 import { checkWebUrl, hostOf, resolvePublic, systemResolve } from "./web-media-url";
 import { sniff } from "./web-media-sniff";
-import { fileStem, isInstagramCdn, looksLikeImage, looksLikeMediaFile, mediaIdOf, platformOf, siteName, siteOfExtractor } from "./platform-url";
+import { fileStem, isInstagramCdn, looksLikeImage, looksLikeMediaFile, mediaIdOf, platformOf, sameInstagramLink, siteName, siteOfExtractor } from "./platform-url";
 import { MYINSTANTS_DURATION_MAX, fetchMyInstantsSound, myInstantsPage } from "./media-download-myinstants";
 import { runRecovering } from "./media-runner";
 import { parseListing } from "./media-search";
 
 import type { MediaKind } from "@diffusionstudio/dapi";
+import type { InstagramFreshPost } from "./instagram-types";
 import type { ClassifyDownloaderError, MediaDownloader } from "./media-runner";
 import type { PageFetch } from "./media-download-myinstants";
 import type { WebFetch } from "./web-media";
@@ -255,24 +256,42 @@ export type InstagramMedia = { id: string; permalink: string | null; mediaUrl: s
 /** The Graph API's type for a post holding several files, whose own `media_url` is only its first. */
 const CAROUSEL = "CAROUSEL_ALBUM";
 
-/** A link's address without its query, hash or trailing slash: how a permalink or a CDN file is compared. */
-function bare(value: string): string | null {
-  try {
-    const url = new URL(value);
-    return `${url.hostname.toLowerCase().replace(/^www\./, "")}${url.pathname.replace(/\/+$/, "")}`;
-  } catch {
-    return null;
-  }
+/** One of the user's own posts a link names; its `mediaUrl` is null when Instagram gives apps no file for it. */
+type OwnPost = {
+  post: InstagramMedia;
+  /** Instagram itself has just described the post, so an answer of "expired" isn't worth asking again. */
+  fresh: boolean;
+};
+
+/** What Instagram's file servers answer for a signed link that has expired or was never valid. */
+const LINK_EXPIRED = [400, 401, 403, 404, 410];
+
+/** Instagram's API gave one of the user's own posts no file; what that means, and what is left to try. */
+const OWN_NO_FILE = "Instagram gives apps no file for this post of the user's (a reel with licensed music has none), and it shows its pages only to downloaders that sign in, which Blackout doesn't. Ask the user for the original export, or to save the reel from the Instagram app, and add that file to the project.";
+
+/** What an expired Instagram file link comes to when a current one couldn't be had. */
+function expiredLink(status: number, asked: InstagramFreshPost): string {
+  const expired = `Instagram's link to this file has expired (${status}).`;
+  if (asked.kind === "failed") return `${expired} A current one couldn't be had: ${asked.reason}`;
+  if (asked.kind === "post") return `${expired} ${OWN_NO_FILE}`;
+  return `${expired} It isn't one of the connected account's posts, so a current link can't be asked for. Pass the post's permalink, or connect the account in Analytics.`;
 }
 
-/** The post among the user's own Instagram posts a link names, by its permalink or its file's address. */
+/** A downloader failure on one of the user's own posts that Instagram gave no file for: why, and what to do, ahead of what the downloader said. */
+function ownPostWithoutFile(own: OwnPost | null, error: unknown): unknown {
+  if (!own || own.post.mediaUrl || own.post.mediaType === CAROUSEL || !(error instanceof DapiError) || error.code === "canceled") return error;
+  return new DapiError(error.code, `${OWN_NO_FILE} (The downloader said: ${error.message})`, { cause: error });
+}
+
+/**
+ * The post among the user's own Instagram posts a link names, by its
+ * permalink (in any of Instagram's forms for it) or its file's address.
+ */
 export function findInstagramMedia(
   snapshot: { account: { username: string } | null; posts: Array<{ id: string; caption: string; permalink: string | null; mediaUrl?: string | null; mediaType?: string }> },
   url: string,
 ): InstagramMedia | null {
-  const wanted = bare(url);
-  if (!wanted) return null;
-  const post = snapshot.posts.find((candidate) => [candidate.permalink, candidate.mediaUrl].some((link) => link && bare(link) === wanted));
+  const post = snapshot.posts.find((candidate) => [candidate.permalink, candidate.mediaUrl].some((link) => link && sameInstagramLink(link, url)));
   return post
     ? { id: post.id, permalink: post.permalink, mediaUrl: post.mediaUrl ?? null, ...(post.mediaType ? { mediaType: post.mediaType } : {}), caption: post.caption, username: snapshot.account?.username ?? null }
     : null;
@@ -297,6 +316,11 @@ export type MediaDownloadOptions = {
   isWebResult?: (url: string) => boolean;
   /** The user's own Instagram post a link names (by its permalink or its `media_url`), from the analytics cache. */
   instagramMedia?: (url: string) => Promise<InstagramMedia | null>;
+  /**
+   * The same post as Instagram itself describes it now, through the connected account: the cache is only as new as the last
+   * sync, may predate file links being kept, and its links expire. Never rejects; a failure comes back as `failed`.
+   */
+  instagramFresh?: (url: string, signal: AbortSignal) => Promise<InstagramFreshPost>;
   now?: () => Date;
   timeouts?: Partial<MediaDownloadTimeouts>;
   caps?: Partial<MediaCaps>;
@@ -481,6 +505,7 @@ export class MediaDownloadService {
   private readonly startWrite: (dir: string) => () => void;
   private readonly isWebResult: (url: string) => boolean;
   private readonly instagramMedia: (url: string) => Promise<InstagramMedia | null>;
+  private readonly instagramFresh: (url: string, signal: AbortSignal) => Promise<InstagramFreshPost>;
   private readonly now: () => Date;
   private readonly timeouts: MediaDownloadTimeouts;
   private readonly caps: MediaCaps;
@@ -505,6 +530,7 @@ export class MediaDownloadService {
     this.startWrite = options.startWrite ?? (() => () => {});
     this.isWebResult = options.isWebResult ?? (() => false);
     this.instagramMedia = options.instagramMedia ?? (async () => null);
+    this.instagramFresh = options.instagramFresh ?? (async () => ({ kind: "none" }));
     this.now = options.now ?? (() => new Date());
     this.timeouts = { ...TIMEOUTS, ...options.timeouts };
     this.caps = { ...MEDIA_CAPS, ...options.caps };
@@ -598,15 +624,15 @@ export class MediaDownloadService {
     const requestedUrl = isInstagramCdn(requested) ? `${requested.origin}${requested.pathname}` : requested.href;
 
     try {
-      // The user's own Instagram post, from the local analytics cache: fetched directly unless the downloader must pick one file of several.
-      const own = instant ? null : await this.ownInstagram(requested);
-      const direct = isInstagramCdn(requested) || (!!own && this.directPost(own, request.item));
+      // The user's own Instagram post, from the analytics cache or Instagram itself: fetched directly unless the downloader must pick one file of several.
+      const own = instant ? null : await this.ownInstagram(requested, signal);
+      const direct = isInstagramCdn(requested) || (!!own?.post.mediaUrl && this.directPost(own.post, request.item));
       if (direct && request.item && isInstagramCdn(requested)) warnings.push("`item` was ignored: a file link is one file. Pass the post's permalink to choose one of several.");
 
       // The same upload saved before, found by the link's id (or the post's, for the user's own) without the network.
       const ids = [
         ...(instant ? [{ site: "myinstants", id: instant.slug }] : []),
-        ...(own && direct ? [{ site: "instagram", id: own.id }] : []),
+        ...(own && direct ? [{ site: "instagram", id: own.post.id }] : []),
         ...(!instant && mediaIdOf(requested) ? [mediaIdOf(requested)!] : []),
       ];
       for (const known of ids) {
@@ -623,7 +649,7 @@ export class MediaDownloadService {
           ? await this.fromMyInstants(requested, work, signal)
           : direct
             ? await this.fromInstagram(requested, own, kind, work, signal, warnings)
-            : await this.fromDownloader(request, requested, kind, destination, work, signal, warnings);
+            : await this.fromDownloader(request, requested, kind, destination, work, signal, warnings).catch((error: unknown) => { throw ownPostWithoutFile(own, error); });
         release();
         if ("recorded" in fetched) return await this.reuse(request, destination, fetched.recorded, requestedUrl, kind, warnings, signal);
         const verified = await this.verify(fetched, kind, signal, warnings);
@@ -836,11 +862,24 @@ export class MediaDownloadService {
   // -------------------------------------------------------------------------
   // Fetching
 
-  /** The user's own Instagram post a permalink names, when the analytics cache has its file link. */
-  private async ownInstagram(url: URL): Promise<InstagramMedia | null> {
+  /**
+   * The user's own Instagram post a link names. The analytics cache answers
+   * when it holds a file link for it. Otherwise Instagram is asked through the
+   * connected account, because the cache is only as new as the last sync, may
+   * predate file links being kept, and misses newer posts. A file link passed
+   * directly is fetched as it is; `fromInstagram` asks only once it has expired.
+   */
+  private async ownInstagram(url: URL, signal: AbortSignal): Promise<OwnPost | null> {
     if (platformOf(url) !== "instagram" && !isInstagramCdn(url)) return null;
-    const post = await this.instagramMedia(url.href).catch(() => null);
-    return post?.mediaUrl ? post : null;
+    const cached = await this.instagramMedia(url.href).catch(() => null);
+    if (cached?.mediaUrl) return { post: cached, fresh: false };
+    if (isInstagramCdn(url)) return null;
+    const asked = await this.instagramFresh(url.href, signal);
+    if (signal.aborted) throw canceled(signal);
+    if (asked.kind === "post") return { post: asked.post, fresh: true };
+    // The cache knows this as the user's own post, which the downloader can't read without a sign-in: say why the file couldn't be had.
+    if (asked.kind === "failed" && cached) throw new DapiError("invalid-input", `Couldn't get this post's file from Instagram. ${asked.reason}`);
+    return cached ? { post: cached, fresh: false } : null;
   }
 
   private async fromDownloader(
@@ -1013,36 +1052,33 @@ export class MediaDownloadService {
   /**
    * One of the user's own Instagram files, fetched directly from Instagram's
    * CDN (the Graph API's `media_url`), which needs no sign-in, and named
-   * after the post's id. The sound alone is copied out of it without
-   * re-encoding.
+   * after the post's id. A link that has expired (a cached one, or one passed
+   * in) is replaced once, by asking Instagram for the post's current one. The
+   * sound alone is copied out of it without re-encoding.
    */
-  private async fromInstagram(requested: URL, own: InstagramMedia | null, kind: MediaKind, work: string, signal: AbortSignal, warnings: string[]): Promise<Fetched> {
-    const post = own ?? (await this.instagramMedia(requested.href).catch(() => null));
-    const source = checkWebUrl(post?.mediaUrl ?? requested.href);
-    const mediaId = post?.id ?? (fileStem(basename(source.pathname).replace(/\.[a-z0-9]{1,5}$/i, "")).slice(0, 64) || "instagram");
-    const stem = fileStem(mediaId);
-    const download = join(work, `${stem}.download`);
+  private async fromInstagram(requested: URL, own: OwnPost | null, kind: MediaKind, work: string, signal: AbortSignal, warnings: string[]): Promise<Fetched> {
+    let post = own?.post ?? (await this.instagramMedia(requested.href).catch(() => null));
+    let fresh = own?.fresh ?? false;
+    let source = checkWebUrl(post?.mediaUrl ?? requested.href);
     const bounded = AbortSignal.any([signal, AbortSignal.timeout(this.timeouts.direct)]);
     const cap = this.caps.video.bytes;
-    let url = source;
-    let response: Response | undefined;
+    let mediaId = "";
+    let download = "";
     try {
-      for (let hop = 0; ; hop++) {
-        await resolvePublic(hostOf(url), this.resolve);
-        response = await this.fetch(url.href, { signal: bounded, headers: { "user-agent": this.userAgent, accept: "video/*,audio/*,*/*;q=0.5" } });
-        if ([301, 302, 303, 307, 308].includes(response.status)) {
-          await response.body?.cancel().catch(() => {});
-          const location = response.headers.get("location");
-          if (!location || hop >= MAX_REDIRECTS) throw new DapiError("invalid-input", "Instagram's file link redirected too many times. Call instagram_posts again for a fresh `mediaUrl`.");
-          url = checkWebUrl(new URL(location, url));
-          continue;
-        }
-        break;
+      let response = await this.instagramResponse(source, bounded);
+      if (LINK_EXPIRED.includes(response.status) && !fresh) {
+        await response.body?.cancel().catch(() => {});
+        fresh = true;
+        const asked = await this.instagramFresh(requested.href, signal);
+        if (asked.kind !== "post" || !asked.post.mediaUrl) throw new DapiError("not-found", expiredLink(response.status, asked));
+        post = asked.post;
+        source = checkWebUrl(asked.post.mediaUrl);
+        response = await this.instagramResponse(source, bounded);
       }
       if (!response.ok) {
         await response.body?.cancel().catch(() => {});
-        if ([400, 401, 403, 404, 410].includes(response.status)) {
-          throw new DapiError("not-found", `Instagram's link to this file has expired (${response.status}). Call instagram_posts again for a fresh \`mediaUrl\`, or pass the post's permalink.`);
+        if (LINK_EXPIRED.includes(response.status)) {
+          throw new DapiError("not-found", `Instagram's file server refused ${fresh ? "the file's current link" : "the file's link"} (${response.status}). Try once more in a moment.`);
         }
         throw new DapiError("invalid-input", `Instagram's file server answered ${response.status}. Try once more in a moment.`);
       }
@@ -1050,6 +1086,8 @@ export class MediaDownloadService {
         await response.body?.cancel().catch(() => {});
         throw tooLarge("video", Number(response.headers.get("content-length")), cap);
       }
+      mediaId = post?.id ?? (fileStem(basename(source.pathname).replace(/\.[a-z0-9]{1,5}$/i, "")).slice(0, 64) || "instagram");
+      download = join(work, `${fileStem(mediaId)}.download`);
       await this.save(response, download, cap, bounded);
     } catch (error) {
       if (signal.aborted) throw canceled(signal);
@@ -1057,11 +1095,12 @@ export class MediaDownloadService {
       if (error instanceof DapiError) throw error;
       throw new DapiError("invalid-input", `Couldn't download Instagram's file (${(error as Error).message}). Check the internet connection, then try once more.`, { cause: error });
     }
+    const stem = fileStem(mediaId);
     const sniffed = sniff(await head(download), "video");
     if (sniffed.kind !== "video" && sniffed.kind !== "audio") {
       throw new DapiError("unsupported", sniffed.kind === "image"
-        ? "This Instagram post is a picture, which media_download doesn't take. Pass a video post's `mediaUrl`."
-        : "Instagram's file link answered with something other than a video. Call instagram_posts again for a fresh `mediaUrl`.");
+        ? "This Instagram post is a picture, which media_download doesn't take. Pass a video post's permalink."
+        : "Instagram's file link answered with something other than a video. Try once more in a moment.");
     }
     let file = join(work, `${stem}.${sniffed.ext}`);
     await rename(download, file);
@@ -1092,6 +1131,20 @@ export class MediaDownloadService {
     };
   }
 
+  /** One try at an Instagram file link: the response, once its redirects are followed. */
+  private async instagramResponse(source: URL, signal: AbortSignal): Promise<Response> {
+    let url = source;
+    for (let hop = 0; ; hop++) {
+      await resolvePublic(hostOf(url), this.resolve);
+      const response = await this.fetch(url.href, { signal, headers: { "user-agent": this.userAgent, accept: "video/*,audio/*,*/*;q=0.5" } });
+      if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+      await response.body?.cancel().catch(() => {});
+      const location = response.headers.get("location");
+      if (!location || hop >= MAX_REDIRECTS) throw new DapiError("invalid-input", "Instagram's file link redirected too many times. Try once more in a moment.");
+      url = checkWebUrl(new URL(location, url));
+    }
+  }
+
   /** Streams a response into `path` (created; it must not exist), up to `cap` bytes, failing when nothing arrives for the idle time. */
   private async save(response: Response, path: string, cap: number, signal: AbortSignal): Promise<void> {
     const reader = response.body?.getReader();
@@ -1119,7 +1172,7 @@ export class MediaDownloadService {
         if (bytes > cap) throw tooLarge("video", bytes, cap);
         await file.write(next.value);
       }
-      if (!bytes) throw new DapiError("invalid-input", "Instagram sent an empty file. Call instagram_posts again for a fresh `mediaUrl`.");
+      if (!bytes) throw new DapiError("invalid-input", "Instagram sent an empty file. Try once more in a moment.");
       await file.sync();
     } finally {
       clearTimeout(timer);

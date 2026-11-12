@@ -421,6 +421,108 @@ describe("Instagram analytics service", () => {
   });
 });
 
+describe("a post's current file, asked of Instagram", () => {
+  const FILE = "https://scontent.cdninstagram.com/v/new.mp4?oe=69abcdef&oh=signed";
+  const ROW = { id: "201", caption: "A Reel", media_type: "VIDEO", media_product_type: "REELS", permalink: "https://www.instagram.com/reel/example/", media_url: FILE };
+  const NEWER = { id: "305", caption: "Newer", media_type: "VIDEO", media_product_type: "REELS", permalink: "https://www.instagram.com/reel/NewerReel1/", media_url: FILE };
+  /** The cache as a sync left it (no file link for the post), read by a fresh service, with Instagram answering `handler`. */
+  async function reconnected(handler: Parameters<typeof api>[0]) {
+    await service().connect(TOKEN);
+    const request = api(handler);
+    return { instance: service(request), request };
+  }
+
+  it("asks for a cached post by its id, in any form of its link: one request, and the cache stays as it was", async () => {
+    const before = async () => readFile(join(directory, "analytics.json"), "utf8");
+    const { instance, request } = await reconnected(url => (url.pathname.endsWith("/201") ? json(ROW) : undefined));
+    const cache = await before();
+    const result = await instance.freshPost("https://www.instagram.com/p/example/?igsh=abc");
+    expect(result).toEqual({ kind: "post", post: { id: "201", permalink: ROW.permalink, caption: "A Reel", mediaType: "VIDEO", mediaUrl: FILE, username: "creator.test" } });
+    expect(request).toHaveBeenCalledOnce();
+    const [input, options] = request.mock.calls[0]!;
+    expect(new URL(String(input)).pathname).toBe("/v24.0/201");
+    expect(new URL(String(input)).searchParams.get("fields")).toContain("media_url");
+    expect(objectHeaders(options)).toMatchObject({ Authorization: `Bearer ${TOKEN}` });
+    expect(String(input)).not.toContain(TOKEN);
+    expect(await before()).toBe(cache);
+  });
+
+  it("looks a post the cache doesn't know up in the account's recent posts, page by page", async () => {
+    const { instance, request } = await reconnected(url => {
+      if (!url.pathname.endsWith("/media")) return undefined;
+      return url.searchParams.get("after") === "CURSOR1"
+        ? json({ data: [NEWER] })
+        : json({ data: [{ ...ROW, id: "202", permalink: "https://www.instagram.com/reel/Other0001/" }], paging: { cursors: { after: "CURSOR1" }, next: "https://graph.instagram.com/next" } });
+    });
+    const result = await instance.freshPost("https://www.instagram.com/p/NewerReel1/");
+    expect(result).toMatchObject({ kind: "post", post: { id: "305", mediaUrl: FILE, username: "creator.test" } });
+    const lists = request.mock.calls.map(([input]) => new URL(String(input))).filter(url => url.pathname.endsWith("/media"));
+    expect(lists.map(url => [url.pathname, url.searchParams.get("limit"), url.searchParams.get("after")])).toEqual([["/v24.0/101/media", "100", null], ["/v24.0/101/media", "100", "CURSOR1"]]);
+  });
+
+  it("says a link isn't the account's after three pages, and not before the pages run out", async () => {
+    const endless = await reconnected(url => (url.pathname.endsWith("/media") ? json({ data: [{ ...ROW, id: "202", permalink: "https://www.instagram.com/reel/Other0001/" }], paging: { cursors: { after: "MORE" }, next: "https://graph.instagram.com/next" } }) : undefined));
+    expect(await endless.instance.freshPost("https://www.instagram.com/reel/NotMine001/")).toEqual({ kind: "none" });
+    expect(endless.request.mock.calls.filter(([input]) => new URL(String(input)).pathname.endsWith("/media"))).toHaveLength(3);
+    const short = await reconnected(undefined);
+    expect(await short.instance.freshPost("https://www.instagram.com/reel/NotMine001/")).toEqual({ kind: "none" });
+    expect(short.request.mock.calls.filter(([input]) => new URL(String(input)).pathname.endsWith("/media"))).toHaveLength(1);
+  });
+
+  it("asks nothing when no account is connected", async () => {
+    const request = api();
+    expect(await service(request).freshPost("https://www.instagram.com/reel/example/")).toEqual({ kind: "none" });
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("says why when the stored credentials can't be read, rather than that the post isn't the account's", async () => {
+    await service().connect(TOKEN);
+    await writeFile(join(directory, "credentials.json"), "{ not json");
+    const request = api();
+    expect(await service(request).freshPost("https://www.instagram.com/reel/example/")).toEqual({
+      kind: "failed", reason: "Stored Instagram credentials could not be read. Reconnect your account.",
+    });
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("learns whose posts to look through when only the credentials survived", async () => {
+    await service().connect(TOKEN);
+    await rm(join(directory, "analytics.json"));
+    const request = api(url => (url.pathname.endsWith("/media") ? json({ data: [NEWER] }) : undefined));
+    const result = await service(request).freshPost("https://www.instagram.com/reel/NewerReel1/");
+    expect(result).toMatchObject({ kind: "post", post: { id: "305", username: "creator.test" } });
+    expect(request.mock.calls.map(([input]) => new URL(String(input)).pathname)).toEqual(["/v24.0/me", "/v24.0/101/media"]);
+  });
+
+  it("returns a post whose file Instagram withholds with no link, and never takes a link off Instagram's own hosts", async () => {
+    const withheld = await reconnected(url => (url.pathname.endsWith("/201") ? json({ ...ROW, media_url: undefined }) : undefined));
+    expect(await withheld.instance.freshPost("https://www.instagram.com/reel/example/")).toMatchObject({ kind: "post", post: { id: "201", mediaUrl: null } });
+    const foreign = await reconnected(url => (url.pathname.endsWith("/201") ? json({ ...ROW, media_url: "https://files.example.com/x.mp4" }) : undefined));
+    expect(await foreign.instance.freshPost("https://www.instagram.com/reel/example/")).toMatchObject({ kind: "post", post: { mediaUrl: null } });
+  });
+
+  it.each([
+    ["an expired token", () => json({ error: { code: 190, message: `Invalid OAuth access token ${TOKEN}` } }, 401), /Reconnect your account in Analytics.*HTTP 401, code 190/],
+    ["rate limiting", () => json({ error: { code: 4, message: "limit" } }, 429), /Instagram is limiting requests\. Wait a while, then try again\./],
+    ["a refused permission", () => json({ error: { code: 10, message: "denied" } }, 403), /Instagram denied access to this post\./],
+    ["a malformed answer", () => json({ unexpected: true }), /Instagram returned an unexpected response/],
+  ])("says what went wrong, without the API's own words, on %s", async (_name, answer, reason) => {
+    const { instance } = await reconnected(url => (url.pathname.endsWith("/201") ? answer() : undefined));
+    const result = await instance.freshPost("https://www.instagram.com/reel/example/");
+    expect(result).toMatchObject({ kind: "failed" });
+    expect((result as { reason: string }).reason).toMatch(reason);
+    expect(JSON.stringify(result)).not.toContain(TOKEN);
+  });
+
+  it("says Instagram couldn't be reached when the network is down", async () => {
+    await service().connect(TOKEN);
+    const down = vi.fn(async () => { throw new TypeError("fetch failed"); });
+    expect(await service(down as unknown as ReturnType<typeof api>).freshPost("https://www.instagram.com/reel/example/")).toEqual({
+      kind: "failed", reason: "Couldn't reach Instagram. Check the internet connection, then try again.",
+    });
+  });
+});
+
 function objectHeaders(options: Parameters<typeof fetch>[1]): Record<string, string> {
   return options?.headers as Record<string, string> ?? {};
 }

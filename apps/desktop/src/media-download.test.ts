@@ -19,6 +19,7 @@ import { readLedger } from "./web-media-ledger";
 import { TEMP_PREFIX, isTempPath } from "./atomic";
 
 import type { DownloaderRun, MediaDownloader } from "./media-runner";
+import type { InstagramFreshPost } from "./instagram-types";
 import type { MediaDownloadRequest } from "./media-download-types";
 import type { MediaStreams } from "./media-download";
 import type { MediaLedgerItem } from "./media-download-types";
@@ -606,12 +607,136 @@ describe("media_download from MyInstants and the user's own Instagram", () => {
     expect(file.warnings).toEqual(["`item` was ignored: a file link is one file. Pass the post's permalink to choose one of several."]);
   });
 
-  it("says an expired Instagram file link needs a fresh sync", async () => {
-    const fetch = vi.fn(async () => new Response("URL signature expired", { status: 403 }));
-    const { media } = service(byUrl({}), { fetch, instagramMedia: async (url) => findInstagramMedia(snapshot, url) });
+  // Instagram itself, asked through the connected account: the cache is only as new as the last sync, and its links expire.
+  const FRESH_CDN = "https://scontent-lhr8-1.cdninstagram.com/o1/v/t16/f2/m69/AQnew.mp4?efg=signed&oh=newtoken";
+  const own = { id: "17900000000000001", permalink: PERMALINK, caption: "Sunset run. More soon", mediaType: "VIDEO", username: "me.myself" };
+  /** The cache as a sync from before file links were kept left it. */
+  const noLinks = { account: { username: "me.myself" }, posts: [{ id: own.id, caption: own.caption, permalink: PERMALINK, mediaUrl: null }] };
+  const cachedFrom = (from: Parameters<typeof findInstagramMedia>[0] = snapshot) => async (url: string) => findInstagramMedia(from, url);
+  const instagramReturns = (asked: InstagramFreshPost) => vi.fn(async (_url: string, _signal: AbortSignal): Promise<InstagramFreshPost> => asked);
+  const withFile = (mediaUrl: string | null): InstagramFreshPost => ({ kind: "post", post: { ...own, mediaUrl } });
+  const expired = () => new Response("URL signature expired", { status: 403 });
+
+  it("asks Instagram for a post's file when the cache holds none, so a stale cache doesn't matter", async () => {
+    const fetch = vi.fn(async (_url: string) => mp4());
+    const instagramFresh = instagramReturns(withFile(FRESH_CDN));
+    const { media, fake } = service(byUrl({}), { fetch, instagramMedia: cachedFrom(noLinks), instagramFresh });
+    const download = await media.download(request(PERMALINK, { kind: "video" }), signal());
+    expect(instagramFresh).toHaveBeenCalledWith(PERMALINK, expect.any(AbortSignal));
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([FRESH_CDN]);
+    expect(fake.run).not.toHaveBeenCalled();
+    expect(download).toMatchObject({
+      source: "assets/footage/17900000000000001.mp4", site: "instagram", channel: "@me.myself", sourceUrl: PERMALINK, downloader: "Blackout (Instagram file)",
+    });
+  });
+
+  it("finds a post newer than the last sync through Instagram too", async () => {
+    const fetch = vi.fn(async (_url: string) => mp4());
+    const { media } = service(byUrl({}), { fetch, instagramMedia: async () => null, instagramFresh: instagramReturns(withFile(FRESH_CDN)) });
+    const download = await media.download(request(PERMALINK, { kind: "video" }), signal());
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([FRESH_CDN]);
+    expect(download).toMatchObject({ source: "assets/footage/17900000000000001.mp4", sourceUrl: PERMALINK });
+  });
+
+  it("takes a post's /p/ and /reel/ links as one post", async () => {
+    const fetch = vi.fn(async (_url: string) => mp4());
+    const { media, fake } = service(byUrl({}), { fetch, instagramMedia: cachedFrom() });
+    await media.download(request("https://www.instagram.com/p/OwnReel123/?igsh=abc", { kind: "video" }), signal());
+    expect(fake.run).not.toHaveBeenCalled();
+    expect(fetch.mock.calls[0]![0]).toBe(CDN);
+  });
+
+  it("fetches a file link passed in as it is, asking Instagram for nothing while it works", async () => {
+    const instagramFresh = instagramReturns(withFile(FRESH_CDN));
+    const { media } = service(byUrl({}), { fetch: vi.fn(async (_url: string) => mp4()), instagramMedia: async () => null, instagramFresh });
+    await media.download(request(CDN, { kind: "video" }), signal());
+    expect(instagramFresh).not.toHaveBeenCalled();
+  });
+
+  it("replaces an expired file link with a current one from Instagram, once, whether cached or passed in", async () => {
+    for (const link of [PERMALINK, CDN]) {
+      const fetch = vi.fn(async (url: string) => (url === FRESH_CDN ? mp4() : expired()));
+      const instagramFresh = instagramReturns(withFile(FRESH_CDN));
+      const { media } = service(byUrl({}), { fetch, instagramMedia: cachedFrom(), instagramFresh });
+      const download = await media.download(request(link, { kind: "video" }), signal());
+      expect(fetch.mock.calls.map(([url]) => url)).toEqual([CDN, FRESH_CDN]);
+      expect(instagramFresh).toHaveBeenCalledOnce();
+      expect(instagramFresh).toHaveBeenCalledWith(link, expect.any(AbortSignal));
+      expect(download).toMatchObject({ source: "assets/footage/17900000000000001.mp4", sourceUrl: PERMALINK });
+      project = mkdtempSync(join(root, "project-"));
+      writeFileSync(join(project, "package.json"), JSON.stringify({ name: "p", projectId: "p" }));
+    }
+  });
+
+  it("doesn't ask twice: a current link Instagram's servers refuse too is reported as that", async () => {
+    const fetch = vi.fn(async (_url: string) => expired());
+    const instagramFresh = instagramReturns(withFile(FRESH_CDN));
+    const { media } = service(byUrl({}), { fetch, instagramMedia: cachedFrom(), instagramFresh });
+    const error = await media.download(request(PERMALINK, { kind: "video" }), signal()).catch((thrown: DapiError) => thrown);
+    expect(error).toMatchObject({ code: "not-found" });
+    expect((error as Error).message).toMatch(/refused the file's current link \(403\)/);
+    expect(instagramFresh).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["Instagram can't be asked", { kind: "failed", reason: "Instagram is limiting requests. Wait a while, then try again." } as const, /expired \(403\)\. A current one couldn't be had: Instagram is limiting requests\. Wait a while, then try again\./],
+    ["Instagram gives the post no file", withFile(null), /expired \(403\)\. Instagram gives apps no file for this post of the user's/],
+    ["the link isn't one of the account's posts", { kind: "none" } as const, /expired \(403\)\. It isn't one of the connected account's posts/],
+  ])("says why an expired file link couldn't be replaced when %s", async (_name, asked, message) => {
+    const { media } = service(byUrl({}), { fetch: vi.fn(async (_url: string) => expired()), instagramMedia: cachedFrom(), instagramFresh: instagramReturns(asked) });
     const error = await media.download(request(CDN, { kind: "video" }), signal()).catch((thrown: DapiError) => thrown);
     expect(error).toMatchObject({ code: "not-found" });
-    expect((error as Error).message).toMatch(/expired \(403\)\. Call instagram_posts again for a fresh `mediaUrl`/);
+    expect((error as Error).message).toMatch(message);
+  });
+
+  it("says to try again, not to call instagram_posts, when Instagram's file server sends an empty file", async () => {
+    const empty = vi.fn(async (_url: string) => new Response("", { status: 200, headers: { "content-type": "video/mp4" } }));
+    const { media } = service(byUrl({}), { fetch: empty, instagramMedia: cachedFrom() });
+    await expect(media.download(request(CDN, { kind: "video" }), signal())).rejects.toMatchObject({ code: "invalid-input", message: "Instagram sent an empty file. Try once more in a moment." });
+  });
+
+  it("tries the downloader for a post of the user's that Instagram gives no file for, and says why when that fails too", async () => {
+    const { media, fake } = service(byUrl({}), { fetch: vi.fn(), instagramMedia: cachedFrom(noLinks), instagramFresh: instagramReturns(withFile(null)) });
+    const error = await media.download(request(PERMALINK, { kind: "video" }), signal()).catch((thrown: DapiError) => thrown);
+    expect(fake.run).toHaveBeenCalled();
+    expect(error).toBeInstanceOf(DapiError);
+    expect((error as Error).message).toMatch(/^Instagram gives apps no file for this post of the user's .*Ask the user for the original export.* \(The downloader said: .*\)$/s);
+  });
+
+  it("stops as a cancellation, not as an Instagram failure, when canceled while Instagram is being asked", async () => {
+    const controller = new AbortController();
+    const instagramFresh = vi.fn(async (): Promise<InstagramFreshPost> => {
+      controller.abort();
+      return { kind: "failed", reason: "Couldn't reach Instagram. Check the internet connection, then try again." };
+    });
+    const { media, fake } = service(byUrl({}), { fetch: vi.fn(), instagramMedia: cachedFrom(noLinks), instagramFresh });
+    const error = await media.download(request(PERMALINK, { kind: "video" }), controller.signal).catch((thrown: DapiError) => thrown);
+    expect(error).toMatchObject({ code: "canceled" });
+    expect(fake.run).not.toHaveBeenCalled();
+  });
+
+  it("reports why Instagram couldn't be asked about a post the cache knows as the user's, without trying the downloader", async () => {
+    const reason = "Instagram authorization has expired or is invalid. Reconnect your account in Analytics, then try again.";
+    const { media, fake } = service(byUrl({}), { fetch: vi.fn(), instagramMedia: cachedFrom(noLinks), instagramFresh: instagramReturns({ kind: "failed", reason }) });
+    await expect(media.download(request(PERMALINK, { kind: "video" }), signal())).rejects.toMatchObject({ code: "invalid-input", message: `Couldn't get this post's file from Instagram. ${reason}` });
+    expect(fake.run).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["isn't one of the connected account's posts", { kind: "none" } as const],
+    ["can't be checked against Instagram", { kind: "failed", reason: "Couldn't reach Instagram. Check the internet connection, then try again." } as const],
+  ])("goes to the downloader, as before, for a post that %s", async (_name, asked) => {
+    const post = "https://www.instagram.com/p/CaRoUsEl123/";
+    const instagramFresh = instagramReturns(asked);
+    const { media, runs } = service((args) => {
+      const at = args.indexOf("--playlist-items");
+      return at < 0 ? INSTAGRAM_CAROUSEL : { ...INSTAGRAM_CAROUSEL, entries: [INSTAGRAM_CAROUSEL.entries[Number(args[at + 1]) - 1]] };
+    }, { instagramMedia: async () => null, instagramFresh });
+    const download = await media.download(request(post, { kind: "video", item: 2 }), signal());
+    expect(instagramFresh).toHaveBeenCalledOnce();
+    expect(runs.length).toBeGreaterThan(0);
+    expect(download).toMatchObject({ source: "assets/footage/3100000000000000002.mp4", site: "instagram", channel: "someone" });
   });
 });
 
@@ -650,5 +775,18 @@ describe("media_download's helpers", () => {
     expect(findInstagramMedia(snapshot, "https://instagram.com/reel/A1")).toMatchObject({ id: "1", mediaType: "VIDEO" });
     expect(findInstagramMedia(snapshot, "https://scontent.cdninstagram.com/v/a.mp4?x=2")?.id).toBe("1");
     expect(findInstagramMedia(snapshot, "https://www.instagram.com/reel/B2/")).toBeNull();
+  });
+
+  it("finds a post by its shortcode whichever form of the link carries it", () => {
+    const snapshot = { account: { username: "me" }, posts: [{ id: "1", caption: "", permalink: "https://www.instagram.com/reel/AbCdEfGhIjK/", mediaUrl: null, mediaType: "VIDEO" }] };
+    for (const link of [
+      "https://www.instagram.com/reel/AbCdEfGhIjK/",
+      "https://www.instagram.com/p/AbCdEfGhIjK/",
+      "https://instagram.com/reels/AbCdEfGhIjK?igsh=abc",
+      "https://www.instagram.com/me/reel/AbCdEfGhIjK/",
+    ]) expect(findInstagramMedia(snapshot, link)?.id).toBe("1");
+    // Shortcodes are case-sensitive and a different post is a different post.
+    expect(findInstagramMedia(snapshot, "https://www.instagram.com/p/abcdefghijK/")).toBeNull();
+    expect(findInstagramMedia(snapshot, "https://www.instagram.com/p/AbCdEfGhIjL/")).toBeNull();
   });
 });
