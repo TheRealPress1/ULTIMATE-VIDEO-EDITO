@@ -24,6 +24,7 @@
     "make": "npm run build && npm run build:web && npm run stage:cli && npm run stage:runtime && npm run stage:docs && electron-forge make",
     "publish": "npm run build && npm run build:web && npm run stage:cli && npm run stage:runtime && npm run stage:docs && electron-forge publish",
     "make:icns": "sh scripts/make-icns.sh",
+    "make:icon": "node scripts/make-icon.mjs",
     "test": "vitest run",
     "build:agent-host": "esbuild ../../packages/agent-chat/src/bin.ts --bundle --platform=node --format=esm --target=node20 --external:electron \"--external:@anthropic-ai/claude-agent-sdk-*\" --banner:js=\"import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);\" --outfile=dist/agent-host.mjs",
     "make:ico": "python3 scripts/win-assets.py ico",
