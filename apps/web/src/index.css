@@ -500,6 +500,12 @@
 .cutroom-workspace-tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; background: var(--primary); }
 /* The program monitor: the scene in a frame of its own proportions on black, the transport beneath. */
 .cutroom-program { background: #070707; }
+.cutroom-scene-tabs { display: flex; flex: none; height: 32px; align-items: stretch; gap: 16px; padding: 0 14px; background: var(--background); border-bottom: 1px solid var(--border); font-size: 12px; }
+.cutroom-scene-tabs-label { display: flex; align-items: center; color: var(--muted-foreground); opacity: .7; }
+.cutroom-scene-tab { position: relative; display: flex; align-items: center; max-width: 220px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .15s; }
+.cutroom-scene-tab:hover { color: var(--foreground); }
+.cutroom-scene-tab.is-active { color: var(--foreground); }
+.cutroom-scene-tab.is-active::after { content: ""; position: absolute; inset: auto 0 -1px 0; height: 2px; border-radius: 1px; background: color-mix(in srgb, var(--foreground) 55%, transparent); }
 .cutroom-program-frame { position: absolute; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 10px 40px rgba(0, 0, 0, .5); }
 .cutroom-monitor-bar { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 10px; background: var(--background); border-top: 1px solid var(--border); user-select: none; font-variant-numeric: tabular-nums; }
 .cutroom-monitor-time { display: flex; align-items: baseline; gap: 14px; color: var(--muted-foreground); }

@@ -16,6 +16,7 @@ import { DesktopAppBanner } from "./desktop-app-banner";
 import { toast } from "somoto"
 import { SceneInitOverlay } from "./scene-init-overlay";
 import { MonitorBar } from "./monitor-bar";
+import { SceneTabs } from "./scene-tabs";
 import { ASSET_DRAG_TYPE } from "@/components/sidebar-left/folder-item";
 
 import type { Asset } from "@diffusionstudio/assets";
@@ -51,9 +52,12 @@ export function Canvas() {
     const size = sceneSize();
     const { width, height } = area();
     if (workspace() !== "edit" || !scene() || !size || !(size.width > 0) || !(size.height > 0) || !(width > 0) || !(height > 0)) return null;
-    const zoom = Math.min((width - 2 * MONITOR_MARGIN) / size.width, (height - 2 * MONITOR_MARGIN) / size.height);
-    if (!(zoom > 0)) return null;
-    return { width: Math.round(size.width * zoom), height: Math.round(size.height * zoom), zoom };
+    const fit = Math.min((width - 2 * MONITOR_MARGIN) / size.width, (height - 2 * MONITOR_MARGIN) / size.height);
+    if (!(fit > 0)) return null;
+    // Whole pixels, rounded down, with the zoom that covers them: the frame never reaches past the scene's edge, where the next scene would show.
+    const frameWidth = Math.max(1, Math.floor(size.width * fit));
+    const frameHeight = Math.max(1, Math.floor(size.height * fit));
+    return { width: frameWidth, height: frameHeight, zoom: Math.max(frameWidth / size.width, frameHeight / size.height) };
   });
   const monitor = () => frame() !== null;
 
@@ -139,6 +143,7 @@ export function Canvas() {
 
   return (
     <div class="flex size-full flex-col bg-background" classList={{ "cutroom-program": monitor() }}>
+      <Show when={monitor()}><SceneTabs /></Show>
       <div ref={container} class="relative min-h-0 flex-1">
         <div
           class="absolute inset-0"
