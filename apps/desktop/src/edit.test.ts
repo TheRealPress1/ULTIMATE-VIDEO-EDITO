@@ -13,6 +13,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { applyEdits } from "./edit";
 
+import type { SourceEdit } from "./edit";
+
 const FILE = "main.tsx";
 
 let dir: string;
@@ -73,5 +75,68 @@ describe("applyEdits", () => {
     expect(result.skipped).toEqual([]);
     const text = await readFile(join(dir, FILE), "utf8");
     expect(text).toContain(`  <text id="t">\n    Bye\n    <solidPaint color="#FFFFFF" />\n    {/* note */}\n  </text>`);
+  });
+});
+
+describe("a remove of what an earlier remove in the same write took along", () => {
+  // A clip of a scene, cut in two, is wrapped in a sequence with the tail beside it. The undo of that cut, once the
+  // cut has been written, takes the head back out and removes the sequence and the tail: the canvas has the tail out
+  // of the sequence by then, and a write that is told only of the removals finds it in the sequence still.
+  const BEFORE = `export default () => (
+  <scene id="scene" active>
+    <audio id="mus" name="Music bed" src="music.mp3" start={0} end={21.9} />
+    <sequence id="v1">
+      <video id="a" src="a.mp4" start={0} end={5} />
+    </sequence>
+  </scene>
+);
+`;
+  const CUT = `export default () => (
+  <scene id="scene" active>
+    <sequence id="wrap" name="Sequence 1">
+      <audio id="mus" name="Music bed" src="music.mp3" start={0} end={2.6} />
+      <audio id="tail" name="Music bed" src="music.mp3" start={2.6} end={21.9} sourceIn={2.6} selected />
+    </sequence>
+    <sequence id="v1">
+      <video id="a" src="a.mp4" start={0} end={5} />
+    </sequence>
+  </scene>
+);
+`;
+  const undo = (...removes: string[]): SourceEdit[] => [
+    { kind: "move", source: `${FILE}:mus`, parent: `${FILE}:scene`, before: `${FILE}:v1` },
+    { kind: "set", source: `${FILE}:mus`, props: { end: 21.9 } },
+    ...removes.map((id): SourceEdit => ({ kind: "remove", source: `${FILE}:${id}` })),
+  ];
+
+  beforeEach(async () => {
+    await writeFile(join(dir, FILE), CUT);
+  });
+
+  it.each([
+    ["the sequence and then the tail it holds", ["wrap", "tail"]],
+    ["the tail and then the sequence", ["tail", "wrap"]],
+  ])("takes out %s, and the file is as it was before the cut", async (_, removes) => {
+    const result = await applyEdits({ dir, strict: true }, undo(...removes!));
+
+    expect(result).toEqual({ skipped: [] });
+    expect(await readFile(join(dir, FILE), "utf8")).toBe(BEFORE);
+  });
+
+  it("still reports a remove of what the file never had, and then writes nothing", async () => {
+    const result = await applyEdits({ dir, strict: true }, undo("wrap", "tail", "ghost"));
+
+    expect(result.skipped).toEqual([`${FILE}:ghost`]);
+    expect(result.error).toBeDefined();
+    expect(await readFile(join(dir, FILE), "utf8")).toBe(CUT);
+  });
+
+  it("only knows what this write took out: an element an earlier write removed is still missing", async () => {
+    await applyEdits({ dir, strict: true }, [{ kind: "remove", source: `${FILE}:wrap` }]);
+
+    const result = await applyEdits({ dir, strict: true }, [{ kind: "remove", source: `${FILE}:tail` }]);
+
+    expect(result.skipped).toEqual([`${FILE}:tail`]);
+    expect(result.error).toBeDefined();
   });
 });

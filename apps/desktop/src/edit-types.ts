@@ -75,6 +75,8 @@ export interface SourceMove {
  * it contains: its children are its text, and go the way a move takes them
  * along. Addressed like a move — an unnamed element is a position, and cutting
  * text renumbers positions, so the element is found before anything is cut.
+ * One that an earlier remove in the same write already took along with an
+ * element above it is removed, and is not skipped.
  */
 export interface SourceRemove {
   kind: "remove";
