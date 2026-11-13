@@ -16,7 +16,8 @@ import { chatState, ensureConnected, refreshChats, setActiveChat, setSidebarTab 
 import { SidebarHistory } from "@/agent-chat/sidebar-history";
 import { projectRoute } from "@/hooks/use-project-route";
 import { sidebarCanClose, sidebarShown } from "@/lib/sidebar-state";
-import { projectKey, type ProjectInfo } from "@/projects";
+import { isWindowsDesktop, projectKey, type ProjectInfo } from "@/projects";
+import { ProjectMenu } from "@/components/sidebar-left/project-menu";
 
 type AppSidebarProps = { projectId?: string };
 
@@ -63,7 +64,12 @@ export function AppSidebar(props: AppSidebarProps) {
       <aside id={SIDEBAR_ID} class="cutroom-sidebar" data-open={sidebarShown()} inert={!sidebarShown()} aria-label="Main navigation">
         <div class="cutroom-sidebar-inner">
           <div class="cutroom-brand">
-            <CutroomMark class="cutroom-brand-mark" />
+            {/* In a project the mark opens the project menu; the Windows title bar carries that menu itself. */}
+            <Show when={props.projectId && !isWindowsDesktop()} fallback={<CutroomMark class="cutroom-brand-mark" />}>
+              <ProjectMenu class="cutroom-brand-menu outline-none focus-ring" label="Menu">
+                <CutroomMark class="cutroom-brand-mark" />
+              </ProjectMenu>
+            </Show>
           </div>
           <nav class="cutroom-primary-nav">
             <button type="button" class="cutroom-nav-item" classList={{ "is-active": onHome() }} onClick={() => navigate("/")}>

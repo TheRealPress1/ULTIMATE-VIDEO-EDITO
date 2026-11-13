@@ -378,6 +378,11 @@
 .cutroom-brand { display: flex; align-items: center; padding: 20px 8px 12px; flex-shrink: 0; }
 .cutroom-brand-mark { width: 40px; height: 40px; flex-shrink: 0; margin-left: -3px; }
 [data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-brand { padding-top: 44px; -webkit-app-region: drag; }
+/* In a project the mark is the project menu's button, so it opts out of the strip's window drag, and so does any menu opened over that strip: drag regions apply in document order and a menu comes last. */
+.cutroom-brand-menu { display: grid; place-items: center; flex-shrink: 0; margin-left: -3px; border-radius: 10px; cursor: pointer; -webkit-app-region: no-drag; transition: background .15s; }
+.cutroom-brand-menu .cutroom-brand-mark { margin-left: 0; }
+.cutroom-brand-menu:hover, .cutroom-brand-menu[data-expanded] { background: color-mix(in srgb, var(--foreground) 7%, transparent); }
+[data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"] { -webkit-app-region: no-drag; }
 /* The button that closes and opens it never leaves the page, so it keeps focus; it moves. Beside the traffic lights on macOS; elsewhere at the sidebar's right edge, or, closed, in the top-left corner. */
 .cutroom-sidebar-toggle { position: fixed; z-index: 40; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 7px; color: var(--muted-foreground); -webkit-app-region: no-drag; transition: left .2s ease, top .2s ease, background .15s, color .15s; }
 .cutroom-sidebar-toggle:hover { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }

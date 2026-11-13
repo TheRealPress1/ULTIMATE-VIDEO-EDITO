@@ -206,10 +206,14 @@ type ProjectHeaderProps = {
   class?: string;
 }
 
+/**
+ * The project's name and draft badge. The project menu is not here: it opens
+ * from the mark at the top of the app sidebar, from the Windows title bar, or
+ * from the floating header while the interface is hidden.
+ */
 export function ProjectHeader(props: ProjectHeaderProps) {
   return (
     <div class={cx("h-12 shrink-0 flex items-center gap-1 pr-4 pl-2.5", props.class)}>
-      <ProjectMenu />
       <div class="flex items-center w-full min-w-0 gap-1.5">
         <ProjectNameInput class="min-w-0" />
         <DraftBadge />
