@@ -486,6 +486,28 @@
 .cutroom-editor-inspector { min-width: 0; min-height: 0; overflow: hidden; border-left: 1px solid var(--border); }
 .cutroom-editor-grid { display: grid; min-height: 0; flex: 1; }
 .cutroom-editor-canvas { position: relative; min-width: 0; min-height: 0; grid-column: 1 / 4; }
+/* Workspaces: Edit is the program monitor and the timeline, Board the canvas of scenes with the drawing tools. */
+.cutroom-workspaces { display: flex; align-self: stretch; margin: -6px 0; }
+.cutroom-workspace-tab { position: relative; display: grid; place-items: center; padding: 0 14px; color: var(--muted-foreground); font-size: 12.5px; transition: color .15s; }
+.cutroom-workspace-tab:hover { color: var(--foreground); }
+.cutroom-workspace-tab.is-active { color: var(--foreground); font-weight: 550; }
+.cutroom-workspace-tab.is-active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; background: var(--primary); }
+/* The program monitor: the scene in a frame of its own proportions on black, the transport beneath. */
+.cutroom-program { background: #070707; }
+.cutroom-program-frame { position: absolute; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, .07), 0 10px 40px rgba(0, 0, 0, .5); }
+.cutroom-monitor-bar { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px 10px; background: var(--background); border-top: 1px solid var(--border); user-select: none; font-variant-numeric: tabular-nums; }
+.cutroom-monitor-time { display: flex; align-items: baseline; gap: 14px; color: var(--muted-foreground); }
+.cutroom-timecode { color: var(--primary); font-size: 15px; font-weight: 550; letter-spacing: .01em; }
+.cutroom-monitor-fit { font-size: 11.5px; }
+.cutroom-monitor-total { margin-left: auto; color: var(--foreground); opacity: .85; font-size: 13px; }
+.cutroom-scrub { position: relative; height: 14px; cursor: pointer; touch-action: none; }
+.cutroom-scrub::before { content: ""; position: absolute; inset: 6px 0 auto 0; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--foreground) 14%, transparent); }
+.cutroom-scrub-fill { position: absolute; left: 0; top: 6px; height: 3px; border-radius: 2px; background: var(--primary); }
+.cutroom-scrub-head { position: absolute; top: 1px; width: 9px; height: 12px; margin-left: -4.5px; background: var(--primary); clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); }
+.cutroom-transport { display: flex; justify-content: center; align-items: center; gap: 4px; }
+.cutroom-transport button { display: grid; width: 30px; height: 28px; place-items: center; border-radius: 6px; color: var(--muted-foreground); }
+.cutroom-transport button:hover { color: var(--foreground); background: color-mix(in srgb, var(--foreground) 7%, transparent); }
+.cutroom-transport .is-play { width: 40px; color: var(--foreground); background: color-mix(in srgb, var(--foreground) 10%, transparent); }
 @media (max-width: 1100px) {
   :root { --sidebar-width: 210px; }
   .cutroom-home { padding-inline: 30px; }

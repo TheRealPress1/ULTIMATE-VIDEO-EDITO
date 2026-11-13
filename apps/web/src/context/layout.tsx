@@ -12,6 +12,15 @@ export const TOOLBAR_SLOTS = ['bottom', 'top', 'top-left', 'top-right', 'bottom-
 
 export type ToolbarSlot = (typeof TOOLBAR_SLOTS)[number];
 
+/**
+ * What the stage is for. Edit is the program monitor: one scene, fitted to
+ * its frame, with the transport under it. Board is the canvas of scenes with
+ * the drawing tools.
+ */
+export const WORKSPACES = ['edit', 'board'] as const;
+
+export type Workspace = (typeof WORKSPACES)[number];
+
 type LayoutContextValue = {
   uiVisible: Accessor<boolean>;
   timelineMinimized: Accessor<boolean>;
@@ -19,6 +28,8 @@ type LayoutContextValue = {
   setTimelineHeight(height: number): void;
   toolbarSlot: Accessor<ToolbarSlot>;
   setToolbarSlot(slot: ToolbarSlot): void;
+  workspace: Accessor<Workspace>;
+  setWorkspace(workspace: Workspace): void;
   toggleUI(): void;
   toggleTimeline(): void;
 };
@@ -46,6 +57,10 @@ export function LayoutProvider(props: { children: JSX.Element }) {
     ),
   );
 
+  const [workspace, setWorkspace] = createStoredSignal(
+    store.define<Workspace>('layout.workspace', 'edit', (value) => (WORKSPACES.includes(value) ? value : 'edit')),
+  );
+
   const toggleUI = () => setUiVisible(!uiVisible());
   const toggleTimeline = () => setTimelineMinimized(!timelineMinimized());
 
@@ -58,6 +73,8 @@ export function LayoutProvider(props: { children: JSX.Element }) {
         setTimelineHeight,
         toolbarSlot,
         setToolbarSlot,
+        workspace,
+        setWorkspace,
         toggleUI,
         toggleTimeline,
       }}>

@@ -6,6 +6,7 @@ import { Show, createMemo, createSignal, onMount } from "solid-js";
 import { Canvas } from "@/components/canvas";
 import { ChatPanel, sidebarTab, setSidebarTab } from "@/agent-chat";
 import { AppSidebar } from "@/components/app-sidebar";
+import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
 import { Footage } from "@/components/sidebar-left/footage";
 import { Icon } from "@/components/ui/icon";
@@ -338,6 +339,7 @@ export function EditorPage() {
         <Show when={uiVisible()}>
           <header class="cutroom-editor-header">
             <ProjectHeader class="cutroom-editor-project" />
+            <WorkspaceTabs />
             <div class="cutroom-editor-actions">
               <ProjectSafety />
               <EditorTools />

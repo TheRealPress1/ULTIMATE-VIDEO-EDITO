@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { createComputed, createEffect, on } from "solid-js";
-import { useWorld } from "@diffusionstudio/koota-solid";
-import { findSceneAt, screenToWorld, worldToLocal, Library, Root } from "@diffusionstudio/runtime";
+import { Show, createComputed, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
+import { useTrait, useWorld } from "@diffusionstudio/koota-solid";
+import { findSceneAt, getCameraMatrix, screenToWorld, setCamera, setCameraMatrix, worldToLocal, Library, Position, Root, Size } from "@diffusionstudio/runtime";
 import { CameraController, EngineCanvas, nodesAt, panBy } from "@/engine";
+import { useActiveScene } from "@/engine/hooks";
 import { useLayout } from "@/context/layout";
 import { insertAsset } from "@/engine/insert-asset";
 import { droppedFiles, importFiles } from "@/engine/asset-actions";
@@ -14,14 +15,61 @@ import { CanvasCommands, NodeContextMenu } from "@/components/commands";
 import { DesktopAppBanner } from "./desktop-app-banner";
 import { toast } from "somoto"
 import { SceneInitOverlay } from "./scene-init-overlay";
+import { MonitorBar } from "./monitor-bar";
 import { ASSET_DRAG_TYPE } from "@/components/sidebar-left/folder-item";
 
 import type { Asset } from "@diffusionstudio/assets";
+import type { CameraMatrix } from "@diffusionstudio/runtime";
+
+/** Space left around the scene in the program monitor, in CSS pixels. */
+const MONITOR_MARGIN = 14;
 
 export function Canvas() {
   const world = useWorld();
-  const { uiVisible } = useLayout();
+  const { uiVisible, workspace } = useLayout();
+  const scene = useActiveScene();
+  const sceneSize = useTrait(scene, Size);
+  const scenePosition = useTrait(scene, Position);
   let container!: HTMLDivElement;
+
+  /**
+   * The Edit workspace shows the active scene alone, as a program monitor:
+   * the frame takes the scene's aspect ratio inside the area, and the camera is
+   * fitted to it, so the scenes beside it fall outside the canvas and are not
+   * drawn. That camera is the monitor's own and is never written to the
+   * project, which keeps the Board's view; leaving the Edit workspace puts the
+   * Board's camera back.
+   */
+  const [area, setArea] = createSignal({ width: 0, height: 0 });
+  onMount(() => {
+    const observer = new ResizeObserver(([entry]) => setArea({ width: entry!.contentRect.width, height: entry!.contentRect.height }));
+    observer.observe(container);
+    onCleanup(() => observer.disconnect());
+  });
+
+  const frame = createMemo(() => {
+    const size = sceneSize();
+    const { width, height } = area();
+    if (workspace() !== "edit" || !scene() || !size || !(size.width > 0) || !(size.height > 0) || !(width > 0) || !(height > 0)) return null;
+    const zoom = Math.min((width - 2 * MONITOR_MARGIN) / size.width, (height - 2 * MONITOR_MARGIN) / size.height);
+    if (!(zoom > 0)) return null;
+    return { width: Math.round(size.width * zoom), height: Math.round(size.height * zoom), zoom };
+  });
+  const monitor = () => frame() !== null;
+
+  let boardCamera: CameraMatrix | null = null;
+  createComputed(on(monitor, (isMonitor, wasMonitor) => {
+    if (isMonitor && !wasMonitor) boardCamera = getCameraMatrix(world);
+    else if (!isMonitor && wasMonitor && boardCamera) {
+      setCameraMatrix(world, boardCamera);
+      boardCamera = null;
+    }
+  }));
+  createEffect(() => {
+    const fit = frame();
+    const at = scenePosition();
+    if (fit && at) setCamera(world, { a: fit.zoom, b: 0, c: 0, d: fit.zoom, e: -at.x * fit.zoom, f: -at.y * fit.zoom });
+  });
 
   /**
    * Showing or hiding the panels moves the canvas's corner across the
@@ -33,6 +81,7 @@ export function Canvas() {
   let before!: DOMRect;
   createComputed(on(uiVisible, () => (before = container.getBoundingClientRect()), { defer: true }));
   createEffect(on(uiVisible, () => {
+    if (monitor()) return;
     const after = container.getBoundingClientRect();
     const dx = after.left - before.left;
     const dy = after.top - before.top;
@@ -89,21 +138,29 @@ export function Canvas() {
   }
 
   return (
-    <div ref={container} class="relative size-full bg-background">
-      <div
-        class="absolute inset-0"
-        on:drop={handleDropEvent}
-        on:dragover={handleDragOver}
-      >
-        <Toolbar />
-        <CanvasCommands />
-        <DesktopAppBanner />
-        <NodeContextMenu class="size-full" pick={(event) => nodesAt(world, event)}>
-          <EngineCanvas />
-          <SceneInitOverlay />
-        </NodeContextMenu>
-        <CameraController />
+    <div class="flex size-full flex-col bg-background" classList={{ "cutroom-program": monitor() }}>
+      <div ref={container} class="relative min-h-0 flex-1">
+        <div
+          class="absolute inset-0"
+          on:drop={handleDropEvent}
+          on:dragover={handleDragOver}
+        >
+          <Show when={!monitor()}><Toolbar /></Show>
+          <CanvasCommands />
+          <DesktopAppBanner />
+          <div
+            class={monitor() ? "cutroom-program-frame" : "size-full"}
+            style={frame() ? { left: `${(area().width - frame()!.width) / 2}px`, top: `${(area().height - frame()!.height) / 2}px`, width: `${frame()!.width}px`, height: `${frame()!.height}px` } : undefined}
+          >
+            <NodeContextMenu class="size-full" pick={(event) => nodesAt(world, event)}>
+              <EngineCanvas />
+              <SceneInitOverlay />
+            </NodeContextMenu>
+          </div>
+          <Show when={!monitor()}><CameraController /></Show>
+        </div>
       </div>
+      <Show when={monitor()}><MonitorBar /></Show>
     </div>
   );
 }
