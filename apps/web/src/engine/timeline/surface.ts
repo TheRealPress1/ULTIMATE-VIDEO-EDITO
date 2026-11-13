@@ -48,6 +48,8 @@ export type TimelineSurfaceState = {
 	marquee: Marquee | null;
 	/** Where the edge being dragged snapped this frame, in timeline pixels. */
 	snapX: number | null;
+	/** Whether a hold of the pointer on the timeline has the history's gesture open (see `updateDragGestures`). */
+	historyGesture: boolean;
 	colors: typeof COLORS;
 };
 
@@ -61,6 +63,7 @@ export function createTimelineSurface(): TimelineSurfaceState {
 		minimized: false,
 		marquee: null,
 		snapX: null,
+		historyGesture: false,
 		colors: COLORS,
 	};
 }

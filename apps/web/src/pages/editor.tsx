@@ -22,6 +22,7 @@ import { toast } from 'somoto';
 import { useWorld } from '@diffusionstudio/koota-solid';
 import { mount } from '@diffusionstudio/reconciler';
 import { getDocumentEditor } from '@/engine/editor';
+import { applyExternalEdit } from '@/engine/external-edit';
 import { getEditHistory } from '@/engine/history';
 import { setInspectEntries } from '@/engine/inspect';
 import { attachLibrary, isLibraryFile } from '@/engine/library';
@@ -29,6 +30,7 @@ import { disposeFootageService } from '@/engine/footage';
 import { disposeVisualService } from '@/engine/visual-footage';
 import { attachProjectConfig, isProjectConfigFile } from '@/engine/project-config';
 import { rememberProjectBundle } from '@/lib/db';
+import { whenPointerIdle } from '@/lib/pointer-idle';
 import { isCacheFile } from '@diffusionstudio/assets';
 import { createEditWriter, flushProjectEdits, projectEditRevision, projectSaveState, recoverProjectEdits } from '@/projects/edits';
 import { compileProject, isWindowsDesktop, refreshProject, watchProject } from '@/projects/host';
@@ -131,6 +133,20 @@ export function EditorPage() {
     /** Puts `code` on the stage, unless it is what is there already. */
     const applyBundle = (code: string): void => {
       if (code === mountedCode) return;
+
+      // An edit to the file is usually a small one: bring the stage up to date
+      // where it stands, so playback, the selection and the undo history carry
+      // on. Only what that cannot do takes the stage down and puts it up again.
+      if (mounted && mountedCode !== undefined) {
+        const outcome = applyExternalEdit(world, mounted, code);
+        if (outcome.applied) {
+          mountedCode = code;
+          console.debug(`[projects] updated the project in place (${outcome.changes} changes${outcome.undoable ? '' : ', not a step in the history'})`);
+          return;
+        }
+        console.info('[projects] mounted the project again:', outcome.reason);
+      }
+
       // The old render goes first: there is only one stage per world.
       unmount();
       mounted = mount(code, world);
@@ -141,7 +157,7 @@ export function EditorPage() {
       // from here on an edit in the editor can find its way back.
       writer = createEditWriter(dir, world);
       const editor = getDocumentEditor(world);
-      unlisten = editor.onEdit((edit) => writer?.push(edit));
+      unlisten = editor.onWrite((edit) => writer?.push(edit));
       // A mount comes from the file: edits recorded against the document it
       // replaced cannot be replayed against this one.
       getEditHistory(world).reset();
@@ -172,6 +188,10 @@ export function EditorPage() {
           toast.error('Project failed to compile', { description: result.error });
           return;
         }
+
+        // A drag holds the entities it moves; what the file changed waits for it to end.
+        await whenPointerIdle();
+        if (disposed || current !== generation) return;
 
         try {
           // A compile may have overlapped a new gesture. Start a fresh compile

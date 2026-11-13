@@ -275,9 +275,10 @@ interface Clipboard {
 
 export class DocumentEditor {
 	private readonly world: World;
-	private readonly sinks = new Set<(edit: EntityEdit) => void>();
+	private readonly sinks = new Set<(edit: EntityEdit, external: boolean) => void>();
 	private readonly renames = new Set<(ids: Record<string, string>) => void>();
 	private clipboard: Clipboard = { trees: [] };
+	private external = false;
 
 	public constructor(world: World) {
 		this.world = world;
@@ -291,13 +292,44 @@ export class DocumentEditor {
 	/**
 	 * Listens for edits made through this editor. Every listener hears every
 	 * edit — the writer takes them to the file, the history keeps them —
-	 * in the order they subscribed. Returns an unsubscribe.
+	 * in the order they subscribed. `external` says the edit came from the file
+	 * rather than from the editor (see `applyExternal`): the file already says
+	 * it, so the writer has nothing to write, while the history still keeps it.
+	 * Returns an unsubscribe.
 	 */
-	public onEdit(sink: (edit: EntityEdit) => void): () => void {
+	public onEdit(sink: (edit: EntityEdit, external: boolean) => void): () => void {
 		this.sinks.add(sink);
 		return () => {
 			this.sinks.delete(sink);
 		};
+	}
+
+	/**
+	 * Listens for the edits the file does not have yet: what `onEdit` hears
+	 * without those that came from the file (see `applyExternal`). This is what
+	 * a writer listens to, so that bringing the document up to what the file
+	 * says never writes the file its own edit back. Returns an unsubscribe.
+	 */
+	public onWrite(sink: (edit: EntityEdit) => void): () => void {
+		return this.onEdit((edit, external) => {
+			if (!external) sink(edit);
+		});
+	}
+
+	/**
+	 * Runs `apply`, whose edits bring the document up to what the file already
+	 * says (someone else edited it): they are reported with `external` set. They
+	 * land in the history like any other edit, so an undo takes them back — and
+	 * the writer, which hears that undo as an ordinary edit, writes it.
+	 */
+	public applyExternal<T>(apply: () => T): T {
+		const outer = this.external;
+		this.external = true;
+		try {
+			return apply();
+		} finally {
+			this.external = outer;
+		}
 	}
 
 	/**
@@ -312,7 +344,20 @@ export class DocumentEditor {
 	}
 
 	private emit(edit: EntityEdit): void {
-		for (const sink of [...this.sinks]) sink(edit);
+		for (const sink of [...this.sinks]) sink(edit, this.external);
+	}
+
+	/**
+	 * Takes a prop off an element and reports it, so the element goes back to
+	 * what it is without the prop. The document is told the prop is gone, which
+	 * is what a render does when an expression stops giving a value; the edit
+	 * carries `false`, the way every unset prop is spelled to the writer.
+	 */
+	public unsetProperty(entity: Entity, name: string): void {
+		const node = this.document.node(entity);
+		const previous = node.props[name];
+		this.document.setProperty(node, name, undefined);
+		this.reportEdit(entity, name, false, wireValue(previous) ?? false);
 	}
 
 	/** Writes a prop to the document and reports it. */

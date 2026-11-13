@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -11,5 +11,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // Tests of what needs the reactive build of Solid run under vitest.solid.config.ts.
+    exclude: [...configDefaults.exclude, "src/**/*.solid.test.ts"],
   },
 });

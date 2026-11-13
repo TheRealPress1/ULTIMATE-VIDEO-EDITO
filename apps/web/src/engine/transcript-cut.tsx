@@ -85,7 +85,7 @@ export async function createTranscriptCut(
 	const reported = new Set<string>();
 	const unlisten = editor.onEdit((edit) => { if (edit.kind === 'insert') reported.add(edit.source); });
 	let scene: Entity | undefined;
-	history.beginGesture();
+	const step = history.beginGroup();
 	try {
 		[scene] = editor.insertElement(root, () => renderAuthored(tree));
 		if (!scene) throw new Error('The transcript cut could not be inserted into the project.');
@@ -104,7 +104,7 @@ export async function createTranscriptCut(
 		throw error;
 	} finally {
 		unlisten();
-		history.endGesture();
+		history.endGroup(step);
 	}
 	// Viewing state is excluded from composition undo. Do this only once the
 	// complete scene exists, so a failed preparation leaves the current view alone.

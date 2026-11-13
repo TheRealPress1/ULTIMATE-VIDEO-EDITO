@@ -177,7 +177,7 @@ export async function createReframeVariants(world: World, dir: string, sourceSce
 	const reported = new Set<string>();
 	const unlisten = editor.onEdit((edit) => { if (edit.kind === 'insert') reported.add(edit.source); });
 	const scenes: Entity[] = [];
-	history.beginGesture();
+	const step = history.beginGroup();
 	try {
 		for (const variant of plan.variants) {
 			const [scene] = editor.insertElement(root, () => renderAuthored(variant.tree));
@@ -192,7 +192,7 @@ export async function createReframeVariants(world: World, dir: string, sourceSce
 			if (reported.has(source)) editor.remove(entity); else editor.discardPending(source);
 		}
 		throw error;
-	} finally { unlisten(); history.endGesture(); }
+	} finally { unlisten(); history.endGroup(step); }
 	const first = scenes[0]!;
 	editor.activate(first);
 	editor.select(first);
