@@ -346,13 +346,13 @@ export function EditorPage() {
             <>
               <ProjectSafety />
               <EditorTools />
-              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="grid size-7 place-items-center text-muted-foreground hover:text-foreground" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
+              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="cutroom-topnav-item cutroom-topnav-icon" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
               <button type="button" class="cutroom-editor-export" disabled={exporting()} onClick={handleExport}>Export</button>
             </>
           }
         >
           <span class="cutroom-topbar-rule" aria-hidden="true" />
-          <ProjectNameInput class="cutroom-topbar-name" />
+          <ProjectNameInput class="cutroom-topbar-name w-auto field-sizing-content" />
           <DraftBadge />
           <SceneSwitch />
         </TopBar>

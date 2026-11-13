@@ -497,23 +497,29 @@
 .cutroom-transport .is-play { width: 40px; color: var(--foreground); background: color-mix(in srgb, var(--foreground) 10%, transparent); }
 /* The top bar: navigation at the left, whose labels open flyouts, then what the page itself offers. */
 .cutroom-topbar { position: relative; z-index: 30; flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; height: 40px; padding: 0 12px; background: var(--background); border-bottom: 1px solid var(--border-strong); -webkit-app-region: drag; user-select: none; }
-[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-topbar { padding-left: 78px; }
+[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-topbar-start { padding-left: 66px; }
 .cutroom-topbar button, .cutroom-topbar input, .cutroom-topbar [role="tab"] { -webkit-app-region: no-drag; }
-.cutroom-topbar-start { display: flex; min-width: 0; align-items: center; gap: 4px; }
+.cutroom-topbar-start { display: flex; min-width: 0; align-items: center; gap: 2px; overflow: hidden; padding-right: 10px; }
 .cutroom-topbar-center { display: flex; align-self: stretch; align-items: stretch; }
-.cutroom-topbar-end { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 6px; }
+.cutroom-topbar-end { display: flex; min-width: 0; align-items: center; justify-content: flex-end; gap: 2px; }
 .cutroom-topbar-end > * { flex-shrink: 0; white-space: nowrap; }
 .cutroom-topbar .cutroom-workspaces { margin: 0; }
 .cutroom-topbar .cutroom-brand-menu { width: 32px; height: 32px; margin-left: 0; border-radius: 8px; }
 .cutroom-topbar .cutroom-brand-mark { width: 28px; height: 28px; margin-left: 0; }
-.cutroom-topnav { display: flex; align-items: center; gap: 1px; margin-left: 2px; }
-.cutroom-topnav-item { height: 28px; padding: 0 10px; border-radius: 7px; color: var(--muted-foreground); font-size: 12.5px; transition: background .12s, color .12s; }
+.cutroom-topnav { display: flex; align-items: center; gap: 2px; margin-left: 4px; }
+.cutroom-topnav-item, .cutroom-topnav-text { display: inline-flex; height: 28px; flex-shrink: 0; align-items: center; justify-content: center; padding: 0 10px; border-radius: 7px; color: var(--muted-foreground); font-size: 12.5px; white-space: nowrap; transition: background .12s, color .12s; }
+.cutroom-topnav-icon { width: 28px; padding: 0; }
+.cutroom-topnav-text { gap: 6px; }
 .cutroom-topnav-item:hover, .cutroom-topnav-item.is-open { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }
 .cutroom-topnav-item.is-active { color: var(--foreground); font-weight: 550; }
-.cutroom-topbar-rule { width: 1px; height: 16px; margin: 0 8px; background: var(--border-strong); flex: none; }
-.cutroom-topbar-name { min-width: 2rem; max-width: 200px; }
-.cutroom-crumb-sep { color: var(--muted-foreground); opacity: .5; }
-.cutroom-scene-switch { display: flex; height: 26px; max-width: 170px; align-items: center; gap: 5px; padding: 0 7px; border-radius: 6px; color: var(--muted-foreground); font-size: 12px; }
+.cutroom-topbar-rule { width: 1px; height: 16px; margin: 0 6px; background: var(--border-strong); flex: none; }
+.cutroom-topbar .cutroom-topbar-name { height: 28px; min-width: 4rem; max-width: 200px; margin: 0; padding: 0 10px; flex: 0 1 auto; border-radius: 7px; color: var(--foreground); font-size: 12.5px; font-weight: 450; text-overflow: ellipsis; transition: background .12s; }
+.cutroom-topbar .cutroom-topbar-name:hover, .cutroom-topbar .cutroom-topbar-name:focus { background: color-mix(in srgb, var(--foreground) 7%, transparent); }
+.cutroom-topbar .cutroom-editor-tools { height: 28px; padding: 0 10px; gap: 5px; border-color: transparent; color: var(--muted-foreground); font-size: 12.5px; }
+.cutroom-topbar .cutroom-editor-tools:hover, .cutroom-topbar .cutroom-editor-tools[data-expanded] { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }
+.cutroom-topbar .cutroom-editor-export { height: 28px; margin-left: 6px; }
+.cutroom-crumb-sep { margin: 0 -4px; color: var(--muted-foreground); opacity: .5; }
+.cutroom-scene-switch { display: flex; height: 28px; max-width: 170px; flex: 0 1 auto; align-items: center; gap: 5px; padding: 0 10px; border-radius: 7px; color: var(--muted-foreground); font-size: 12.5px; }
 .cutroom-scene-switch:hover, .cutroom-scene-switch[data-expanded] { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }
 .cutroom-scene-dot { width: 6px; height: 6px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foreground) 30%, transparent); flex: none; }
 .cutroom-scene-dot.is-active { background: var(--primary); box-shadow: none; }

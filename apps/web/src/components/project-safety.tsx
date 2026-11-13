@@ -130,13 +130,13 @@ export function ProjectSafety() {
     toast.success('Version restored', { description: 'Your previous edits are saved as a recovery checkpoint.' });
   });
   return <Show when={isDesktop() && project.dir()}>
-    <div class="flex shrink-0 items-center gap-2 text-xs">
-      <span class={state().status === 'error' ? 'text-red-400' : 'text-muted-foreground'} title={state().error ?? (state().savedAt ? `Saved ${new Date(state().savedAt!).toLocaleTimeString()}` : 'Edits save automatically')} aria-live="polite">
+    <div class="flex shrink-0 items-center gap-0.5 text-xs">
+      <span class={`cutroom-topnav-text ${state().status === 'error' ? 'text-red-400' : 'text-muted-foreground'}`} title={state().error ?? (state().savedAt ? `Saved ${new Date(state().savedAt!).toLocaleTimeString()}` : 'Edits save automatically')} aria-live="polite">
         <span class={`mr-1.5 inline-block size-1.5 rounded-full ${state().status === 'error' ? 'bg-red-400' : state().status === 'saving' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
         {state().status === 'error' ? 'Save failed' : state().status === 'saving' ? 'Saving…' : 'Saved'}
       </span>
       <Show when={state().status === 'error'}><button class="text-red-400 underline" disabled={busy()} onClick={retry}>Retry</button></Show>
-      <button class="rounded-md px-2 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={showVersions}>Versions</button>
+      <button class="cutroom-topnav-item" onClick={showVersions}>Versions</button>
       <ProjectMedia />
     </div>
     <Dialog open={open()} onOpenChange={(value) => { if (!busy()) setOpen(value); }}>
