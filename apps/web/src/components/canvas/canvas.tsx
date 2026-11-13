@@ -4,7 +4,7 @@
 
 import { Show, createComputed, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 import { useTrait, useWorld } from "@diffusionstudio/koota-solid";
-import { findSceneAt, getCameraMatrix, screenToWorld, setCamera, setCameraMatrix, worldToLocal, Library, Position, Root, Size } from "@diffusionstudio/runtime";
+import { findSceneAt, getCameraMatrix, screenToWorld, setCamera, setCameraMatrix, setSolo, worldToLocal, Library, Position, Root, Size } from "@diffusionstudio/runtime";
 import { CameraController, EngineCanvas, nodesAt, panBy } from "@/engine";
 import { useActiveScene } from "@/engine/hooks";
 import { useLayout } from "@/context/layout";
@@ -60,6 +60,10 @@ export function Canvas() {
     return { width: frameWidth, height: frameHeight, zoom: Math.max(frameWidth / size.width, frameHeight / size.height) };
   });
   const monitor = () => frame() !== null;
+
+  // Scenes can overlap on the stage, so the camera alone does not keep the others out of the frame: the monitor shows its scene alone.
+  createEffect(() => setSolo(world, monitor() ? scene() : null));
+  onCleanup(() => setSolo(world, null));
 
   let boardCamera: CameraMatrix | null = null;
   createComputed(on(monitor, (isMonitor, wasMonitor) => {
