@@ -16,8 +16,10 @@ import { createRoot } from 'solid-js';
 
 import { authoredElement, authoredTree, getRuntimeDocument, insert, isSceneNode, renderAuthored, withDocument } from '@diffusionstudio/reconciler';
 
+import { isGenerated } from './generated';
 import { findInspectEntry } from './inspect';
 import { AssetSelection } from './traits';
+import { VIEW_PROPS } from './view-props';
 
 import type { SceneNode } from '@diffusionstudio/runtime';
 import type { InspectValue, PropValue } from '@diffusionstudio/jsx';
@@ -277,6 +279,7 @@ export class DocumentEditor {
 	private readonly world: World;
 	private readonly sinks = new Set<(edit: EntityEdit, external: boolean) => void>();
 	private readonly renames = new Set<(ids: Record<string, string>) => void>();
+	private readonly refusals = new Set<() => void>();
 	private clipboard: Clipboard = { trees: [] };
 	private external = false;
 
@@ -343,6 +346,33 @@ export class DocumentEditor {
 		};
 	}
 
+	/**
+	 * Listens for the edits the editor will not make (see `refuses`). Returns an
+	 * unsubscribe.
+	 */
+	public onRefuse(listener: () => void): () => void {
+		this.refusals.add(listener);
+		return () => {
+			this.refusals.delete(listener);
+		};
+	}
+
+	/**
+	 * Whether an edit to any of `entities` has to be refused, saying so to
+	 * whoever listens (`onRefuse`) when it does. An element the project renders
+	 * more than once (see `isGenerated`) is one element in the file, so a write
+	 * to one instance would change every instance, and report itself saved. The
+	 * editor makes no edit to it and the file keeps what the project says.
+	 * What the file already says is never refused (`applyExternal`).
+	 */
+	public refuses(entities: Entity | Entity[]): boolean {
+		if (this.external) return false;
+
+		const generated = (Array.isArray(entities) ? entities : [entities]).some((entity) => isGenerated(this.world, entity));
+		if (generated) for (const listener of [...this.refusals]) listener();
+		return generated;
+	}
+
 	private emit(edit: EntityEdit): void {
 		for (const sink of [...this.sinks]) sink(edit, this.external);
 	}
@@ -354,6 +384,7 @@ export class DocumentEditor {
 	 * carries `false`, the way every unset prop is spelled to the writer.
 	 */
 	public unsetProperty(entity: Entity, name: string): void {
+		if (!VIEW_PROPS.has(name) && this.refuses(entity)) return;
 		const node = this.document.node(entity);
 		const previous = node.props[name];
 		this.document.setProperty(node, name, undefined);
@@ -362,6 +393,7 @@ export class DocumentEditor {
 
 	/** Writes a prop to the document and reports it. */
 	public editProperty(entity: Entity, name: string, value: PropValue): void {
+		if (!VIEW_PROPS.has(name) && this.refuses(entity)) return;
 		const node = this.document.node(entity);
 		let previous = node.props[name];
 		// The stage keeps no authored record (see RuntimeDocument.setProperty),
@@ -398,6 +430,7 @@ export class DocumentEditor {
 	 * something the others do not.
 	 */
 	public editText(entity: Entity, text: string): void {
+		if (this.refuses(entity)) return;
 		const previous = entity.get(Chars)?.value ?? '';
 		this.document.setText(entity, text);
 		this.settle(entity);
@@ -417,6 +450,18 @@ export class DocumentEditor {
 	 * out, and the edit is not undoable.
 	 */
 	public reportEdit(entity: Entity, name: string, value: PropValue, previous?: unknown): void {
+		// An element the project renders more than once has one place in the
+		// file, every instance's. What one instance's view says (its selection)
+		// is nothing the file can hold; any other change is not made, and is put
+		// back when the caller made it already and said what it was.
+		if (!this.external && isGenerated(this.world, entity)) {
+			if (VIEW_PROPS.has(name)) return;
+			const restored = previous === false ? undefined : wireValue(previous);
+			if (previous === false || restored !== undefined) this.document.setProperty(this.document.node(entity), name, restored);
+			this.refuses(entity);
+			return;
+		}
+
 		this.settle(entity);
 		const source = entity.get(Source)?.value;
 
@@ -610,7 +655,7 @@ export class DocumentEditor {
 	 * written under.
 	 */
 	public insertElement(parent: Entity, element: () => unknown, anchor?: Entity): Entity[] {
-		if (!parent.get(Source)?.value) return [];
+		if (!parent.get(Source)?.value || this.refuses(parent)) return [];
 		// A child of one iteration's element, not of every iteration's.
 		this.settle(parent);
 		if (anchor) this.settle(anchor);
@@ -677,6 +722,7 @@ export class DocumentEditor {
 	 * `active`: one entity holds it). Returns the copies' top-level entities.
 	 */
 	public duplicate(entities: Entity | Entity[]): Entity[] {
+		if (this.refuses(entities)) return [];
 		const copies: Entity[] = [];
 		for (const source of this.subtreeRoots(entities)) {
 			const tree = this.spell(source);
@@ -716,6 +762,7 @@ export class DocumentEditor {
 	 * pairs it made, in the order of the originals.
 	 */
 	public duplicateInPlace(entities: Entity | Entity[]): { original: Entity; copy: Entity }[] {
+		if (this.refuses(entities)) return [];
 		const pairs: { original: Entity; copy: Entity }[] = [];
 
 		for (const original of this.subtreeRoots(entities)) {
@@ -752,6 +799,7 @@ export class DocumentEditor {
 	 * empty element is not worth putting in the file.
 	 */
 	public wrap(entities: Entity | Entity[], element: () => unknown): Entity | null {
+		if (this.refuses(entities)) return null;
 		const roots = new Set(this.subtreeRoots(entities));
 		const first = [...roots][0];
 		if (!first) return null;
@@ -800,6 +848,7 @@ export class DocumentEditor {
 	 * or null when the node has no intrinsic media to remove.
 	 */
 	public removeIntrinsicPaint(node: Entity): Entity | null {
+		if (this.refuses(node)) return null;
 		const intrinsic = getIntrinsicPaint(node);
 		if (intrinsic !== PaintType.VIDEO && intrinsic !== PaintType.IMAGE) return null;
 
@@ -876,7 +925,7 @@ export class DocumentEditor {
 	 */
 	public paste(parent: Entity, anchor?: Entity): Entity[] {
 		const { trees, parent: copiedFrom } = this.clipboard;
-		if (!trees.length) return [];
+		if (!trees.length || this.refuses(parent)) return [];
 
 		if (parent.has(Sequential) && copiedFrom !== undefined && parent.get(Source)?.value === copiedFrom) {
 			const outer = getParentEntity(parent);
@@ -933,7 +982,7 @@ export class DocumentEditor {
 	 * way would have put it (ordering included).
 	 */
 	public reparent(entity: Entity, parent: Entity, anchor?: Entity): boolean {
-		if (!entity.get(Source)?.value || !parent.get(Source)?.value) return false;
+		if (!entity.get(Source)?.value || !parent.get(Source)?.value || this.refuses([entity, parent])) return false;
 		// Appending where it already is, last, is the one move that changes
 		// nothing. Appending from anywhere else in the same parent is a real
 		// move — it is how a node is sent to the end of its siblings.
@@ -997,6 +1046,7 @@ export class DocumentEditor {
 	 * source), stays. Returns the entities that were removed at the top level.
 	 */
 	public remove(entities: Entity | Entity[]): Entity[] {
+		if (this.refuses(entities)) return [];
 		const doomed = new Set(
 			(Array.isArray(entities) ? entities : [entities]).filter(
 				(entity) => entity.isAlive() && !entity.has(Stage) && !!entity.get(Source)?.value,

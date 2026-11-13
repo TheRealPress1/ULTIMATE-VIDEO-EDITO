@@ -51,11 +51,15 @@ export function rippleDeleteSelection(world: World): void {
 		}
 	}
 
+	// Nothing is deleted or moved when any of it is an element the project renders more than once: half a ripple would leave the row out of step.
+	const editor = getDocumentEditor(world);
+	if (editor.refuses([...selected, ...moves.map(({ clip }) => clip)])) return;
+
 	// The delete and the moves are one step: an undo that brought back the clips but not the gap would leave them overlapping.
 	const history = getEditHistory(world);
 	const step = history.beginGroup();
 	try {
-		getDocumentEditor(world).remove(withEmptiedTracks(selected));
+		editor.remove(withEmptiedTracks(selected));
 
 		for (const { clip, start, shift } of moves.sort((a, b) => a.start - b.start)) {
 			moveEntityTo(world, clip, start - shift);

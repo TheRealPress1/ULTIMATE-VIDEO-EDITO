@@ -140,6 +140,8 @@ export function EditorPage() {
     let mountedCode: string | undefined;
     let writer: EditWriter | undefined;
     let unlisten: (() => void) | undefined;
+    // A drag asks on every pointer move; the refusal is said once.
+    let lastRefusal = 0;
     let disposed = false;
     let generation = 0;
 
@@ -189,7 +191,14 @@ export function EditorPage() {
       // from here on an edit in the editor can find its way back.
       writer = createEditWriter(dir, world);
       const editor = getDocumentEditor(world);
-      unlisten = editor.onWrite((edit) => writer?.push(edit));
+      const stopWriting = editor.onWrite((edit) => writer?.push(edit));
+      const stopRefusing = editor.onRefuse(() => {
+        const now = Date.now();
+        if (now - lastRefusal < 3000) return;
+        lastRefusal = now;
+        toast.error("This can't be edited by hand", { description: "The project's code generates it from a list, so one edit would change every copy. Ask the agent to change it." });
+      });
+      unlisten = () => { stopWriting(); stopRefusing(); };
       // A mount comes from the file: edits recorded against the document it
       // replaced cannot be replayed against this one.
       getEditHistory(world).reset();

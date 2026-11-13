@@ -27,18 +27,14 @@ import { authoredElement, renderAuthored } from '@diffusionstudio/reconciler';
 import { createSignal } from 'solid-js';
 
 import { getDocumentEditor } from './editor';
+import { VIEW_PROPS } from './view-props';
 
 import type { AuthoredTree } from '@diffusionstudio/reconciler';
 import type { InspectValue, PropValue } from '@diffusionstudio/jsx';
 import type { Entity, World } from 'koota';
 import type { CapturedNode, DocumentEditor, EntityEdit } from './editor';
 
-/**
- * Props that are pointing and viewing rather than composition: undoing them
- * is not what anyone means by undo, so they pass through to the file without
- * entering the history.
- */
-export const VIEW_PROPS: ReadonlySet<string> = new Set(['selected', 'active', 'camera', 'expanded', 'clipHeight', 'timeline', 'playhead']);
+export { VIEW_PROPS };
 
 /**
  * How long after one step a same-shaped step still merges into it. Edits
