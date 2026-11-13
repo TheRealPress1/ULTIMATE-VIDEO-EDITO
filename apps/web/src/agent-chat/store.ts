@@ -39,6 +39,8 @@ import { attachmentFromPath, attachmentPaths, mergeAttachments, type Attachment 
 import { client, hasHost } from "./connection";
 
 export type SidebarTab = "assets" | "chat" | "footage";
+/** The tabs of the panel below the agent, which stays on screen beside it. */
+export type ProjectTab = Exclude<SidebarTab, "chat">;
 
 export type Draft = { text: string; attachments: Attachment[] };
 
@@ -85,14 +87,20 @@ export { state as chatState };
 
 const root = createRoot(() => {
   const [tab, setTab] = createStoredSignal(settings.define<SidebarTab>("leftSidebar.tab", "assets"));
+  const [projectTab, setProjectTab] = createStoredSignal(settings.define<ProjectTab>("leftSidebar.projectTab", "assets", (value) => (value === "footage" ? "footage" : "assets")));
   const [model, setModel] = createStoredSignal(settings.define<ModelRef | null>("agentChat.model", null));
   const [active, setActive] = createStoredSignal(settings.define<Record<string, string>>("agentChat.active", {}));
-  return { tab, setTab, model, setModel, active, setActive };
+  return { tab, setTab, projectTab, setProjectTab, model, setModel, active, setActive };
 });
 
-/** Which tab the left sidebar shows; persists across sessions. */
+/** Which tab the left sidebar was last set to; persists across sessions. */
 export const sidebarTab = root.tab;
-export const setSidebarTab = root.setTab;
+/** Which of Project and Footage the panel below the agent shows. Choosing Chat leaves it alone. */
+export const projectTab = root.projectTab;
+export function setSidebarTab(value: SidebarTab): void {
+	root.setTab(value);
+	if (value !== "chat") root.setProjectTab(value);
+}
 
 /** The remembered model, whether or not its harness is currently ready. */
 export const storedModel = root.model;

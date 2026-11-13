@@ -6,28 +6,41 @@ import { For } from "solid-js";
 
 import { sidebarShown } from "@/lib/sidebar-state";
 
-import { setSidebarTab, sidebarTab, type SidebarTab } from "./store";
+import { projectTab, setSidebarTab, type SidebarTab } from "./store";
 
-const TABS: { id: SidebarTab; label: string }[] = [
-  { id: "assets", label: "Assets" },
-  { id: "chat", label: "Chat" },
-  { id: "footage", label: "Footage" },
-];
+type Group = "agent" | "project";
 
-/** Sidebar sections as plain text labels. The choice persists. With the app's sidebar closed they start clear of its toggle. */
-export function SidebarTabs() {
+/** The agent has a panel of its own; the project's media and the footage search share the one below it. */
+const GROUPS: Record<Group, { id: SidebarTab; label: string }[]> = {
+  agent: [{ id: "chat", label: "Agent" }],
+  project: [
+    { id: "assets", label: "Project" },
+    { id: "footage", label: "Footage" },
+  ],
+};
+
+/**
+ * One panel's tabs, as plain text labels with an underline under the open one.
+ * The choice persists. `inset` starts them clear of the app sidebar's toggle
+ * while that sidebar is closed: it is for the panel at the top of the column.
+ */
+export function SidebarTabs(props: { group: Group; inset?: boolean }) {
+  const tabs = () => GROUPS[props.group];
+  // The agent and the project panel are on screen together; only the project panel's tabs take turns.
+  const isOpen = (id: SidebarTab) => props.group === "agent" || projectTab() === id;
+
   return (
-    <div class="relative z-30 flex items-center gap-4" classList={{ "cutroom-reveal-inset": !sidebarShown() }} style="-webkit-app-region: no-drag;" role="tablist">
-      <For each={TABS}>
+    <div class="relative z-30 flex h-full items-stretch gap-4" classList={{ "cutroom-reveal-inset": !!props.inset && !sidebarShown() }} style="-webkit-app-region: no-drag;" role="tablist">
+      <For each={tabs()}>
         {(tab) => (
           <button
             type="button"
             role="tab"
-            aria-selected={sidebarTab() === tab.id}
-            class="text-[12px] font-450 transition-colors focus-ring rounded-sm"
+            aria-selected={isOpen(tab.id)}
+            class="relative flex items-center text-[12px] font-450 transition-colors focus-ring rounded-sm after:absolute after:inset-x-0 after:-bottom-px after:h-[2px] after:rounded-full"
             classList={{
-              "text-foreground": sidebarTab() === tab.id,
-              "text-muted-foreground hover:text-foreground": sidebarTab() !== tab.id,
+              "text-foreground after:bg-foreground/55": isOpen(tab.id),
+              "text-muted-foreground hover:text-foreground after:bg-transparent": !isOpen(tab.id),
             }}
             onClick={() => setSidebarTab(tab.id)}
           >

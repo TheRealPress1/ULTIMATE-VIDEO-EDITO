@@ -28,6 +28,8 @@ type LayoutContextValue = {
   setTimelineHeight(height: number): void;
   toolbarSlot: Accessor<ToolbarSlot>;
   setToolbarSlot(slot: ToolbarSlot): void;
+  projectPanelHeight: Accessor<number>;
+  setProjectPanelHeight(height: number): void;
   workspace: Accessor<Workspace>;
   setWorkspace(workspace: Workspace): void;
   toggleUI(): void;
@@ -35,6 +37,10 @@ type LayoutContextValue = {
 };
 
 const LayoutContext = createContext<LayoutContextValue>();
+
+/** The panel under the agent: its height, clamped to what the column can hold when it is used. */
+export const MIN_PROJECT_PANEL_HEIGHT = 120;
+export const DEFAULT_PROJECT_PANEL_HEIGHT = 300;
 
 export const MIN_TIMELINE_HEIGHT = 120;
 export const DEFAULT_TIMELINE_HEIGHT = 234;
@@ -57,6 +63,12 @@ export function LayoutProvider(props: { children: JSX.Element }) {
     ),
   );
 
+  const [projectPanelHeight, setProjectPanelHeight] = createStoredSignal(
+    store.define<number>('layout.projectPanelHeight', DEFAULT_PROJECT_PANEL_HEIGHT, (value) =>
+      Number.isFinite(value) && value >= MIN_PROJECT_PANEL_HEIGHT ? value : DEFAULT_PROJECT_PANEL_HEIGHT,
+    ),
+  );
+
   const [workspace, setWorkspace] = createStoredSignal(
     store.define<Workspace>('layout.workspace', 'edit', (value) => (WORKSPACES.includes(value) ? value : 'edit')),
   );
@@ -73,6 +85,8 @@ export function LayoutProvider(props: { children: JSX.Element }) {
         setTimelineHeight,
         toolbarSlot,
         setToolbarSlot,
+        projectPanelHeight,
+        setProjectPanelHeight,
         workspace,
         setWorkspace,
         toggleUI,

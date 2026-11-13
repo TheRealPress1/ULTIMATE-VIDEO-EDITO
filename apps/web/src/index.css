@@ -462,9 +462,15 @@
 .cutroom-project-empty p { color: #aaa; font-size: 13px; }
 .cutroom-project-empty span { font-size: 11px; }
 .cutroom-conversation { display: flex; min-height: 0; flex-direction: column; flex-shrink: 0; background: var(--background); }
-.cutroom-conversation > div { min-height: 0; }
+.cutroom-panel { display: flex; min-width: 0; min-height: 0; flex-direction: column; overflow: hidden; }
+.cutroom-panel-agent { flex: 1 1 0; }
+.cutroom-panel-project { flex: none; }
+.cutroom-panel > div { min-height: 0; }
+.cutroom-row-resizer { position: relative; height: 1px; flex: 0 0 1px; background: var(--border-strong); cursor: row-resize; z-index: 25; }
+.cutroom-row-resizer::after { content: ""; position: absolute; inset: -3px 0; }
+.cutroom-row-resizer:hover, .cutroom-row-resizer.is-resizing { background: var(--primary); }
 .cutroom-conversation [data-chat-composer] { font-size: 13px; line-height: 1.65; min-height: 44px; }
-.cutroom-conversation > div > div:has(> [data-chat-composer]) { border-radius: 17px; padding: 13px; background: #262626; margin: 12px; }
+.cutroom-conversation div:has(> [data-chat-composer]) { border-radius: 17px; padding: 13px; background: #262626; margin: 12px; }
 .cutroom-conversation [data-chat-composer]::placeholder { color: #999; }
 .cutroom-column-resizer { position: relative; width: 1px; flex: 0 0 1px; background: var(--border); cursor: col-resize; z-index: 25; }
 .cutroom-column-resizer::after { content: ""; position: absolute; inset: 0 -3px; }

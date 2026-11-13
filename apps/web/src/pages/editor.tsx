@@ -4,7 +4,7 @@
 
 import { Show, createMemo, createSignal, onMount } from "solid-js";
 import { Canvas } from "@/components/canvas";
-import { ChatPanel, sidebarTab, setSidebarTab } from "@/agent-chat";
+import { ChatPanel, projectTab, setSidebarTab } from "@/agent-chat";
 import { AppSidebar } from "@/components/app-sidebar";
 import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
@@ -16,7 +16,7 @@ import { beginEditorLoad } from '@/dapi/session';
 import { Timeline, Layers } from "@/components/timeline";
 import { Soundboard, Inspector } from "@/components/sidebar-right";
 import { EditorTitleBar, FloatingProjectHeader, ProjectHeader } from "@/components/sidebar-left";
-import { useLayout, MIN_TIMELINE_HEIGHT } from "@/context/layout";
+import { useLayout, MIN_PROJECT_PANEL_HEIGHT, MIN_TIMELINE_HEIGHT } from "@/context/layout";
 import { RULER_HEIGHT } from "@/engine/timeline";
 import { createEffect, onCleanup, untrack } from 'solid-js';
 import { toast } from 'somoto';
@@ -50,7 +50,7 @@ const MIN_CANVAS_HEIGHT = 200;
 const INSPECTOR_WIDTH = 264;
 
 export function EditorPage() {
-  const { uiVisible, timelineMinimized, timelineHeight, setTimelineHeight } = useLayout();
+  const { uiVisible, timelineMinimized, timelineHeight, setTimelineHeight, projectPanelHeight, setProjectPanelHeight } = useLayout();
   const [resizing, setResizing] = createSignal(false);
   const project = useProject();
   const world = useWorld();
@@ -61,7 +61,7 @@ export function EditorPage() {
   const [resizingConversation, setResizingConversation] = createSignal(false);
   const [footageOpened, setFootageOpened] = createSignal(false);
   createEffect(() => {
-    if (sidebarTab() === "footage") setFootageOpened(true);
+    if (projectTab() === "footage") setFootageOpened(true);
   });
   onMount(() => setSidebarTab("chat"));
 
@@ -98,6 +98,34 @@ export function EditorPage() {
     document.addEventListener("pointercancel", stop);
   };
   onCleanup(() => stopConversationResize?.());
+
+  // The divider under the agent: dragging it up gives the project panel more of the column.
+  const [resizingProject, setResizingProject] = createSignal(false);
+  let stopProjectResize: (() => void) | undefined;
+  const handleProjectResize = (event: PointerEvent) => {
+    event.preventDefault();
+    const column = (event.currentTarget as HTMLElement).parentElement!;
+    const start = event.clientY;
+    const height = projectPanelHeight();
+    stopProjectResize?.();
+    setResizingProject(true);
+    const move = (next: PointerEvent) => {
+      const maximum = Math.max(MIN_PROJECT_PANEL_HEIGHT, column.clientHeight - 220);
+      setProjectPanelHeight(Math.round(Math.max(MIN_PROJECT_PANEL_HEIGHT, Math.min(maximum, height - (next.clientY - start)))));
+    };
+    const stop = () => {
+      setResizingProject(false);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", stop);
+      stopProjectResize = undefined;
+    };
+    stopProjectResize = stop;
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", stop);
+    document.addEventListener("pointercancel", stop);
+  };
+  onCleanup(() => stopProjectResize?.());
 
   // Everything below holds the folder's path — the watcher, the library, the
   // writer — and is torn down with the editor.
@@ -311,11 +339,21 @@ export function EditorPage() {
       <Show when={uiVisible()}>
         <AppSidebar projectId={project.id()} />
         <section class="cutroom-conversation" aria-label="Project conversation" style={{ width: `${conversationWidth()}px` }}>
-          <div classList={{ contents: sidebarTab() === "assets", hidden: sidebarTab() !== "assets" }}><Assets /></div>
-          <Show when={sidebarTab() === "chat"}><ChatPanel /></Show>
-          <Show when={footageOpened()}>
-            <div classList={{ contents: sidebarTab() === "footage", hidden: sidebarTab() !== "footage" }}><Footage /></div>
-          </Show>
+          <div class="cutroom-panel cutroom-panel-agent"><ChatPanel /></div>
+          <div
+            role="separator"
+            aria-label="Resize project panel"
+            aria-orientation="horizontal"
+            class="cutroom-row-resizer"
+            classList={{ "is-resizing": resizingProject() }}
+            onPointerDown={handleProjectResize}
+          />
+          <div class="cutroom-panel cutroom-panel-project" style={{ height: `${projectPanelHeight()}px` }}>
+            <div classList={{ contents: projectTab() === "assets", hidden: projectTab() !== "assets" }}><Assets /></div>
+            <Show when={footageOpened()}>
+              <div classList={{ contents: projectTab() === "footage", hidden: projectTab() !== "footage" }}><Footage /></div>
+            </Show>
+          </div>
         </section>
         <div
           role="separator"

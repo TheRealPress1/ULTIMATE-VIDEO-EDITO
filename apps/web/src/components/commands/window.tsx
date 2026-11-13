@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { onCleanup, onMount } from "solid-js";
-import { setActiveChat, setSidebarTab, sidebarTab } from "@/agent-chat/store";
+import { setActiveChat, setSidebarTab } from "@/agent-chat/store";
 import { useCommand, useCommands } from "@/context/commands";
 import { useLayout } from "@/context/layout";
 import { useProject } from "@/context/project";
@@ -47,19 +47,12 @@ export function WindowCommands() {
     run: toggleTimeline,
   });
 
-  const chatShown = () => layout.uiVisible() && sidebarTab() === "chat";
-
   const showChat = () => {
     if (!layout.uiVisible()) layout.toggleUI();
     setSidebarTab("chat");
     // A composer that mounts with the tab focuses itself; one that was up
     // already is focused here, once the menu that ran this has let go.
     requestAnimationFrame(() => document.querySelector<HTMLTextAreaElement>("[data-chat-composer]")?.focus());
-  };
-
-  const toggleChat = () => {
-    if (chatShown()) setSidebarTab("assets");
-    else showChat();
   };
 
   // What the chat header's plus does, from wherever the chat is.
@@ -70,12 +63,12 @@ export function WindowCommands() {
 
   useCommand({
     id: "toggle-chat",
-    title: "Show/Hide chat",
+    title: "Focus chat",
     group: "View",
     icon: "ask-chat",
     keywords: ["open chat", "agent", "assistant", "message", "claude"],
     shortcut: ["⌘", "L"],
-    run: toggleChat,
+    run: showChat,
   });
 
   useCommand({
@@ -130,7 +123,7 @@ export function WindowCommands() {
     if (event.key.toLowerCase() === "l" || event.code === "KeyL") {
       event.preventDefault();
       event.stopPropagation();
-      toggleChat();
+      showChat();
     }
   };
 
