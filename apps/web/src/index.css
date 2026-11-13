@@ -370,9 +370,25 @@
 }
 [data-platform="darwin"]:not([data-fullscreen="true"]) { --sidebar: #222222; }
 .cutroom-app { background: var(--background); }
-.cutroom-sidebar { width: 240px; flex: 0 0 240px; min-height: 0; display: flex; flex-direction: column; background: var(--sidebar); border-right: 1px solid var(--border-strong); padding: 0 10px; font-size: 13px; }
-.cutroom-brand { display: flex; align-items: center; gap: 11px; height: 96px; padding: 18px 8px 4px; flex-shrink: 0; color: var(--foreground); font-size: 22px; font-weight: 600; letter-spacing: -.75px; }
-[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-brand { height: 112px; padding-top: 42px; -webkit-app-region: drag; }
+/* The left sidebar closes to nothing and the page beside it takes its width. Its contents keep their width inside, so they are clipped, not squeezed, while it moves. */
+:root { --sidebar-width: 240px; }
+.cutroom-sidebar { position: relative; overflow: hidden; width: var(--sidebar-width); flex: 0 0 var(--sidebar-width); min-height: 0; background: var(--sidebar); border-right: 1px solid var(--border-strong); font-size: 13px; transition: width .2s ease, flex-basis .2s ease, border-right-width .2s ease; }
+.cutroom-sidebar-inner { display: flex; flex-direction: column; width: calc(var(--sidebar-width) - 1px); height: 100%; min-height: 0; padding: 0 10px; }
+.cutroom-sidebar[data-open="false"] { width: 0; flex-basis: 0; border-right-width: 0; visibility: hidden; transition: width .2s ease, flex-basis .2s ease, border-right-width .2s ease, visibility 0s linear .2s; }
+.cutroom-brand { display: flex; align-items: center; padding: 20px 8px 12px; flex-shrink: 0; }
+.cutroom-brand-mark { width: 40px; height: 40px; flex-shrink: 0; margin-left: -3px; }
+[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-brand { padding-top: 44px; -webkit-app-region: drag; }
+/* The button that closes and opens it never leaves the page, so it keeps focus; it moves. Beside the traffic lights on macOS; elsewhere at the sidebar's right edge, or, closed, in the top-left corner. */
+.cutroom-sidebar-toggle { position: fixed; z-index: 40; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 7px; color: var(--muted-foreground); -webkit-app-region: no-drag; transition: left .2s ease, top .2s ease, background .15s, color .15s; }
+.cutroom-sidebar-toggle:hover { background: color-mix(in srgb, var(--foreground) 7%, transparent); color: var(--foreground); }
+.cutroom-sidebar-toggle[data-open="true"] { left: calc(var(--sidebar-width) - 39px); top: 26px; }
+.cutroom-sidebar-toggle[data-open="false"] { left: 12px; top: 8px; }
+[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-sidebar-toggle { left: 78px; top: 6px; }
+/* Closed: the first row of the page beside it clears the toggle, and on macOS the traffic lights before it. */
+.cutroom-reveal-inset { margin-left: 36px; }
+[data-platform="darwin"]:not([data-fullscreen="true"]) .cutroom-reveal-inset { margin-left: 102px; }
+.cutroom-strip { flex: none; height: 40px; -webkit-app-region: drag; }
+@media (prefers-reduced-motion: reduce) { .cutroom-sidebar, .cutroom-sidebar[data-open="false"], .cutroom-sidebar-toggle { transition: none; } }
 .cutroom-primary-nav { display: flex; flex-direction: column; gap: 4px; }
 .cutroom-nav-item { display: flex; width: 100%; height: 36px; flex-shrink: 0; align-items: center; gap: 11px; border-radius: 7px; padding: 0 10px; text-align: left; color: var(--muted-foreground); transition: background .15s, color .15s; }
 .cutroom-nav-item > svg { width: 18px; height: 18px; }
@@ -466,7 +482,7 @@
 .cutroom-editor-grid { display: grid; min-height: 0; flex: 1; }
 .cutroom-editor-canvas { position: relative; min-width: 0; min-height: 0; grid-column: 1 / 4; }
 @media (max-width: 1100px) {
-  .cutroom-sidebar { width: 210px; flex-basis: 210px; }
+  :root { --sidebar-width: 210px; }
   .cutroom-home { padding-inline: 30px; }
   .cutroom-conversation { max-width: 34vw; }
   .cutroom-home-hero { padding-top: 90px; }
