@@ -55,11 +55,6 @@ export function MonitorBar() {
 
   return (
     <div class="cutroom-monitor-bar" data-monitor-bar>
-      <div class="cutroom-monitor-time">
-        <span class="cutroom-timecode">{formatFrames(now(), fps(), "timecode")}</span>
-        <span class="cutroom-monitor-fit">Fit</span>
-        <span class="cutroom-monitor-total">{formatFrames(duration(), fps(), "timecode")}</span>
-      </div>
       <div
         ref={track}
         class="cutroom-scrub"
@@ -74,22 +69,29 @@ export function MonitorBar() {
         <div class="cutroom-scrub-fill" style={{ width: `${progress() * 100}%` }} />
         <div class="cutroom-scrub-head" style={{ left: `${progress() * 100}%` }} />
       </div>
-      <div class="cutroom-transport">
-        <button type="button" aria-label="Go to start" title="Go to start" onClick={() => seek(0)}>
-          <Icon name="timeline.go-to-start" />
-        </button>
-        <button type="button" aria-label="Previous frame" title="Previous frame (←)" onClick={() => seekBy(world, -1)}>
-          <Icon name="timeline.previous-frame" />
-        </button>
-        <button type="button" class="is-play" aria-label={playing() ? "Pause" : "Play"} title={playing() ? "Pause (Space)" : "Play (Space)"} onClick={toggle}>
-          <Icon name={playing() ? "pause" : "play"} />
-        </button>
-        <button type="button" aria-label="Next frame" title="Next frame (→)" onClick={() => seekBy(world, 1)}>
-          <Icon name="timeline.next-frame" />
-        </button>
-        <button type="button" aria-label="Go to end" title="Go to end" onClick={() => seek(last())}>
-          <Icon name="timeline.go-to-end" />
-        </button>
+      <div class="cutroom-monitor-row">
+        <div class="cutroom-monitor-time">
+          <span class="cutroom-timecode">{formatFrames(now(), fps(), "timecode")}</span>
+          <span class="cutroom-monitor-fit">Fit</span>
+        </div>
+        <div class="cutroom-transport">
+          <button type="button" aria-label="Go to start" title="Go to start" onClick={() => seek(0)}>
+            <Icon name="timeline.go-to-start" />
+          </button>
+          <button type="button" aria-label="Previous frame" title="Previous frame (←)" onClick={() => seekBy(world, -1)}>
+            <Icon name="timeline.previous-frame" />
+          </button>
+          <button type="button" class="is-play" aria-label={playing() ? "Pause" : "Play"} title={playing() ? "Pause (Space)" : "Play (Space)"} onClick={toggle}>
+            <Icon name={playing() ? "pause" : "play"} />
+          </button>
+          <button type="button" aria-label="Next frame" title="Next frame (→)" onClick={() => seekBy(world, 1)}>
+            <Icon name="timeline.next-frame" />
+          </button>
+          <button type="button" aria-label="Go to end" title="Go to end" onClick={() => seek(last())}>
+            <Icon name="timeline.go-to-end" />
+          </button>
+        </div>
+        <span class="cutroom-monitor-total">{formatFrames(duration(), fps(), "timecode")}</span>
       </div>
     </div>
   );

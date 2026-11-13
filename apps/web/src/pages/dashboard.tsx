@@ -3,16 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { useSearchParams } from "@solidjs/router";
-import { Match, Show, Switch, createMemo, createResource } from "solid-js";
+import { Match, Switch, createMemo, createResource } from "solid-js";
 
-import { AppSidebar } from "@/components/app-sidebar";
+import { TopBar } from "@/components/top-bar/top-bar";
 import { DashboardHomeView } from "@/components/dashboard/home-view";
 import { DashboardMcpView } from "@/components/dashboard/mcp-view";
 import { DashboardProjectsView } from "@/components/dashboard/projects-view";
 import { DashboardSettingsView } from "@/components/dashboard/settings-view";
 import { DashboardHelpView } from "@/components/dashboard/help-view";
 import { DashboardAnalyticsView } from "@/components/dashboard/analytics-view";
-import { sidebarShown } from "@/lib/sidebar-state";
 import { listCollections, projectsRevision } from "@/projects";
 import type { ProjectScope } from "@/components/dashboard/types";
 
@@ -27,11 +26,9 @@ export function DashboardPage() {
   });
 
   return (
-    <div class="cutroom-app flex h-screen w-full min-h-0 overflow-hidden">
-      <AppSidebar />
+    <div class="cutroom-app flex h-screen w-full min-h-0 flex-col overflow-hidden">
+      <TopBar />
       <main class="cutroom-main flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* With the sidebar closed, the first row of every view would sit under the traffic lights and the toggle. */}
-        <Show when={!sidebarShown()}><div class="cutroom-strip" /></Show>
         <Switch fallback={<DashboardHomeView />}>
           <Match when={view() === "projects" || view() === "drafts"}>
             <DashboardProjectsView scope={projectScope()} />

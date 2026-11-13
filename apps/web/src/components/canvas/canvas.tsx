@@ -16,14 +16,13 @@ import { DesktopAppBanner } from "./desktop-app-banner";
 import { toast } from "somoto"
 import { SceneInitOverlay } from "./scene-init-overlay";
 import { MonitorBar } from "./monitor-bar";
-import { SceneTabs } from "./scene-tabs";
 import { ASSET_DRAG_TYPE } from "@/components/sidebar-left/folder-item";
 
 import type { Asset } from "@diffusionstudio/assets";
 import type { CameraMatrix } from "@diffusionstudio/runtime";
 
 /** Space left around the scene in the program monitor, in CSS pixels. */
-const MONITOR_MARGIN = 14;
+const MONITOR_MARGIN = 10;
 
 export function Canvas() {
   const world = useWorld();
@@ -162,7 +161,6 @@ export function Canvas() {
 
   return (
     <div class="flex size-full flex-col bg-background" classList={{ "cutroom-program": monitor() }}>
-      <Show when={monitor()}><SceneTabs /></Show>
       <div ref={container} class="relative min-h-0 flex-1">
         <div
           class="absolute inset-0"

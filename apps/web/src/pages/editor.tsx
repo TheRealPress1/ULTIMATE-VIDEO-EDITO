@@ -5,7 +5,8 @@
 import { Show, createMemo, createSignal, onMount } from "solid-js";
 import { Canvas } from "@/components/canvas";
 import { ChatPanel, projectTab, setSidebarTab } from "@/agent-chat";
-import { AppSidebar } from "@/components/app-sidebar";
+import { TopBar } from "@/components/top-bar/top-bar";
+import { SceneSwitch } from "@/components/top-bar/scene-switch";
 import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
 import { Footage } from "@/components/sidebar-left/footage";
@@ -15,7 +16,8 @@ import { assetSystem, getActiveEntity, transformSystem } from "@diffusionstudio/
 import { beginEditorLoad } from '@/dapi/session';
 import { Timeline, Layers } from "@/components/timeline";
 import { Soundboard, Inspector } from "@/components/sidebar-right";
-import { EditorTitleBar, FloatingProjectHeader, ProjectHeader } from "@/components/sidebar-left";
+import { EditorTitleBar, FloatingProjectHeader } from "@/components/sidebar-left";
+import { DraftBadge, ProjectNameInput } from "@/components/sidebar-left/sidebar-left";
 import { useLayout, MIN_PROJECT_PANEL_HEIGHT, MIN_TIMELINE_HEIGHT } from "@/context/layout";
 import { RULER_HEIGHT } from "@/engine/timeline";
 import { createEffect, onCleanup, untrack } from 'solid-js';
@@ -334,10 +336,29 @@ export function EditorPage() {
   };
 
   return (
-    <div class="cutroom-app flex h-screen w-full min-h-0 overflow-hidden pt-(--titlebar-height)">
+    <div class="cutroom-app flex h-screen w-full min-h-0 flex-col overflow-hidden pt-(--titlebar-height)">
       <EditorTitleBar leftWidth={240} controlsWidth={INSPECTOR_WIDTH + 1} />
       <Show when={uiVisible()}>
-        <AppSidebar projectId={project.id()} />
+        <TopBar
+          projectId={project.id()}
+          center={<WorkspaceTabs />}
+          end={
+            <>
+              <ProjectSafety />
+              <EditorTools />
+              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="grid size-7 place-items-center text-muted-foreground hover:text-foreground" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
+              <button type="button" class="cutroom-editor-export" disabled={exporting()} onClick={handleExport}>Export</button>
+            </>
+          }
+        >
+          <span class="cutroom-topbar-rule" aria-hidden="true" />
+          <ProjectNameInput class="cutroom-topbar-name" />
+          <DraftBadge />
+          <SceneSwitch />
+        </TopBar>
+      </Show>
+      <div class="flex min-h-0 flex-1">
+      <Show when={uiVisible()}>
         <section class="cutroom-conversation" aria-label="Project conversation" style={{ width: `${conversationWidth()}px` }}>
           <div class="cutroom-panel cutroom-panel-agent"><ChatPanel /></div>
           <div
@@ -374,18 +395,6 @@ export function EditorPage() {
         />
       </Show>
       <main class="cutroom-editor-workspace">
-        <Show when={uiVisible()}>
-          <header class="cutroom-editor-header">
-            <ProjectHeader class="cutroom-editor-project" />
-            <WorkspaceTabs />
-            <div class="cutroom-editor-actions">
-              <ProjectSafety />
-              <EditorTools />
-              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="grid size-7 place-items-center text-muted-foreground hover:text-foreground" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
-              <button type="button" class="cutroom-editor-export" disabled={exporting()} onClick={handleExport}>Export</button>
-            </div>
-          </header>
-        </Show>
         <div class="cutroom-editor-grid" style={timelineStyles()}>
           <div class="cutroom-editor-canvas" style={{ "grid-column": uiVisible() ? "1 / 4" : "1" }}><Canvas /><div class="absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"><PlaybackProxyStatus paused={exporting()} /></div></div>
           <Show when={uiVisible() && inspectorOpen()}>
@@ -408,6 +417,7 @@ export function EditorPage() {
           </Show>
         </div>
       </main>
+      </div>
       <Show when={!uiVisible() && !isWindowsDesktop()}><FloatingProjectHeader /></Show>
     </div>
   );
