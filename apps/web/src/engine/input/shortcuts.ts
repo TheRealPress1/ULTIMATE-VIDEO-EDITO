@@ -48,7 +48,8 @@ import { cancelObjectMask, getObjectTrack, trackObjectMask, undoMaskStroke } fro
 import { beginPathEdit, deletePickedVertex, endPathEdit, finishPen, isPathEditing, isPenDrawing, selectedPath } from '../path-tool';
 import { splitAtPlayhead } from '../split';
 import { rippleDeleteSelection } from '../ripple';
-import { setTimelineTool } from '../timeline/tool';
+import { clearMarks, markIn, markOut } from '../marks';
+import { isEditing, setTimelineTool } from '../timeline/tool';
 import { Keys, MODIFIER_KEYS, ObjectMaskTool, Pointer } from '../traits';
 import { editTransform } from './interactions';
 
@@ -562,6 +563,10 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['f', '!mod'], action: selectTool(ToolType.SCENE) },
 	{ keys: ['t', '!mod'], action: selectTool(ToolType.TEXT) },
 	{ keys: ['r', '!mod'], action: selectTool(ToolType.RECT) },
+	// In and out marks, as an editor has them. O is the ellipse on the Board, where the drawing tools are.
+	{ keys: ['i', '!mod', '!alt'], action: markIn },
+	{ keys: ['o', '!mod', '!alt'], action: markOut, active: isEditing },
+	{ keys: ['x', 'alt', '!mod'], action: clearMarks },
 	{ keys: ['o', '!mod'], action: selectTool(ToolType.ELLIPSE) },
 	{ keys: ['p', '!mod'], action: selectTool(ToolType.PEN), active: (world) => !objectMaskTool(world) },
 	{ keys: ['m', '!mod'], action: selectTool(ToolType.OBJECT_MASK) },

@@ -7,6 +7,7 @@ import { useTrait, useWorld } from "@diffusionstudio/koota-solid";
 import { findSceneAt, getCameraMatrix, screenToWorld, setCamera, setCameraMatrix, setSolo, worldToLocal, Library, Position, Root, Size } from "@diffusionstudio/runtime";
 import { CameraController, EngineCanvas, nodesAt, panBy } from "@/engine";
 import { useActiveScene } from "@/engine/hooks";
+import { setEditingMode } from "@/engine/timeline/tool";
 import { useLayout } from "@/context/layout";
 import { insertAsset } from "@/engine/insert-asset";
 import { droppedFiles, importFiles } from "@/engine/asset-actions";
@@ -59,6 +60,8 @@ export function Canvas() {
     return { width: frameWidth, height: frameHeight, zoom: Math.max(frameWidth / size.width, frameHeight / size.height) };
   });
   const monitor = () => frame() !== null;
+  // The engine's keys need to know whether this is the Edit workspace (see `isEditing`).
+  createEffect(() => setEditingMode(world, workspace() === "edit"));
 
   // Scenes can overlap on the stage, so the camera alone does not keep the others out of the frame: the monitor shows its scene alone.
   createEffect(() => setSolo(world, monitor() ? scene() : null));
