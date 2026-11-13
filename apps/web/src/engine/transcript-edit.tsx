@@ -254,7 +254,7 @@ export async function applyTranscriptEdit(world: World, dir: string, scene: Enti
 		const reported = new Set<string>();
 		const stop = editor.onEdit((edit) => { if (edit.kind === 'insert') reported.add(edit.source); });
 		options.onProgress?.('Applying timeline edit');
-		history.beginGesture();
+		const step = history.beginGroup();
 		let replaced = false;
 		try {
 			// Render all replacement layers before removing any original one.
@@ -275,7 +275,7 @@ export async function applyTranscriptEdit(world: World, dir: string, scene: Enti
 				throw error;
 			}
 			throw new Error('The timeline change stopped partway through. Undo this edit or restore the saved Before transcript edit version before continuing.', { cause: error });
-		} finally { stop(); history.endGesture(); }
+		} finally { stop(); history.endGroup(step); }
 		stopPlayback(world, scene);
 		editor.select(scene); editPlayhead(world, scene, 0);
 		prepared.delete(world);

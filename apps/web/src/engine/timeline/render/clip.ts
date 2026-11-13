@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Caption, CaptionType, Chars, ClipDragOrigin, Computed, Hidden, Name, Selected, TrimDragOrigin, fitsChildren, getGeneratingColor, getGeneratingLabel, getSourceFailure, isCaption, isGroup, isText, store } from '@diffusionstudio/runtime';
+import { Caption, CaptionType, Chars, ClipDragOrigin, Computed, Hidden, Name, Selected, fitsChildren, getGeneratingColor, getGeneratingLabel, getSourceFailure, isCaption, isGroup, isText, store } from '@diffusionstudio/runtime';
 
 import { getDocumentEditor } from '../../editor';
 import {
@@ -14,7 +14,7 @@ import {
 	CLIP_LABEL_HEIGHT,
 	TRIM_HANDLE_WIDTH,
 } from '../config';
-import { applyClipDrag, applyTrim, beginClipDrag, beginTrim } from '../drag';
+import { dragClip, dragTrim } from '../drag';
 import { getClipAsset, getClipFallbackName, getClipStyle } from '../style';
 import { truncateText } from '../text';
 import { framesToPixels, getResolution, getViewport } from '../view';
@@ -161,9 +161,7 @@ function handleTrim(
 	const edge = inHandle.dragging ? 'in' : outHandle.dragging ? 'out' : null;
 	if (edge === null) return;
 
-	if (!entity.has(TrimDragOrigin)) beginTrim(world, entity);
-
-	applyTrim(world, surface, entity, edge, resolution);
+	dragTrim(world, surface, entity, edge, resolution);
 }
 
 /**
@@ -246,12 +244,7 @@ function handleBody(
 	// A press that travels starts a move. The press selected the clip first,
 	// so a drag of an unselected clip moves that one and a drag of a selected
 	// one moves everything selected (see `updateDragGestures`).
-	if (dragging && !entity.has(ClipDragOrigin) && !entity.has(TrimDragOrigin)) {
-		beginClipDrag(world, entity);
-	}
-	if (entity.has(ClipDragOrigin)) {
-		applyClipDrag(world, surface, entity, resolution);
-	}
+	dragClip(world, surface, entity, dragging, resolution);
 
 	// While a marquee is out, the clips it covers are the selection: entering
 	// it selects and leaving it deselects, so dragging back the way you came

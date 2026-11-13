@@ -38,7 +38,7 @@ import type { CapturedNode, DocumentEditor, EntityEdit } from './editor';
  * is not what anyone means by undo, so they pass through to the file without
  * entering the history.
  */
-const EXCLUDED_PROPS: ReadonlySet<string> = new Set(['selected', 'active', 'camera', 'expanded', 'clipHeight', 'timeline', 'playhead']);
+export const VIEW_PROPS: ReadonlySet<string> = new Set(['selected', 'active', 'camera', 'expanded', 'clipHeight', 'timeline', 'playhead']);
 
 /**
  * How long after one step a same-shaped step still merges into it. Edits
@@ -50,6 +50,36 @@ const COALESCE_WINDOW = 600;
 
 /** How many steps back the history keeps; beyond it, the oldest fall off. */
 const MAX_TRANSACTIONS = 100;
+
+/**
+ * How long a hold of the pointer may go without an edit before the next one
+ * is taken to belong to something else, in ms. A hold is let go of by whoever
+ * opened it; this is for the one that never is, which would otherwise take
+ * everything that came after it into its step.
+ */
+const STALE_HOLD = 20_000;
+
+/**
+ * What `beginGroup` hands back for `endGroup`: whether it set a hold's step
+ * aside, which `endGroup` then puts back.
+ */
+export interface HistoryGroup {
+	readonly setAside: boolean;
+}
+
+/**
+ * Who holds a gesture open. Each lets go of its own and no one else's: the
+ * stage's pointer input listens for the pointer being lifted anywhere in the
+ * window, so a release over the timeline reaches it too, and it must not end a
+ * hold that is not its own. The gesture is open for as long as any owner holds it.
+ */
+export type GestureOwner = 'stage' | 'timeline' | 'group';
+
+/** A hold set aside while a group runs: its own step so far, and who held it. */
+interface SetAside {
+	open: Transaction | null;
+	holders: Set<GestureOwner>;
+}
 
 /**
  * One recorded edit with what it takes to play it in either direction. An
@@ -144,13 +174,22 @@ export class EditHistory {
 	private open: Transaction | null = null;
 	/** The transaction being replayed right now: renames reach it too. */
 	private replaying: Transaction | null = null;
-	private gesture = false;
+	private holders = new Set<GestureOwner>();
+	/** When the hold last did something: it opened, or an edit landed in it. */
+	private touched = 0;
+	/** The holds that groups have set aside while they run. */
+	private setAside: SetAside[] = [];
 	private scheduled = false;
 	private applying = false;
 
 	/** Bumped on every change, so the menu's disabled states stay honest. */
 	private readonly changed: () => void;
 	private readonly version: () => number;
+
+	/** Whether a hold of the pointer, or a group, has a step open that edits are to land in. */
+	private get gesture(): boolean {
+		return this.holders.size > 0;
+	}
 
 	public constructor(world: World) {
 		this.world = world;
@@ -183,7 +222,8 @@ export class EditHistory {
 		this.undos = [];
 		this.redos = [];
 		this.open = null;
-		this.gesture = false;
+		this.holders.clear();
+		this.setAside = [];
 		this.changed();
 	}
 
@@ -192,15 +232,61 @@ export class EditHistory {
 	 * many frames a drag writes — is one step. A press while a burst is
 	 * still open commits it first, so the gesture starts on its own step.
 	 */
-	public beginGesture(): void {
-		if (this.open) this.commit();
-		this.gesture = true;
+	public beginGesture(owner: GestureOwner = 'stage'): void {
+		// What is open from before is a step of its own, unless another owner's hold is what is open.
+		if (this.open && (!this.gesture || this.holders.has(owner))) this.commit();
+		this.holders.add(owner);
+		this.touched = performance.now();
 	}
 
-	public endGesture(): void {
-		if (!this.gesture) return;
-		this.gesture = false;
-		if (this.open) this.commit();
+	public endGesture(owner: GestureOwner = 'stage'): void {
+		if (!this.holders.delete(owner)) return;
+		if (!this.gesture && this.open) this.commit();
+	}
+
+	/**
+	 * Opens a step for a command that is several edits and means one (a cut, a
+	 * restyle, a change someone else made to the file), to be closed with
+	 * `endGroup`. Unlike a hold of the pointer it does not take what is open
+	 * with it: a hold still down keeps its own step, which is set aside for the
+	 * group and put back after it. Without this, an edit that landed in the
+	 * middle of a drag would either end up in the drag's step or cut it in two.
+	 */
+	public beginGroup(): HistoryGroup {
+		const held = this.gesture;
+		if (held) {
+			this.setAside.push({ open: this.open, holders: this.holders });
+			this.open = null;
+			this.holders = new Set();
+		}
+		this.beginGesture('group');
+		return { setAside: held };
+	}
+
+	/** Closes the step `beginGroup` opened, and gives a hold that was set aside its own back. */
+	public endGroup(group: HistoryGroup): void {
+		this.endGesture('group');
+		if (!group.setAside) return;
+
+		const aside = this.setAside.pop();
+		this.open = aside?.open ?? null;
+		this.holders = aside?.holders ?? new Set();
+		this.changed();
+	}
+
+	/**
+	 * Runs `apply` with the history not listening: for edits that the history
+	 * could not put back, because it names an element by its stamp and the
+	 * stamp names several. What was recorded before stays as it was.
+	 */
+	public untracked<T>(apply: () => T): T {
+		const outer = this.applying;
+		this.applying = true;
+		try {
+			return apply();
+		} finally {
+			this.applying = outer;
+		}
 	}
 
 	/** Takes back the last step, and hands it to redo. */
@@ -255,7 +341,7 @@ export class EditHistory {
 				return;
 
 			case 'prop': {
-				if (EXCLUDED_PROPS.has(edit.name)) return;
+				if (VIEW_PROPS.has(edit.name)) return;
 				// No inverse reported (see `reportEdit`): not undoable, and a
 				// step pretending otherwise would restore the wrong value.
 				if (!('previous' in edit)) return;
@@ -361,6 +447,14 @@ export class EditHistory {
 	 * command — is one step.
 	 */
 	private ensureOpen(): Transaction {
+		const now = performance.now();
+		if (this.gesture && now - this.touched > STALE_HOLD) {
+			// Never let go of: whatever opened it is gone, and this edit is not part of it.
+			this.holders.clear();
+			if (this.open) this.commit();
+		}
+		this.touched = now;
+
 		if (!this.open) {
 			this.open = { ops: [], gesture: this.gesture, committedAt: 0 };
 			this.changed();
@@ -562,6 +656,7 @@ export class EditHistory {
 			...this.undos,
 			...this.redos,
 			...(this.open ? [this.open] : []),
+			...this.setAside.flatMap(({ open }) => (open ? [open] : [])),
 			...(this.replaying ? [this.replaying] : []),
 		];
 		for (const transaction of transactions) {

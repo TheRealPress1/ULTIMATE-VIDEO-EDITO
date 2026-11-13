@@ -146,7 +146,7 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
   const before = new Set(world.query(Source)); const reported = new Set<string>();
   const unlisten = editor.onEdit((edit) => { if (edit.kind === 'insert') reported.add(edit.source); });
   let created: Entity | undefined;
-  history.beginGesture();
+  const step = history.beginGroup();
   try { [created] = editor.insertElement(root, () => renderAuthored(variant)); if (!created) throw new Error('The finished scene could not be inserted.'); }
   catch (error) {
     for (const entity of world.query(Source).filter((node) => !before.has(node))) {
@@ -154,7 +154,7 @@ export async function finishSceneAudio(world: World, scene: Entity, dir: string,
       if (id && isPendingSource(id)) { if (reported.has(id)) editor.remove(entity); else editor.discardPending(id); }
     }
     throw error;
-  } finally { unlisten(); history.endGesture(); }
+  } finally { unlisten(); history.endGroup(step); }
   editor.activate(created); editor.select(created);
   focusRect(world, { x: Number(variant.props.x), y: Number(variant.props.y ?? 0), width: Number(variant.props.width ?? 1920), height: Number(variant.props.height ?? 1080) });
   try { await flushProjectEdits(dir); }

@@ -4,25 +4,19 @@
 
 import { useLocation, useNavigate } from "@solidjs/router";
 import { Show, createEffect, createMemo } from "solid-js";
+import { Portal } from "solid-js/web";
 import { toast } from "somoto";
 
 import { Icon } from "@/components/ui/icon";
 import { AnalyticsIcon } from "@/components/dashboard/analytics-view";
+import { CutroomMark } from "@/components/cutroom-mark";
 import { createProjectList, openProjectFromList } from "@/components/dashboard/shared";
+import { SIDEBAR_ID, SidebarCommands, SidebarToggle } from "@/components/sidebar-toggle";
 import { chatState, ensureConnected, refreshChats, setActiveChat, setSidebarTab } from "@/agent-chat/store";
 import { SidebarHistory } from "@/agent-chat/sidebar-history";
 import { projectRoute } from "@/hooks/use-project-route";
+import { sidebarCanClose, sidebarShown } from "@/lib/sidebar-state";
 import { projectKey, type ProjectInfo } from "@/projects";
-
-/** Eclipse mark: a corona ring, broken by the flare of a diamond ring. */
-export function CutroomMark(props: { class?: string }) {
-  return (
-    <svg class={props.class} width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-      <path d="M17.23 4.83A9.2 9.2 0 1 0 21.78 10.25" stroke="currentColor" stroke-width="2.2" />
-      <path d="M20.05 2.79 20.9 6.24 24.35 7.09 20.9 7.94 20.05 11.39 19.2 7.94 15.75 7.09 19.2 6.24Z" fill="currentColor" />
-    </svg>
-  );
-}
 
 type AppSidebarProps = { projectId?: string };
 
@@ -64,36 +58,45 @@ export function AppSidebar(props: AppSidebarProps) {
   };
 
   return (
-    <aside class="cutroom-sidebar" aria-label="Main navigation">
-      <div class="cutroom-brand">
-        <CutroomMark />
-        <span>Blackout</span>
-      </div>
-      <nav class="cutroom-primary-nav">
-        <button type="button" class="cutroom-nav-item" classList={{ "is-active": onHome() }} onClick={() => navigate("/")}>
-          <Icon name="home" /><span>Home</span>
-        </button>
-        <button type="button" class="cutroom-nav-item" classList={{ "is-active": onProjects() }} onClick={() => navigate("/?dashboard=projects")}>
-          <Icon name="film-video-export" /><span>Projects</span>
-        </button>
-        <button type="button" class="cutroom-nav-item" classList={{ "is-active": onAnalytics() }} onClick={() => navigate("/?dashboard=analytics")}>
-          <AnalyticsIcon /><span>Analytics</span>
-        </button>
-      </nav>
-      <SidebarHistory chats={chats()} projects={projects() ?? []} projectId={props.projectId} onOpen={(project, id) => void openConversation(project, id)} onNew={() => navigate("/")} />
-      <div class="cutroom-sidebar-footer">
-        <button type="button" class="cutroom-nav-item" onClick={() => navigate("/?dashboard=mcp")}>
-          <Icon name="ai-mcp-cli" /><span>Connect agents</span>
-          <Show when={readyAgents().length > 0}><span class="cutroom-connected-dot" title={`${readyAgents().length} agent${readyAgents().length === 1 ? "" : "s"} ready`} /></Show>
-        </button>
-        <button type="button" class="cutroom-nav-item" onClick={() => navigate("/?dashboard=settings")}>
-          <Icon name="settings" /><span>Settings</span>
-        </button>
-        <div class="cutroom-workspace">
-          <div class="cutroom-workspace-avatar"><CutroomMark class="size-4" /></div>
-          <div><strong>Local workspace</strong><span>Your files, your models</span></div>
+    <>
+      {/* Closed, it is hidden from the keyboard and screen readers as well as the eye. */}
+      <aside id={SIDEBAR_ID} class="cutroom-sidebar" data-open={sidebarShown()} inert={!sidebarShown()} aria-label="Main navigation">
+        <div class="cutroom-sidebar-inner">
+          <div class="cutroom-brand">
+            <CutroomMark class="cutroom-brand-mark" />
+          </div>
+          <nav class="cutroom-primary-nav">
+            <button type="button" class="cutroom-nav-item" classList={{ "is-active": onHome() }} onClick={() => navigate("/")}>
+              <Icon name="home" /><span>Home</span>
+            </button>
+            <button type="button" class="cutroom-nav-item" classList={{ "is-active": onProjects() }} onClick={() => navigate("/?dashboard=projects")}>
+              <Icon name="film-video-export" /><span>Projects</span>
+            </button>
+            <button type="button" class="cutroom-nav-item" classList={{ "is-active": onAnalytics() }} onClick={() => navigate("/?dashboard=analytics")}>
+              <AnalyticsIcon /><span>Analytics</span>
+            </button>
+          </nav>
+          <SidebarHistory chats={chats()} projects={projects() ?? []} projectId={props.projectId} onOpen={(project, id) => void openConversation(project, id)} onNew={() => navigate("/")} />
+          <div class="cutroom-sidebar-footer">
+            <button type="button" class="cutroom-nav-item" onClick={() => navigate("/?dashboard=mcp")}>
+              <Icon name="ai-mcp-cli" /><span>Connect agents</span>
+              <Show when={readyAgents().length > 0}><span class="cutroom-connected-dot" title={`${readyAgents().length} agent${readyAgents().length === 1 ? "" : "s"} ready`} /></Show>
+            </button>
+            <button type="button" class="cutroom-nav-item" onClick={() => navigate("/?dashboard=settings")}>
+              <Icon name="settings" /><span>Settings</span>
+            </button>
+            <div class="cutroom-workspace">
+              <div class="cutroom-workspace-avatar"><CutroomMark class="size-4" /></div>
+              <div><strong>Local workspace</strong><span>Your files, your models</span></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+      <Show when={sidebarCanClose()}>
+        {/* Last in the document, so the window's drag regions (the strip a closed sidebar leaves, the headers) never cover it: a later drag region wins over an earlier no-drag one. */}
+        <Portal><SidebarToggle /></Portal>
+        <SidebarCommands />
+      </Show>
+    </>
   );
 }

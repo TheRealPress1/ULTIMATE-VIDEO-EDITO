@@ -12,7 +12,7 @@
 import { useCursor } from '@/hooks/use-cursor';
 import { RULER_HEIGHT } from './config';
 import { renderLayers, renderMarquee, renderPlayhead, renderRuler, renderSnapLine, renderWorkarea, updateMarquee } from './render';
-import { updateDragGestures } from './drag';
+import { endHistoryGesture, updateDragGestures } from './drag';
 import { TimelineSurface } from './surface';
 import { getTimelineScene, updateTimelineTransform } from './view';
 
@@ -29,7 +29,7 @@ export function timelineSystem(world: World): void {
 
 	const scene = getTimelineScene(world);
 	if (scene === null) {
-		clearTimeline(surface, canvas, ctx, pointer);
+		clearTimeline(world, surface, canvas, ctx, pointer);
 		return;
 	}
 
@@ -93,6 +93,7 @@ export function timelineSystem(world: World): void {
  * against them.
  */
 function clearTimeline(
+	world: World,
 	surface: TimelineSurfaceState,
 	canvas: HTMLCanvasElement,
 	ctx: CanvasRenderingContext2D,
@@ -105,6 +106,9 @@ function clearTimeline(
 	surface.snapX = null;
 	surface.cursor = 'default';
 	cursor.set(canvas, surface.cursor);
+
+	// A hold still down when its scene went has nothing left to be a hold on, and no frame will see it lifted.
+	endHistoryGesture(world, surface);
 
 	pointer.reset();
 }

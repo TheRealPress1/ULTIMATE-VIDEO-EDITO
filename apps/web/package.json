@@ -1,7 +1,7 @@
 {
   "name": "@diffusionstudio/web",
   "private": true,
-  "version": "0.221.1",
+  "version": "0.223.0",
   "license": "MPL-2.0",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "check": "tsc -p tsconfig.app.json --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run && vitest run --config vitest.solid.config.ts"
   },
   "dependencies": {
     "@diffusionstudio/agent-chat": "*",

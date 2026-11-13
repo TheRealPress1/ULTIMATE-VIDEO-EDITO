@@ -4,6 +4,8 @@
 
 import { For } from "solid-js";
 
+import { sidebarShown } from "@/lib/sidebar-state";
+
 import { setSidebarTab, sidebarTab, type SidebarTab } from "./store";
 
 const TABS: { id: SidebarTab; label: string }[] = [
@@ -12,10 +14,10 @@ const TABS: { id: SidebarTab; label: string }[] = [
   { id: "footage", label: "Footage" },
 ];
 
-/** Sidebar sections as plain text labels. The choice persists. */
+/** Sidebar sections as plain text labels. The choice persists. With the app's sidebar closed they start clear of its toggle. */
 export function SidebarTabs() {
   return (
-    <div class="relative z-30 flex items-center gap-4" style="-webkit-app-region: no-drag;" role="tablist">
+    <div class="relative z-30 flex items-center gap-4" classList={{ "cutroom-reveal-inset": !sidebarShown() }} style="-webkit-app-region: no-drag;" role="tablist">
       <For each={TABS}>
         {(tab) => (
           <button

@@ -31,6 +31,7 @@ import { Not, Or } from 'koota';
 
 import { clamp } from '@/utils';
 import { getDocumentEditor } from '../editor';
+import { getEditHistory } from '../history';
 import { resolveSequentialOverlaps } from '../overlap';
 import { authoredTime, moveEntityTo, trimIn, trimOut } from '../timing';
 import { findSnapDelta, findSnapFrame } from './snapping';
@@ -51,16 +52,31 @@ export type TrimEdge = 'in' | 'out';
  * Closing is what has to happen here rather than where the drag was applied:
  * a gesture ends when the pointer is let go, which is not an event any clip
  * receives — the clip only ever hears that it is still being dragged.
+ *
+ * One hold of the pointer is one step in the history, as on the stage: a drag
+ * writes the clip a frame at a time, may rest in the middle, and lets go by
+ * settling the clips it landed on, and none of that is something to undo a
+ * piece of. The history's gesture is opened with the hold and closed after
+ * the settle, which comes on the frame after the pointer is lifted.
  */
 export function updateDragGestures(world: World, scene: Entity, surface: TimelineSurfaceState): void {
 	const position = surface.pointer?.position;
 	const dragging = !!position && position.state !== 'idle';
 
+	if (dragging && !surface.historyGesture) {
+		getEditHistory(world).beginGesture('timeline');
+		surface.historyGesture = true;
+	}
+
 	if (!dragging) {
-		endGesture(world, ClipDragOrigin);
-		endGesture(world, TrimDragOrigin);
-		// Keyframes have no sequence to settle: they sit where they are put.
-		for (const keyframe of world.query(KeyframeDragOrigin)) keyframe.remove(KeyframeDragOrigin);
+		try {
+			endGesture(world, ClipDragOrigin);
+			endGesture(world, TrimDragOrigin);
+			// Keyframes have no sequence to settle: they sit where they are put.
+			for (const keyframe of world.query(KeyframeDragOrigin)) keyframe.remove(KeyframeDragOrigin);
+		} finally {
+			endHistoryGesture(world, surface);
+		}
 		return;
 	}
 
@@ -88,6 +104,18 @@ export function updateDragGestures(world: World, scene: Entity, surface: Timelin
 }
 
 /**
+ * Lets go of the history gesture a hold on the timeline opened, if it opened
+ * one: whoever finds the timeline gone with a hold still down closes it here,
+ * since no frame will see the pointer lifted.
+ */
+export function endHistoryGesture(world: World, surface: TimelineSurfaceState): void {
+	if (!surface.historyGesture) return;
+
+	surface.historyGesture = false;
+	getEditHistory(world).endGesture('timeline');
+}
+
+/**
  * Ends whichever gesture `origin` marks: the snapshots come off, and the
  * sequences the clips landed in are settled around them (the clips that moved
  * win, and their neighbours give way).
@@ -99,6 +127,35 @@ function endGesture(world: World, origin: typeof ClipDragOrigin | typeof TrimDra
 	for (const entity of moved) entity.remove(origin);
 
 	resolveSequentialOverlaps(world, moved);
+}
+
+/**
+ * What a clip's body does with the pointer on a frame: a press that has
+ * travelled starts a move, and a move in flight follows the pointer — also on
+ * the frame the pointer is lifted, when `dragging` is no longer said but the
+ * clip is still being moved.
+ */
+export function dragClip(
+	world: World,
+	surface: TimelineSurfaceState,
+	entity: Entity,
+	dragging: boolean,
+	resolution: number,
+): void {
+	if (dragging && !isDragging(entity)) beginClipDrag(world, entity);
+	if (entity.has(ClipDragOrigin)) applyClipDrag(world, surface, entity, resolution);
+}
+
+/** What a clip's edge handle does on a frame in which it is being dragged: the first notes the edges, each one follows the pointer. */
+export function dragTrim(
+	world: World,
+	surface: TimelineSurfaceState,
+	entity: Entity,
+	edge: TrimEdge,
+	resolution: number,
+): void {
+	if (!entity.has(TrimDragOrigin)) beginTrim(world, entity);
+	applyTrim(world, surface, entity, edge, resolution);
 }
 
 /** Notes where `entity` is, so the frames of the drag can be measured from it. */

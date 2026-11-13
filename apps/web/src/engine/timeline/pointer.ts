@@ -132,6 +132,18 @@ export function createPointer(options: PointerOptions) {
   }
 
 
+  /**
+   * A hold that was taken away rather than let go: it is over, and it was no
+   * click. The frame after it sees the pointer idle, which is what closes a
+   * drag that was in flight.
+   */
+  function cancel() {
+    if (!position || position.state === 'idle') return;
+
+    position = { state: 'idle', currentX: position.currentX, currentY: position.currentY };
+    pressRegionID = null;
+  }
+
   function scope(id: string) {
     hitRegions.id = id;
     hitRegions.index = 0;
@@ -291,6 +303,7 @@ export function createPointer(options: PointerOptions) {
     down,
     move,
     up,
+    cancel,
     scope,
     region,
     regionAt,

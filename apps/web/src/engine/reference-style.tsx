@@ -325,7 +325,7 @@ export async function applyReferenceStyle(
   });
   let created: Entity | undefined;
   current();
-  history.beginGesture();
+  const step = history.beginGroup();
   try {
     [created] = editor.insertElement(root, () => renderAuthored(plan.tree));
     if (!created)
@@ -343,7 +343,7 @@ export async function applyReferenceStyle(
     throw error;
   } finally {
     stop();
-    history.endGesture();
+    history.endGroup(step);
   }
   editor.activate(created);
   editor.select(created);

@@ -7,6 +7,7 @@ export * from './elements';
 export { evaluate } from './evaluate';
 export { collectInspect, type InspectEntry } from './inspect';
 export { mount, type Mount } from './mount';
+export { recordProject, type RecordedNode, type Recording } from './record';
 export { insert, renderProject, withDocument } from './renderer';
 export { JSX_RUNTIME } from './runtime';
 export type { ProjectDocument, ProjectTick } from './host';

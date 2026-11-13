@@ -14,6 +14,7 @@ import { Or } from 'koota';
 
 import { assert, clamp } from '@/utils';
 import { getDocumentEditor } from '@/engine/editor';
+import { endHistoryGesture } from './drag';
 import { createPointer } from './pointer';
 import { TimelineSurface } from './surface';
 import { timelineSystem } from './timeline';
@@ -267,6 +268,10 @@ export function createTimelineController(world: World) {
 		surface.canvas?.removeEventListener('wheel', handleWheel);
 		surface.canvas?.removeEventListener('pointerdown', pointer.down);
 
+		// No frame will see a hold that is still down lifted: let go of it here.
+		pointer.cancel();
+		endHistoryGesture(world, surface);
+
 		// Dropped rather than kept stale: the draw pass no-ops until another
 		// canvas is attached.
 		surface.canvas = null;
@@ -293,14 +298,25 @@ export function createTimelineController(world: World) {
 		// On the body, so a drag that leaves the canvas still finishes.
 		document.body.addEventListener('pointermove', pointer.move, { passive: true });
 		document.body.addEventListener('pointerup', pointer.up, { passive: true });
+		// A hold the system takes away (a touch that became a scroll, a drag the
+		// browser took over, the window losing focus) is never lifted, and would
+		// otherwise be a drag that never ends.
+		document.body.addEventListener('pointercancel', pointer.cancel, { passive: true });
+		window.addEventListener('blur', pointer.cancel);
 	};
 
 	const unmount = (): void => {
 		layerObserver.disconnect();
-		surface.pointer = null;
 
 		document.body.removeEventListener('pointermove', pointer.move);
 		document.body.removeEventListener('pointerup', pointer.up);
+		document.body.removeEventListener('pointercancel', pointer.cancel);
+		window.removeEventListener('blur', pointer.cancel);
+
+		// No frame will see a hold that is still down lifted: let go of it here.
+		pointer.cancel();
+		endHistoryGesture(world, surface);
+		surface.pointer = null;
 	};
 
 	return {
