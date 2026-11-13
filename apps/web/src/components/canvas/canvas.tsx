@@ -73,10 +73,25 @@ export function Canvas() {
       boardCamera = null;
     }
   }));
-  createEffect(() => {
+  const fitCamera = () => {
     const fit = frame();
     const at = scenePosition();
     if (fit && at) setCamera(world, { a: fit.zoom, b: 0, c: 0, d: fit.zoom, e: -at.x * fit.zoom, f: -at.y * fit.zoom });
+  };
+  createEffect(fitCamera);
+  // Other code moves the camera to what it has just made (a new scene, a reframe, a cut): the monitor's fit is held every frame.
+  onMount(() => {
+    let frameId = 0;
+    const hold = () => {
+      frameId = requestAnimationFrame(hold);
+      const fit = frame();
+      const at = scenePosition();
+      if (!fit || !at) return;
+      const [a, b, c, d, e, f] = getCameraMatrix(world);
+      if (Math.abs(a - fit.zoom) > 1e-6 || Math.abs(d - fit.zoom) > 1e-6 || b !== 0 || c !== 0 || Math.abs(e + at.x * fit.zoom) > 1e-3 || Math.abs(f + at.y * fit.zoom) > 1e-3) fitCamera();
+    };
+    frameId = requestAnimationFrame(hold);
+    onCleanup(() => cancelAnimationFrame(frameId));
   });
 
   /**
