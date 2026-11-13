@@ -7,6 +7,7 @@ import { hudSystem } from './hud';
 import { createSignal, type Accessor, type Setter } from 'solid-js';
 import { AssetSelection, DrawTool, GradientTool, Hud, Keys, MODIFIER_KEYS, ObjectMaskTool, PathEditor, Pointer, PointerEvents, ProjectConfig, SnapLines } from './traits';
 import { inputSystem } from './input/input-system';
+import { keyOf } from './input/key';
 import { clearClipFrames, clearClipPeaks, clearMedia, clearPeaks, timelineSystem, TimelineSurface, TimelineTool } from './timeline';
 import { clearObjectTrackOf, clearObjectTracks } from './object-mask';
 import { pasteInto, shortcutSystem } from './input/shortcuts';
@@ -128,7 +129,7 @@ class Engine {
 		) return;
 
 		const keys = this.world.get(Keys)!;
-		const key = event.key.toLowerCase();
+		const key = keyOf(event);
 		const isMod = event.key === 'Meta' || event.key === 'Control';
 
 		keys.held.add(key);
@@ -163,7 +164,7 @@ class Engine {
 
 	private readonly onKeyUp = (event: KeyboardEvent) => {
 		const keys = this.world.get(Keys)!;
-		const key = event.key.toLowerCase();
+		const key = keyOf(event);
 		const isMod = event.key === 'Meta' || event.key === 'Control';
 
 		keys.held.delete(key);
