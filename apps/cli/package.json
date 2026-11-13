@@ -1,7 +1,7 @@
 {
   "name": "@diffusionstudio/cli",
   "private": true,
-  "version": "0.221.1",
+  "version": "0.222.0",
   "license": "MPL-2.0",
   "bin": {
     "cutroom": "./dist/index.js"
