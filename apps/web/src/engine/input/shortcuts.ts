@@ -47,6 +47,8 @@ import { withEmptiedTracks } from '../keyframes';
 import { cancelObjectMask, getObjectTrack, trackObjectMask, undoMaskStroke } from '../object-mask';
 import { beginPathEdit, deletePickedVertex, endPathEdit, finishPen, isPathEditing, isPenDrawing, selectedPath } from '../path-tool';
 import { splitAtPlayhead } from '../split';
+import { rippleDeleteSelection } from '../ripple';
+import { setTimelineTool } from '../timeline/tool';
 import { Keys, MODIFIER_KEYS, ObjectMaskTool, Pointer } from '../traits';
 import { editTransform } from './interactions';
 
@@ -531,6 +533,9 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['delete'], action: deletePickedVertex, active: isPathEditing },
 	{ keys: ['z', 'mod', '!shift'], action: undoEdit },
 	{ keys: ['z', 'mod', 'shift'], action: redoEdit },
+	// Shift takes the gap with it, ahead of the plain keys, which answer to either.
+	{ keys: ['backspace', 'shift', '!mod'], action: rippleDeleteSelection },
+	{ keys: ['delete', 'shift', '!mod'], action: rippleDeleteSelection },
 	{ keys: ['backspace'], action: deleteSelection },
 	{ keys: ['delete'], action: deleteSelection },
 	{ keys: ['d', 'mod', '!shift'], action: duplicateSelection },
@@ -551,7 +556,8 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['0', 'mod'], action: zoomActualSize },
 	{ keys: ['1', 'mod'], action: zoomToFit },
 	{ keys: ['2', 'mod'], action: zoomToSelection },
-	{ keys: ['v', '!mod'], action: selectTool(ToolType.MOVE) },
+	{ keys: ['v', '!mod'], action: (world) => { selectTool(ToolType.MOVE)(world); setTimelineTool(world, 'select'); } },
+	{ keys: ['c', '!mod'], action: (world) => setTimelineTool(world, 'razor') },
 	{ keys: ['h', '!mod'], action: selectTool(ToolType.HAND) },
 	{ keys: ['f', '!mod'], action: selectTool(ToolType.SCENE) },
 	{ keys: ['t', '!mod'], action: selectTool(ToolType.TEXT) },

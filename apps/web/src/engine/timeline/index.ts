@@ -13,4 +13,5 @@ export * from './peaks';
 export * from './style';
 export * from './surface';
 export * from './timeline';
+export * from './tool';
 export * from './view';

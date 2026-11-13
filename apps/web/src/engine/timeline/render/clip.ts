@@ -15,9 +15,11 @@ import {
 	TRIM_HANDLE_WIDTH,
 } from '../config';
 import { dragClip, dragTrim } from '../drag';
+import { getTimelineTool } from '../tool';
+import { razorAt } from '../../split';
 import { getClipAsset, getClipFallbackName, getClipStyle } from '../style';
 import { truncateText } from '../text';
-import { framesToPixels, getResolution, getViewport } from '../view';
+import { framesToPixels, getCurrentFrame, getResolution, getViewport } from '../view';
 import { renderCaption } from './caption';
 import { renderGroup } from './group';
 import { renderStillThumbnails, renderVideoThumbnails } from './thumbnails';
@@ -60,7 +62,10 @@ export function renderClip(
 	const generating = getGeneratingLabel(world, entity);
 	const style = getClipStyle(entity, asset, !!error?.length);
 
-	handleBody(world, surface, entity, left, width, row, resolution);
+	// With the Razor a press cuts the clip where it falls, instead of selecting it or taking hold of it.
+	const razor = getTimelineTool(world) === 'razor';
+	const cut = razor ? handleRazor(world, scene, surface, entity, left, width, row, resolution) : null;
+	if (!razor) handleBody(world, surface, entity, left, width, row, resolution);
 
 	// A drag that has just moved the clip has moved where it is drawn, so the
 	// left edge is read again; the width does not change with it.
@@ -125,7 +130,74 @@ export function renderClip(
 	ctx.stroke();
 	ctx.restore();
 
-	handleTrim(world, surface, entity, left, width, row, resolution);
+	if (!razor) handleTrim(world, surface, entity, left, width, row, resolution);
+
+	// Over everything, so the cut can be seen before it is made.
+	if (cut !== null) {
+		ctx.save();
+		const x = Math.round(cut.x) + 0.5;
+		ctx.beginPath();
+		ctx.moveTo(x, 0);
+		ctx.lineTo(x, row.height);
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+		ctx.stroke();
+		ctx.lineWidth = 1;
+		ctx.strokeStyle = '#ffffff';
+		ctx.stroke();
+		ctx.restore();
+	}
+}
+
+/** How near, in pixels, a razor has to be to the playhead to cut at it exactly. */
+const RAZOR_PLAYHEAD_SNAP = 6;
+
+/**
+ * The Razor over a clip: the whole clip is the target, the cursor is the
+ * blade, and a press cuts at the frame under the pointer (at the playhead when
+ * it is within a few pixels of it, so a cut can be placed exactly by parking
+ * the playhead first). Shift cuts every row at that frame. Returns where the
+ * cut would fall, in the row's pixels, for the guide; null while the pointer is
+ * not over this clip.
+ */
+function handleRazor(
+	world: World,
+	scene: Entity,
+	surface: TimelineSurfaceState,
+	entity: Entity,
+	left: number,
+	width: number,
+	row: RowCursor,
+	resolution: number,
+): { x: number } | null {
+	const { ctx, pointer } = surface;
+	if (!ctx || !pointer) return null;
+
+	const { hovering, clicked } = pointer.region(left, 0, width, row.height);
+	const position = pointer.position;
+	if (!hovering || !position) return null;
+
+	surface.cursor = 'razor';
+
+	// The pointer is in the canvas's own pixels; the row is drawn in a space translated and scaled from them.
+	const dpr = window.devicePixelRatio;
+	const local = ctx.getTransform().inverse().transformPoint(new DOMPoint(position.currentX * dpr, position.currentY * dpr));
+
+	const computed = store(world, Computed);
+	const start = computed.start[entity.id()] ?? 0;
+	const end = computed.end[entity.id()] ?? 0;
+	let x = local.x;
+	let frame = Math.round(start + ((x - left) / Math.max(width, 1)) * (end - start));
+
+	const playheadX = framesToPixels(getCurrentFrame(world, scene), resolution);
+	if (Math.abs(x - playheadX) <= RAZOR_PLAYHEAD_SNAP) {
+		x = playheadX;
+		frame = getCurrentFrame(world, scene);
+	}
+
+	if (clicked) razorAt(world, entity, frame, pointer.shiftPressed);
+
+	return { x };
 }
 
 /**

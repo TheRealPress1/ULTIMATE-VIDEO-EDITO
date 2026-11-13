@@ -15,6 +15,7 @@ import { useExport } from "@/context/export";
 import { assetSystem, getActiveEntity, transformSystem } from "@diffusionstudio/runtime";
 import { beginEditorLoad } from '@/dapi/session';
 import { Timeline, Layers } from "@/components/timeline";
+import { TimelineTools } from '@/components/timeline/timeline-tools';
 import { Soundboard, Inspector } from "@/components/sidebar-right";
 import { EditorTitleBar, FloatingProjectHeader } from "@/components/sidebar-left";
 import { DraftBadge, ProjectNameInput } from "@/components/sidebar-left/sidebar-left";
@@ -303,7 +304,7 @@ export function EditorPage() {
     if (!uiVisible()) return { 'grid-template-columns': '1fr', 'grid-template-rows': '1fr' };
     const height = timelineMinimized() ? RULER_HEIGHT : timelineHeight();
     return {
-      'grid-template-columns': `184px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
+      'grid-template-columns': `34px 184px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
       'grid-template-rows': `minmax(0, 1fr) 1px ${height}px`,
     };
   });
@@ -396,7 +397,7 @@ export function EditorPage() {
       </Show>
       <main class="cutroom-editor-workspace">
         <div class="cutroom-editor-grid" style={timelineStyles()}>
-          <div class="cutroom-editor-canvas" style={{ "grid-column": uiVisible() ? "1 / 4" : "1" }}><Canvas /><div class="absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"><PlaybackProxyStatus paused={exporting()} /></div></div>
+          <div class="cutroom-editor-canvas" style={{ "grid-column": uiVisible() ? "1 / 5" : "1" }}><Canvas /><div class="absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"><PlaybackProxyStatus paused={exporting()} /></div></div>
           <Show when={uiVisible() && inspectorOpen()}>
             <div class="cutroom-editor-inspector"><Inspector /></div>
           </Show>
@@ -408,6 +409,7 @@ export function EditorPage() {
                 </div>
               </Show>
             </div>
+            <TimelineTools />
             <Layers />
             <div class="bg-border" />
             <Timeline />
