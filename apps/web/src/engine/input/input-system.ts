@@ -113,8 +113,8 @@ export function inputSystem(world: World) {
 		// One pointer hold is one undo step, whatever the drag writes along
 		// the way. Bracketed before the panning skip: a release must close
 		// the gesture however the press has been reinterpreted since.
-		if (event.type === 'pointerdown' && event.button === 0) history.beginGesture();
-		if (event.type === 'pointerup') history.endGesture();
+		if (event.type === 'pointerdown' && event.button === 0) history.beginGesture('stage');
+		if (event.type === 'pointerup') history.endGesture('stage');
 
 		if (panning) continue;
 

@@ -64,7 +64,7 @@ export function updateDragGestures(world: World, scene: Entity, surface: Timelin
 	const dragging = !!position && position.state !== 'idle';
 
 	if (dragging && !surface.historyGesture) {
-		getEditHistory(world).beginGesture();
+		getEditHistory(world).beginGesture('timeline');
 		surface.historyGesture = true;
 	}
 
@@ -112,7 +112,7 @@ export function endHistoryGesture(world: World, surface: TimelineSurfaceState): 
 	if (!surface.historyGesture) return;
 
 	surface.historyGesture = false;
-	getEditHistory(world).endGesture();
+	getEditHistory(world).endGesture('timeline');
 }
 
 /**

@@ -8,7 +8,9 @@ import { createRuntimeWorld, KeyframeDragOrigin, Source } from '@diffusionstudio
 import { getDocumentEditor } from '../editor';
 import { getEditHistory } from '../history';
 import { bundle, canonical, el } from '../project-fixture';
+import { inputSystem } from '../input/input-system';
 import { editWorkarea } from '../timing';
+import { Keys, Pointer, PointerEvents } from '../traits';
 import { beginKeyframeDrag, dragClip, dragTrim, endHistoryGesture, updateDragGestures } from './drag';
 
 import type { Mount } from '@diffusionstudio/reconciler';
@@ -57,6 +59,7 @@ beforeEach(() => {
   clock = 1_000;
   vi.spyOn(performance, 'now').mockImplementation(() => clock);
   world = createRuntimeWorld('drag-history');
+  world.add(Pointer, Keys, PointerEvents);
   mounted = mount(bundle(project()), world);
   surface = { pointer: null, snapX: null, historyGesture: false } as unknown as TimelineSurfaceState;
   history().reset();
@@ -69,8 +72,14 @@ afterEach(() => {
 });
 
 /** One frame of the timeline: the pointer in `state` having come `deltaX` pixels, `wait` ms after the last. */
-const frame = async (state: State, deltaX = 0, draw: () => void = () => {}, wait = 16): Promise<void> => {
+const frame = async (state: State, deltaX = 0, draw: () => void = () => {}, wait = 16, stageHears?: 'pointerup'): Promise<void> => {
   clock += wait;
+  // The engine runs the stage's input system before the timeline's. The stage listens for the pointer being
+  // lifted on the window, so it hears a release over the timeline as well.
+  if (stageHears) {
+    world.get(PointerEvents)!.queue.push({ type: stageHears, clientX: 0, clientY: 0, button: 0 } as never);
+    inputSystem(world);
+  }
   surface.pointer = {
     position: state === 'idle'
       ? { state, currentX: 0, currentY: 0 }
@@ -188,6 +197,21 @@ describe('a hold of the pointer on the timeline is one step in the history', () 
     await frame('lifted', 35);
     await frame('idle');
     expect(tree()).not.toBe(original);
+
+    history().undo();
+    expect(tree()).toBe(original);
+    expect(history().canUndo()).toBe(false);
+  });
+
+  it('for a drop on its neighbours even though the stage hears the release first, which is not its hold to end', async () => {
+    const original = tree();
+    const clip = find('v3');
+    await frame('pressed');
+    for (const deltaX of [-60, -150, -300]) await frame('pressing', deltaX, () => dragClip(world, surface, clip, true, RESOLUTION));
+    await frame('lifted', -360, () => dragClip(world, surface, clip, false, RESOLUTION), 16, 'pointerup');
+    // The frame after, in which the neighbours give way, is again no one else's business.
+    await frame('idle', 0, () => {}, 16, 'pointerup');
+    expect(find('v1')).toBeUndefined();
 
     history().undo();
     expect(tree()).toBe(original);

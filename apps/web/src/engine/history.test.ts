@@ -211,6 +211,66 @@ describe('a group while a hold of the pointer is open', () => {
   });
 });
 
+describe('who holds a gesture', () => {
+  it('lets go of its own hold and no one else\'s: the stage hears every release in the window', async () => {
+    history().beginGesture('timeline');
+    editor().editProperty(find('a')!, 'x', 10);
+    await Promise.resolve();
+
+    // A release the stage's input heard, which is not its to act on.
+    history().endGesture('stage');
+    editor().editProperty(find('b')!, 'x', 20);
+    await Promise.resolve();
+    editor().editProperty(find('c')!, 'x', 30);
+    await Promise.resolve();
+    history().endGesture('timeline');
+
+    // Still one step: nothing closed the hold in the middle.
+    history().undo();
+    expect([x('a'), x('b'), x('c')]).toEqual([1, 2, 3]);
+    expect(history().canUndo()).toBe(false);
+  });
+
+  it('stays open while any owner holds it, and closes when the last lets go', async () => {
+    history().beginGesture('stage');
+    editor().editProperty(find('a')!, 'x', 10);
+    history().beginGesture('timeline');
+    history().endGesture('stage');
+    editor().editProperty(find('b')!, 'x', 20);
+    await Promise.resolve();
+    expect(x('b')).toBe(20);
+    history().endGesture('timeline');
+
+    history().undo();
+    expect([x('a'), x('b')]).toEqual([1, 2]);
+    expect(history().canUndo()).toBe(false);
+  });
+
+  it('starts a new step when the same owner begins again, but joins the one another owner has open', async () => {
+    history().beginGesture('stage');
+    editor().editProperty(find('a')!, 'x', 10);
+    // The stage's release was lost, and it is pressed again: what was held is a step of its own.
+    history().beginGesture('stage');
+    editor().editProperty(find('b')!, 'x', 20);
+    history().endGesture('stage');
+    history().undo();
+    expect([x('a'), x('b')]).toEqual([10, 2]);
+    history().undo();
+    expect(x('a')).toBe(1);
+
+    history().redo();
+    history().redo();
+    history().beginGesture('timeline');
+    editor().editProperty(find('c')!, 'x', 30);
+    history().beginGesture('stage');
+    editor().editProperty(find('c')!, 'x', 31);
+    history().endGesture('stage');
+    history().endGesture('timeline');
+    history().undo();
+    expect(x('c')).toBe(3);
+  });
+});
+
 describe('a hold that is never let go of', () => {
   it('keeps what lands in it while it is recent, and does not take what comes much later', async () => {
     history().beginGesture();
