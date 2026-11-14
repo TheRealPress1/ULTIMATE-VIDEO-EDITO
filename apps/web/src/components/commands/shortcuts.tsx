@@ -19,6 +19,7 @@ import {
 } from "@diffusionstudio/runtime";
 import { useCommand } from "@/context/commands";
 import { toggleSnapping, zoomTimelineIn, zoomTimelineOut, zoomTimelineToFit } from "@/engine/timeline";
+import { addMarker, clearMarkerAtPlayhead, clearMarkers, seekMarker } from "@/engine/markers";
 import { clipboardHasMedia } from "@/lib/clipboard";
 import {
   applySelectionAsMask,
@@ -333,6 +334,56 @@ const SHORTCUTS: Shortcut[] = [
     keys: ["-"],
     keywords: ["zoom", "further", "shrink"],
     run: zoomTimelineOut,
+    available: activeScene,
+  },
+  {
+    id: "add-marker",
+    title: "Add marker",
+    group: "Timeline",
+    icon: "plus-add",
+    keys: ["M"],
+    keywords: ["marker", "flag", "note", "locator", "mark"],
+    run: (world) => void addMarker(world),
+    available: activeScene,
+  },
+  {
+    id: "go-to-next-marker",
+    title: "Go to next marker",
+    group: "Timeline",
+    icon: "timeline.next-frame",
+    keys: ["⇧", "M"],
+    keywords: ["marker", "jump", "flag"],
+    run: (world) => void seekMarker(world, "next"),
+    available: activeScene,
+  },
+  {
+    id: "go-to-previous-marker",
+    title: "Go to previous marker",
+    group: "Timeline",
+    icon: "timeline.previous-frame",
+    keys: ["⇧", "⌘", "M"],
+    keywords: ["marker", "jump", "flag", "back"],
+    run: (world) => void seekMarker(world, "previous"),
+    available: activeScene,
+  },
+  {
+    id: "clear-marker",
+    title: "Delete marker at playhead",
+    group: "Timeline",
+    icon: "close-remove",
+    keys: [],
+    keywords: ["marker", "remove", "flag", "clear"],
+    run: (world) => void clearMarkerAtPlayhead(world),
+    available: activeScene,
+  },
+  {
+    id: "clear-markers",
+    title: "Delete all markers",
+    group: "Timeline",
+    icon: "close-remove",
+    keys: ["⌥", "M"],
+    keywords: ["marker", "remove", "flag", "clear"],
+    run: (world) => void clearMarkers(world),
     available: activeScene,
   },
   {

@@ -50,6 +50,7 @@ import { beginPathEdit, deletePickedVertex, endPathEdit, finishPen, isPathEditin
 import { splitAtPlayhead } from '../split';
 import { rippleDeleteSelection } from '../ripple';
 import { clearMarks, markIn, markOut } from '../marks';
+import { addMarker, clearMarkers, seekMarker } from '../markers';
 import { isEditing, setTimelineTool, toggleSnapping } from '../timeline/tool';
 import { zoomTimelineIn, zoomTimelineOut, zoomTimelineToFit } from '../timeline/zoom';
 import { Keys, MODIFIER_KEYS, ObjectMaskTool, Pointer } from '../traits';
@@ -592,6 +593,11 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['i', '!mod', '!alt'], action: markIn },
 	{ keys: ['o', '!mod', '!alt'], action: markOut, active: isEditing },
 	{ keys: ['x', 'alt', '!mod'], action: clearMarks },
+	// Markers, as an editor has them: M flags the playhead (on the Board it is the object mask tool), Option+M takes them all off, Shift+M jumps to the next and Shift+Cmd+M to the one before.
+	{ keys: ['m', 'alt', '!mod'], action: clearMarkers, active: isEditing },
+	{ keys: ['m', 'shift', 'mod'], action: (world) => { seekMarker(world, 'previous'); }, active: isEditing },
+	{ keys: ['m', 'shift', '!mod', '!alt'], action: (world) => { seekMarker(world, 'next'); }, active: isEditing },
+	{ keys: ['m', '!mod', '!alt', '!shift'], action: (world) => { addMarker(world); }, active: isEditing },
 	// The timeline's own keys, as an editor has them: S snaps (it seeks a second back on the Board) and \ takes in the whole scene (it selects parents there).
 	{ keys: ['s', '!mod', '!alt'], action: toggleSnapping, active: isEditing },
 	{ keys: ['\\', '!mod'], action: zoomTimelineToFit, active: isEditing },
