@@ -4,7 +4,7 @@ vi.hoisted(() => {
   vi.stubGlobal('document', { fonts: { addEventListener() {} }, createTextNode: (text: string) => Object.assign(new Text(), { data: text, textContent: text, remove() {} }) });
 });
 import { authoredTree, mount } from '@diffusionstudio/reconciler';
-import { Computed, Name, Source, buildTimelineLayers, createRuntimeWorld, recomputeEntityTimeRange, setPlayhead, store } from '@diffusionstudio/runtime';
+import { Color, Computed, Marker, Name, Source, buildTimelineLayers, cloneSubtree, createRuntimeWorld, recomputeEntityTimeRange, setPlayhead, store } from '@diffusionstudio/runtime';
 import { getEditHistory } from './history';
 import { bundle, el } from './project-fixture';
 import { DEFAULT_MARKER_COLOR, addMarker, clearMarkerAtPlayhead, clearMarkers, getMarkers, markerColor, markerFrame, seekMarker } from './markers';
@@ -65,6 +65,18 @@ describe('a marker in the project', () => {
     // The clip is 5 s long and the last marker is at 20 s.
     recomputeEntityTimeRange(world, scene());
     expect(store(world, Computed).duration[scene().id()]).toBe(150);
+  });
+});
+
+describe('copying a marker', () => {
+  it('keeps its frame, its name and its colour when its entity is cloned', () => {
+    const early = getMarkers(world, scene())[0]!;
+    const copy = cloneSubtree(world, [early]).get(early.id())!;
+
+    expect(copy).not.toBe(early);
+    expect(copy.get(Marker)?.time).toBe(45);
+    expect(copy.get(Name)?.value).toBe('Drop');
+    expect(copy.get(Color)?.value).toBe(early.get(Color)?.value);
   });
 });
 
