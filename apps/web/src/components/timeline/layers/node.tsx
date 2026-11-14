@@ -9,6 +9,7 @@ import {
   Expanded,
   Hidden,
   Hovering,
+  Locked,
   Muted,
   Name,
   Selected,
@@ -25,15 +26,16 @@ import {
   isSequence,
   isText,
 } from '@diffusionstudio/runtime';
-import { Button } from '@/components/ui/button';
 import { Icon } from '@/components/ui/icon';
 import { NodeContextMenu, TIMELINE_MENU } from '@/components/commands';
-import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@/components/ui/tooltip';
 import { useEditor } from '@/engine/hooks';
+import { toggleSoloed as toggleEntitySoloed } from '@/engine/input/shortcuts';
+import { trackCapabilities } from '@/engine/track-capabilities';
 import { DEFAULT_CLIP_HEIGHT, MAX_CLIP_HEIGHT, MIN_CLIP_HEIGHT, getClipFallbackName } from '@/engine/timeline';
 import { NESTED_INDENT_PX } from './config';
 import { useLayerContext } from './context';
 import { setRowHover } from './hover';
+import { TrackSlot, TrackToggle } from './track-toggle';
 
 import type { World } from 'koota';
 import type { TimelineNode } from '@diffusionstudio/runtime';
@@ -51,9 +53,15 @@ export function NodeLayer(props: LayerRowProps) {
   const muted = useTag(entity, Muted);
   const soloed = useTag(entity, Soloed);
   const hidden = useTag(entity, Hidden);
+  const locked = useTag(entity, Locked);
   const hovering = useTag(entity, Hovering);
   const selected = useTag(entity, Selected);
-  const controlsVisible = createMemo(() => hovering() || muted() || soloed() || hidden());
+  // The rows that are tracks of the scene carry their switches always, as a header does; the rows below them, on hover.
+  const nested = () => props.depth > 0;
+  const anyOn = () => muted() || soloed() || hidden() || locked();
+  const controlsVisible = createMemo(() => !nested() || hovering() || anyOn());
+  // What there is on the row to switch: the eye for a picture, the mute and the solo for a sound.
+  const capabilities = createMemo(() => trackCapabilities(world, entity()));
 
   const { resized: resizedSignal, drag } = useLayerContext();
   const [resized, setResized] = resizedSignal;
@@ -82,15 +90,17 @@ export function NodeLayer(props: LayerRowProps) {
 
   /**
    * Solo is monitoring rather than composition — it says what you want to
-   * hear right now, which the file has nothing to say about — so it is
-   * written to the trait and only one node holds it.
+   * hear right now, which the file has nothing to say about — so it is the
+   * trait and not an edit; a track, or any number of them, can hold it.
    */
   const toggleSoloed = (e?: Event) => {
     e?.stopPropagation();
+    toggleEntitySoloed(entity());
+  };
 
-    const wasSoloed = soloed();
-    for (const other of world.query(Soloed)) other.remove(Soloed);
-    if (!wasSoloed) entity().add(Soloed);
+  const toggleLocked = (e?: Event) => {
+    e?.stopPropagation();
+    editor.editProperty(entity(), 'locked', !locked());
   };
 
   /**
@@ -236,60 +246,28 @@ export function NodeLayer(props: LayerRowProps) {
         </div>
 
         <div
-          class="items-center flex gap-0.5 shrink-0 overflow-hidden group-hover:w-auto"
+          class="items-center flex gap-0.5 shrink-0 pl-1"
           classList={{
             'hidden': resized() !== null,
-            'w-0': !(muted() || soloed() || hidden()),
-            'w-auto': muted() || soloed() || hidden(),
+            'w-0 overflow-hidden group-hover:w-auto': nested() && !anyOn(),
           }}
         >
-          <Tooltip placement="bottom">
-            <TooltipTrigger
-              as={Button}
-              variant={muted() ? "on" : "ghost"}
-              size="icon"
-              class="invisible group-hover:visible"
-              style={{ visibility: muted() ? 'visible' : undefined }}
-              onClick={toggleMuted}
-            >
-              <Icon name="mute" />
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent>{muted() ? "Unmute" : "Mute"}</TooltipContent>
-            </TooltipPortal>
-          </Tooltip>
-          <Tooltip placement="bottom">
-            <TooltipTrigger
-              as={Button}
-              variant={soloed() ? "on" : "ghost"}
-              size="icon"
-              class="invisible group-hover:visible"
-              style={{ visibility: soloed() ? 'visible' : undefined }}
-              onClick={toggleSoloed}
-            >
-              <Icon name="solo" />
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent>{soloed() ? "Unsolo" : "Solo"}</TooltipContent>
-            </TooltipPortal>
-          </Tooltip>
-          <Tooltip placement="bottom">
-            <TooltipTrigger
-              as={Button}
-              variant="ghost"
-              size="icon"
-              class="invisible group-hover:visible"
-              onClick={toggleHidden}
-              style={{ visibility: hidden() ? 'visible' : undefined }}
-            >
-              <Show when={!hidden()} fallback={<Icon name="eye-off" />}>
-                <Icon name="eye-on" />
-              </Show>
-            </TooltipTrigger>
-            <TooltipPortal>
-              <TooltipContent>{hidden() ? "Show" : "Hide"}</TooltipContent>
-            </TooltipPortal>
-          </Tooltip>
+          <Show when={capabilities().visual} fallback={<TrackSlot />}>
+            <TrackToggle label={hidden() ? 'Show' : 'Hide'} on={hidden()} reveal={nested()} onClick={toggleHidden}>
+              <Icon name={hidden() ? 'eye-off' : 'eye-on'} />
+            </TrackToggle>
+          </Show>
+          <Show when={capabilities().audio} fallback={<><TrackSlot /><TrackSlot /></>}>
+            <TrackToggle label={muted() ? 'Unmute' : 'Mute'} on={muted()} reveal={nested()} onClick={toggleMuted}>
+              <span class="text-[11px] font-semibold leading-none">M</span>
+            </TrackToggle>
+            <TrackToggle label={soloed() ? 'Unsolo' : 'Solo (heard in preview only)'} tone="solo" on={soloed()} reveal={nested()} onClick={toggleSoloed}>
+              <span class="text-[11px] font-semibold leading-none">S</span>
+            </TrackToggle>
+          </Show>
+          <TrackToggle label={locked() ? 'Unlock' : 'Lock'} on={locked()} reveal={nested()} onClick={toggleLocked}>
+            <Icon name={locked() ? 'lock-closed' : 'lock-open'} />
+          </TrackToggle>
         </div>
       </div>
 

@@ -15,6 +15,7 @@ import {
 	TRIM_HANDLE_WIDTH,
 } from '../config';
 import { dragClip, dragTrim } from '../drag';
+import { isLocked } from '../../locked';
 import { getTimelineTool } from '../tool';
 import { razorAt } from '../../split';
 import { getClipAsset, getClipFallbackName, getClipStyle } from '../style';
@@ -61,6 +62,7 @@ export function renderClip(
 	const error = getSourceFailure(entity);
 	const generating = getGeneratingLabel(world, entity);
 	const style = getClipStyle(entity, asset, !!error?.length);
+	const locked = isLocked(entity);
 
 	// With the Razor a press cuts the clip where it falls, instead of selecting it or taking hold of it.
 	const razor = getTimelineTool(world) === 'razor';
@@ -118,6 +120,12 @@ export function renderClip(
 		ctx.restore();
 	}
 
+	// A locked clip is hatched over its body, but not over its edge.
+	if (locked) {
+		const [viewportLeft] = getViewport(world, scene, surface.layout.width);
+		renderLocked(ctx, left, width, row.height, Math.max(left, viewportLeft), Math.min(left + width, viewportLeft + surface.layout.width));
+	}
+
 	// Last, so it sits over whatever the clip drew inside itself.
 	const selected = entity.has(Selected);
 
@@ -130,7 +138,8 @@ export function renderClip(
 	ctx.stroke();
 	ctx.restore();
 
-	if (!razor) handleTrim(world, surface, entity, left, width, row, resolution);
+	// A locked clip has no edge to take hold of.
+	if (!razor && !locked) handleTrim(world, surface, entity, left, width, row, resolution);
 
 	// Over everything, so the cut can be seen before it is made.
 	if (cut !== null) {
@@ -147,6 +156,34 @@ export function renderClip(
 		ctx.stroke();
 		ctx.restore();
 	}
+}
+
+/** The distance, in pixels, between the lines of the hatching that marks a locked clip. */
+const HATCH_STEP = 7;
+
+/**
+ * Dims a locked clip and hatches it diagonally, over the part of it that is in
+ * view (`from` to `to`, in the timeline's pixels), so a clip that is miles wide
+ * at a deep zoom costs no more than one that fits.
+ */
+function renderLocked(ctx: CanvasRenderingContext2D, left: number, width: number, height: number, from: number, to: number): void {
+	ctx.save();
+	ctx.beginPath();
+	ctx.roundRect(left, 0, width, height, CLIP_CORNER_RADIUS);
+	ctx.clip();
+
+	ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+	ctx.fillRect(from, 0, to - from, height);
+
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.14)';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	for (let x = Math.floor((from - height) / HATCH_STEP) * HATCH_STEP; x < to; x += HATCH_STEP) {
+		ctx.moveTo(x, height);
+		ctx.lineTo(x + height, 0);
+	}
+	ctx.stroke();
+	ctx.restore();
 }
 
 /** How near, in pixels, a razor has to be to the playhead to cut at it exactly. */

@@ -314,7 +314,7 @@ export function EditorPage() {
     if (!uiVisible()) return { 'grid-template-columns': '1fr', 'grid-template-rows': '1fr' };
     const height = timelineMinimized() ? RULER_HEIGHT : timelineHeight();
     return {
-      'grid-template-columns': `34px 184px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
+      'grid-template-columns': `34px 236px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
       'grid-template-rows': `minmax(0, 1fr) 1px ${height}px`,
     };
   });

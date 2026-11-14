@@ -4,9 +4,9 @@
 
 import { useWorld } from "@diffusionstudio/koota-solid";
 import { useCommand } from "@/context/commands";
-import { toggleSelectionMuted, toggleSelectionSoloed, useSelection } from "@/engine";
+import { toggleSelectionLocked, toggleSelectionMuted, toggleSelectionSoloed, useSelection } from "@/engine";
 
-/** What the layer list's mute and solo buttons do, over the selection. */
+/** What the layer list's mute, solo and padlock buttons do, over the selection. */
 export function LayerToggleCommands() {
   const world = useWorld();
   const { nodes } = useSelection();
@@ -19,6 +19,16 @@ export function LayerToggleCommands() {
     keywords: ["mute", "unmute", "audio", "sound", "silence"],
     available: () => nodes().length > 0,
     run: () => toggleSelectionMuted(world),
+  });
+
+  useCommand({
+    id: "toggle-locked",
+    title: "Lock/Unlock",
+    group: "Object",
+    icon: "lock-closed",
+    keywords: ["lock", "unlock", "padlock", "protect", "track"],
+    available: () => nodes().length > 0,
+    run: () => toggleSelectionLocked(world),
   });
 
   useCommand({

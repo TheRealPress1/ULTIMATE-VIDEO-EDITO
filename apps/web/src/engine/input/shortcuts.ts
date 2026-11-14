@@ -10,6 +10,7 @@ import {
 	Geometry,
 	Group,
 	Hidden,
+	Locked,
 	Muted,
 	Position,
 	Root,
@@ -386,6 +387,20 @@ export function toggleSelectionMuted(world: World): void {
 
 	const mute = selected.some(entity => !entity.has(Muted));
 	for (const entity of selected) editor.editProperty(entity, 'muted', mute);
+}
+
+/**
+ * Locks the selection against hand edits, or unlocks it once all of it is
+ * locked: the property the padlock in the layer list writes, one write per
+ * node. A node the project generates from a list is refused (see `isGenerated`).
+ */
+export function toggleSelectionLocked(world: World): void {
+	const editor = getDocumentEditor(world);
+	const selected = [...world.query(Selected, NODES)];
+	if (!selected.length) return;
+
+	const lock = selected.some(entity => !entity.has(Locked));
+	for (const entity of selected) editor.editProperty(entity, 'locked', lock);
 }
 
 /**
