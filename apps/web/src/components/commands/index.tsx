@@ -12,6 +12,7 @@ import { ExportCurrentFrameCommand } from "./export-current-frame";
 import { ExportVideoCommand } from "./export-video";
 import { GenerateCommand } from "./generate";
 import { LayerToggleCommands } from "./layer-toggles";
+import { TrackCommands } from "./tracks";
 import { MakeVideoCommand } from "./make-video";
 import { MediaAssetCommands } from "./media-asset";
 import { ProjectFolderCommands } from "./project-folder";
@@ -66,6 +67,7 @@ export function CanvasCommands() {
       <ToolCommand tool={ToolType.TEXT} />
       <ShortcutCommands />
       <LayerToggleCommands />
+      <TrackCommands />
       <ProjectFolderCommands />
       <WindowCommands />
     </>

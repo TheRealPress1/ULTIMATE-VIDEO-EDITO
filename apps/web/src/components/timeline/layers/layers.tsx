@@ -3,16 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { createEffect, createMemo, Index, onCleanup, onMount, Show } from 'solid-js';
-import { toast } from 'somoto';
 import { useTrait, useWorld } from '@diffusionstudio/koota-solid';
-import { Sequence as SequenceElement } from '@diffusionstudio/reconciler';
 import {
   ClipHeight,
   Computed,
   FrameRate,
-  getNextName,
+  getSelection,
   Playback,
-  Source,
   togglePlayback,
 } from '@diffusionstudio/runtime';
 import { Button } from '@/components/ui/button';
@@ -38,6 +35,7 @@ import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@/compon
 import { CommandContextMenu, TIMELINE_HEADER_MENU } from '@/components/commands';
 import { DEFAULT_CLIP_HEIGHT, RULER_HEIGHT, Snapping, toggleSnapping, zoomTimelineToFit } from '@/engine/timeline';
 import { splitAtPlayhead } from '@/engine/split';
+import { addTrack } from '@/engine/tracks';
 import { useDerived, useEditor, useTimelineIndex } from '@/engine/hooks';
 import { useTimeline } from '@/context/timeline';
 import { useLayout } from '@/context/layout';
@@ -100,22 +98,6 @@ export function Layers() {
     for (const entity of geometryEntities(layers())) {
       editor.editProperty(entity, 'clipHeight', height);
     }
-  };
-
-  /**
-   * A new layer is an empty sequence: a row of its own whose clips share
-   * one line, laid end to end without overlapping.
-   */
-  const addLayer = () => {
-    const parent = scene();
-    if (!parent?.get(Source)?.value) {
-      toast("Nothing to add a layer to", { description: "Open a scene first." });
-      return;
-    }
-    const [layer] = editor.insertElement(parent, () => (
-      <SequenceElement name={getNextName(world, 'Layer')} />
-    ));
-    if (layer) editor.select(layer);
   };
 
   const toggleLooping = () => {
@@ -229,7 +211,8 @@ export function Layers() {
               </Tooltip>
               <DropdownMenuPortal>
                 <DropdownMenuContent class="w-[180px]">
-                  <DropdownMenuItem onSelect={addLayer}>Add layer</DropdownMenuItem>
+                  <DropdownMenuItem disabled={!scene()} onSelect={() => addTrack(world, 'video', 'above', getSelection(world)[0])}>Add video track</DropdownMenuItem>
+                  <DropdownMenuItem disabled={!scene()} onSelect={() => addTrack(world, 'audio', 'above', getSelection(world)[0])}>Add audio track</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuGroupLabel>View</DropdownMenuGroupLabel>
