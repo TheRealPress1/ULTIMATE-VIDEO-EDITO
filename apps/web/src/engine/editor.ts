@@ -18,6 +18,7 @@ import { authoredElement, authoredTree, getRuntimeDocument, insert, isSceneNode,
 
 import { isGenerated } from './generated';
 import { findInspectEntry } from './inspect';
+import { isLocked } from './locked';
 import { AssetSelection } from './traits';
 import { VIEW_PROPS } from './view-props';
 
@@ -275,11 +276,18 @@ interface Clipboard {
 	parent?: string;
 }
 
+/**
+ * Why the editor will not make an edit: the element is locked, or sits on a
+ * locked track; or the project renders it more than once (see `isGenerated`),
+ * so one edit would change every copy.
+ */
+export type Refusal = 'locked' | 'generated';
+
 export class DocumentEditor {
 	private readonly world: World;
 	private readonly sinks = new Set<(edit: EntityEdit, external: boolean) => void>();
 	private readonly renames = new Set<(ids: Record<string, string>) => void>();
-	private readonly refusals = new Set<() => void>();
+	private readonly refusals = new Set<(reason: Refusal) => void>();
 	private clipboard: Clipboard = { trees: [] };
 	private external = false;
 
@@ -350,7 +358,7 @@ export class DocumentEditor {
 	 * Listens for the edits the editor will not make (see `refuses`). Returns an
 	 * unsubscribe.
 	 */
-	public onRefuse(listener: () => void): () => void {
+	public onRefuse(listener: (reason: Refusal) => void): () => void {
 		this.refusals.add(listener);
 		return () => {
 			this.refusals.delete(listener);
@@ -358,19 +366,39 @@ export class DocumentEditor {
 	}
 
 	/**
-	 * Whether an edit to any of `entities` has to be refused, saying so to
-	 * whoever listens (`onRefuse`) when it does. An element the project renders
+	 * Why an edit to `entity` would not be made, or null when it would. A lock
+	 * comes first, since it is the one the person can lift. `ignoring` leaves
+	 * a reason out: the lock is what unlocking asks past. What the file already
+	 * says is never refused (`applyExternal`).
+	 */
+	public blocked(entity: Entity, ignoring?: Refusal): Refusal | null {
+		if (this.external) return null;
+		if (ignoring !== 'locked' && isLocked(entity)) return 'locked';
+		if (ignoring !== 'generated' && isGenerated(this.world, entity)) return 'generated';
+		return null;
+	}
+
+	/**
+	 * Whether an edit to any of `entities` has to be refused, saying why to
+	 * whoever listens (`onRefuse`) when it does. A locked element is one the
+	 * person asked to keep out of hand edits. An element the project renders
 	 * more than once (see `isGenerated`) is one element in the file, so a write
 	 * to one instance would change every instance, and report itself saved. The
-	 * editor makes no edit to it and the file keeps what the project says.
-	 * What the file already says is never refused (`applyExternal`).
+	 * editor makes no edit to either and the file keeps what it says.
 	 */
-	public refuses(entities: Entity | Entity[]): boolean {
-		if (this.external) return false;
+	public refuses(entities: Entity | Entity[], ignoring?: Refusal): boolean {
+		let reason: Refusal | null = null;
+		for (const entity of Array.isArray(entities) ? entities : [entities]) {
+			const why = this.blocked(entity, ignoring);
+			if (why === 'locked') {
+				reason = why;
+				break;
+			}
+			reason ??= why;
+		}
 
-		const generated = (Array.isArray(entities) ? entities : [entities]).some((entity) => isGenerated(this.world, entity));
-		if (generated) for (const listener of [...this.refusals]) listener();
-		return generated;
+		if (reason) for (const listener of [...this.refusals]) listener(reason);
+		return reason !== null;
 	}
 
 	private emit(edit: EntityEdit): void {
@@ -384,7 +412,7 @@ export class DocumentEditor {
 	 * carries `false`, the way every unset prop is spelled to the writer.
 	 */
 	public unsetProperty(entity: Entity, name: string): void {
-		if (!VIEW_PROPS.has(name) && this.refuses(entity)) return;
+		if (!VIEW_PROPS.has(name) && this.refuses(entity, name === 'locked' ? 'locked' : undefined)) return;
 		const node = this.document.node(entity);
 		const previous = node.props[name];
 		this.document.setProperty(node, name, undefined);
@@ -393,7 +421,7 @@ export class DocumentEditor {
 
 	/** Writes a prop to the document and reports it. */
 	public editProperty(entity: Entity, name: string, value: PropValue): void {
-		if (!VIEW_PROPS.has(name) && this.refuses(entity)) return;
+		if (!VIEW_PROPS.has(name) && this.refuses(entity, name === 'locked' ? 'locked' : undefined)) return;
 		const node = this.document.node(entity);
 		let previous = node.props[name];
 		// The stage keeps no authored record (see RuntimeDocument.setProperty),
@@ -450,15 +478,18 @@ export class DocumentEditor {
 	 * out, and the edit is not undoable.
 	 */
 	public reportEdit(entity: Entity, name: string, value: PropValue, previous?: unknown): void {
-		// An element the project renders more than once has one place in the
-		// file, every instance's. What one instance's view says (its selection)
-		// is nothing the file can hold; any other change is not made, and is put
-		// back when the caller made it already and said what it was.
-		if (!this.external && isGenerated(this.world, entity)) {
-			if (VIEW_PROPS.has(name)) return;
+		// What the editor will not change (see `blocked`) is not reported. The
+		// selection of a locked element is the person's own and goes on to the
+		// file; what one instance of a generated element says of its view is
+		// nothing the file can hold. Any other change is put back when the
+		// caller made it already and said what it was.
+		const ignoring = name === 'locked' ? 'locked' : undefined;
+		const reason = this.blocked(entity, ignoring);
+		if (reason !== null && !(reason === 'locked' && VIEW_PROPS.has(name))) {
+			if (reason === 'generated' && VIEW_PROPS.has(name)) return;
 			const restored = previous === false ? undefined : wireValue(previous);
 			if (previous === false || restored !== undefined) this.document.setProperty(this.document.node(entity), name, restored);
-			this.refuses(entity);
+			this.refuses(entity, ignoring);
 			return;
 		}
 

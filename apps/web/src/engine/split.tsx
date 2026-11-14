@@ -115,9 +115,14 @@ function cutUnits(world: World, units: Entity[], frame: number): Entity[] {
 	if (units.length === 0) return [];
 
 	const editor = getDocumentEditor(world);
+	// What cannot be edited (a locked track, a clip the project generates) is left out and said so, and the rest is cut: a razor across every row cuts the rows it may.
+	const free = units.filter((unit) => editor.blocked(unit) === null);
+	if (free.length < units.length) editor.refuses(units.filter((unit) => editor.blocked(unit) !== null));
+	if (free.length === 0) return [];
+
 	// Copied before anything is trimmed, so each copy is spelled from the
 	// whole clip and still runs to the end the whole clip ran to.
-	const pairs = editor.duplicateInPlace(units);
+	const pairs = editor.duplicateInPlace(free);
 
 	for (const { original, copy } of pairs) {
 		trimOut(world, original, frame);

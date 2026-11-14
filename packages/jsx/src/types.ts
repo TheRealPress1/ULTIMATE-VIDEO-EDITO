@@ -228,6 +228,14 @@ type IdentityProps = {
    * writes the bare attribute and removes it again.
    */
   expanded?: boolean;
+  /**
+   * Locks the element against hand edits in the editor: it, and everything
+   * under it, cannot be moved, trimmed, cut, deleted or changed there until it
+   * is unlocked. It still plays and exports as ever, and a file edit is not
+   * stopped by it. On a `<sequence>`, the track's lock. Absent means unlocked;
+   * the editor writes the bare attribute and removes it again.
+   */
+  locked?: boolean;
 };
 
 type PositionProps = {
@@ -1061,7 +1069,13 @@ export type TextRangeProps = Partial<ColorProps> & FontProps & {
   children?: SolidJSX.Element;
 };
 
-export type SequenceProps = Pick<IdentityProps, "name"> & {
+/**
+ * A sequence is a track: its children play one after another, and `hidden`,
+ * `muted` and `locked` act on the track as a whole (a hidden track shows
+ * nothing and is not heard, a muted one is not heard, a locked one cannot be
+ * edited by hand).
+ */
+export type SequenceProps = Pick<IdentityProps, "name" | "locked"> & Pick<CompositeProps, "hidden"> & Pick<AudioTrackProps, "muted"> & {
   children?: SolidJSX.Element;
 };
 

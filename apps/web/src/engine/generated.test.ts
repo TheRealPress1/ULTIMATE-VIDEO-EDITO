@@ -4,7 +4,7 @@ vi.hoisted(() => {
   vi.stubGlobal('document', { fonts: { addEventListener() {} }, createTextNode: (text: string) => Object.assign(new Text(), { data: text, textContent: text, remove() {} }) });
 });
 import { Rect, Sequence, authoredElement, authoredTree, getRuntimeDocument, mount } from '@diffusionstudio/reconciler';
-import { Loop, Selected, Source, createRuntimeWorld } from '@diffusionstudio/runtime';
+import { Locked, Loop, Selected, Source, createRuntimeWorld } from '@diffusionstudio/runtime';
 import { getDocumentEditor } from './editor';
 import { isGenerated } from './generated';
 import { getEditHistory } from './history';
@@ -170,6 +170,18 @@ describe('an edit to an element the project renders more than once', () => {
     editor().reportEdit(shot!, 'start', 9, 0);
 
     expect(prop(shot!, 'start')).toBe(0);
+    expect(edits).toEqual([]);
+    expect(refusals).toBe(1);
+  });
+
+  it('is not made for a lock either: it would lock every copy', () => {
+    const [shot] = all('shot');
+    const set = vi.spyOn(getRuntimeDocument(world), 'setProperty');
+
+    editor().editProperty(shot!, 'locked', true);
+
+    expect(set).not.toHaveBeenCalled();
+    expect(shot!.has(Locked)).toBe(false);
     expect(edits).toEqual([]);
     expect(refusals).toBe(1);
   });

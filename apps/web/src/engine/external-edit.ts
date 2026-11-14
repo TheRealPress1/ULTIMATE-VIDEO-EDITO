@@ -96,7 +96,7 @@ const REMOVABLE_TAGS: ReadonlySet<string> = new Set([
 	'video', 'image', 'audio', 'rect', 'ellipse', 'text', 'group', 'scene', 'sequence', 'animation', 'effect',
 ]);
 const REMOVABLE_PROPS: ReadonlySet<string> = new Set([
-	'name', 'x', 'y', 'hidden', 'opacity', 'blendMode', 'scale', 'cornerRadius', 'cornerRadiusTopLeft', 'keepAspectRatio',
+	'name', 'x', 'y', 'hidden', 'locked', 'opacity', 'blendMode', 'scale', 'cornerRadius', 'cornerRadiusTopLeft', 'keepAspectRatio',
 	'pivotX', 'pivotY', 'constrainX', 'constrainY', 'start', 'end', 'sourceIn', 'sourceOut', 'playbackRate', 'volume', 'muted',
 	'objectFit', 'transition', 'fill', 'color', 'colors', 'fontFamily', 'fontSize', 'fontStyle', 'fontWeight', 'letterSpacing',
 	'textCase', 'textAlign', 'textBaseline', 'leading', 'preset', 'verticalAlign', 'phase', 'duration', 'delay',
