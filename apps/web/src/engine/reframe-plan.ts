@@ -152,7 +152,7 @@ export function collectReframeVideos(scene: AuthoredTree, resolve: (path: string
 			} else unchangedTransform(node, 'A caption layer');
 			return;
 		}
-		if (node.tag === 'audio') return;
+		if (node.tag === 'audio' || node.tag === 'marker') return;
 		if (PAINTS.has(node.tag) || node.tag === 'keyframeTrack' || node.tag === 'animation') return;
 		if (STATIC_OVERLAYS.has(node.tag)) {
 			unchangedTransform(node, 'An overlay');
@@ -298,7 +298,7 @@ export function planReframeVariants(scene: AuthoredTree, videos: readonly Refram
 				Object.assign(node.props, { x: (width - cw * scale) / 2, y: height * 0.82 - ch * scale, pivotX: 0, pivotY: 0, scale, offsetX: 0, offsetY: 0, verticalAlign: 'bottom' });
 				return;
 			}
-			if (node.tag === 'audio' || PAINTS.has(node.tag) || node.tag === 'keyframeTrack' || node.tag === 'animation') return;
+			if (node.tag === 'audio' || node.tag === 'marker' || PAINTS.has(node.tag) || node.tag === 'keyframeTrack' || node.tag === 'animation') return;
 			// Keep static graphics together within an inset, uniformly fitted
 			// representation of the source canvas. No anisotropic text stretching.
 			const scale = Math.min(width * 0.84 / sw, height * 0.74 / sh);

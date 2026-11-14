@@ -852,6 +852,20 @@ export type KeyframeProps = {
   easing?: Easing;
 };
 
+/**
+ * `<marker>` — a flag on the ruler of the `<scene>` holding it: a note on the
+ * timeline where something happens, a beat, a cut to make, a thing to fix. It
+ * is not a layer: it takes no row, draws nothing in the frame, and changes
+ * neither what the scene lasts nor what is exported. The editor shows it on
+ * the ruler, snaps to it and jumps from one marker to the next.
+ */
+export type MarkerProps = Pick<IdentityProps, "name"> & {
+  /** Where on the scene's timeline the marker is, any `Time` format. */
+  time: Time;
+  /** Any CSS color; the flag on the ruler is drawn in it. Default yellow. */
+  color?: string;
+};
+
 export type SolidPaintProps = ColorProps & PaintProps & TrackChildren;
 
 /** A gradient's box is its parent's; under a `<stroke>`, the stroke's parent's. */

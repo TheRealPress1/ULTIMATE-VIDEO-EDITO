@@ -35,6 +35,11 @@ export const PlaybackRate = trait({ value: 1 });
 // Explicit playback/export window on a scene.
 export const Workarea = trait({ start: 0, end: 0 });
 
+// A flag on a scene's ruler: `time` is the scene frame it marks, its label the
+// entity's Name and its colour its Color. Not a layer: it takes no row, draws
+// nothing in the frame and does not change what the scene lasts or exports.
+export const Marker = trait({ time: 0 });
+
 // Playback state of an entity.
 export const Playback = trait({
 	playing: false,

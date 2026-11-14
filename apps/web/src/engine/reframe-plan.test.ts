@@ -15,6 +15,17 @@ const face = (time: number, x: number, cut = false): ReframeFaceSample => ({ tim
 const analysis = (samples: ReframeFaceSample[]): ReframeAnalysisResult => ({ width: 1920, height: 1080, duration: 60, sampleInterval: 0.5, samples });
 
 describe('social reframe planning', () => {
+	it('leaves a marker in the scene as it is: it has no space of its own to fit', () => {
+		const scene = tree();
+		const flag = { tag: 'marker', props: { id: 'flag', time: 12, name: 'Hook', color: 'red' }, children: [] };
+		scene.children.push(flag);
+		const videos = collectReframeVideos(scene, () => asset);
+		expect(videos).toHaveLength(1);
+		const plan = planReframeVariants(scene, videos, new Map([['0', analysis([face(10, 0.2), face(11, 0.24)])]]), { formats: ['vertical', 'landscape'], mode: 'follow', fps: 30 });
+		// The variants are new layouts, so none keeps a stamp; nothing else of the marker changes.
+		for (const variant of plan.variants) expect(variant.tree.children.at(-1)).toEqual({ tag: 'marker', props: { time: 12, name: 'Hook', color: 'red' }, children: [] });
+	});
+
 	it('builds every format with preserved audio and source timing, without mutating the original', () => {
 		const scene = tree(); const original = JSON.stringify(scene);
 		const videos = collectReframeVideos(scene, () => asset);

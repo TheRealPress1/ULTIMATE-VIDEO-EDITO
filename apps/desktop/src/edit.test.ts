@@ -64,6 +64,28 @@ describe("applyEdits", () => {
     expect(text).toMatch(/<text id="[^"]+">Hello\s*<solidPaint id="[^"]+" color="#FFFFFF" \/>\s*<\/text>/);
   });
 
+  it("writes a marker into a scene at a time, moves it, and takes it away", async () => {
+    await writeFile(join(dir, FILE), `export default () => <scene id="s"><video id="clip" src="a.mp4" /></scene>;\n`);
+
+    const inserted = await applyEdits({ dir }, [
+      { kind: "insert", source: "pending#1", parent: `${FILE}:s`, tag: "marker", props: { time: 2.5, name: "Hook", color: "red" } },
+    ]);
+    expect(inserted.skipped).toEqual([]);
+    const written = await readFile(join(dir, FILE), "utf8");
+    expect(written).toMatch(/<marker id="[^"]+" time=\{2\.5\} name="Hook" color="red" \/>/);
+    const id = /<marker id="([^"]+)"/.exec(written)![1];
+
+    const moved = await applyEdits({ dir }, [{ kind: "set", source: `${FILE}:${id}`, props: { time: 4 } }]);
+    expect(moved.skipped).toEqual([]);
+    expect(await readFile(join(dir, FILE), "utf8")).toContain(`time={4}`);
+
+    const removed = await applyEdits({ dir }, [{ kind: "remove", source: `${FILE}:${id}` }]);
+    expect(removed.skipped).toEqual([]);
+    const text = await readFile(join(dir, FILE), "utf8");
+    expect(text).not.toContain("<marker");
+    expect(text).toContain(`<video id="clip" src="a.mp4" />`);
+  });
+
   it("replaces every part of what a text says, and only that", async () => {
     await writeFile(
       join(dir, FILE),

@@ -236,3 +236,26 @@ describe('retake suggestions', () => {
 		expect(transcriptRetakes(words)).toEqual([]);
 	});
 });
+
+describe('markers in a transcript edit', () => {
+	const flags = (plan: ReturnType<typeof planTranscriptEdit>) => plan.children.filter((child) => child.tag === 'marker').map((child) => [child.props.name, child.props.time]);
+	const withMarkers = (): TranscriptEditLayer[] => [
+		...layers().slice(0, 3),
+		{ marker: node('marker', { id: 'hook', time: 1, name: 'Hook' }) },
+		{ marker: node('marker', { id: 'cut', time: 2.5, name: 'In the cut' }) },
+		{ marker: node('marker', { id: 'edge', time: 3, name: 'On the edge' }) },
+		{ marker: node('marker', { id: 'later', time: '150f', name: 'Later' }) },
+		layers()[3]!,
+	];
+
+	it('keeps one in a kept passage where the passage now is, and drops one in a stretch that is cut', () => {
+		const plan = planTranscriptEdit(withMarkers(), words, [{ start: 0, end: 2 }, { start: 3, end: 10 }], 10, 30);
+		expect(flags(plan)).toEqual([['Hook', 1], ['On the edge', 2], ['Later', 4]]);
+		expect(plan.children[plan.captionIndex]!.tag).toBe('captions');
+	});
+
+	it('follows its content when the passages are put in another order', () => {
+		const plan = planTranscriptEdit(withMarkers(), words, [{ start: 5, end: 10 }, { start: 0, end: 5 }], 10, 30);
+		expect(flags(plan)).toEqual([['Hook', 6], ['In the cut', 7.5], ['On the edge', 8], ['Later', 0]]);
+	});
+});

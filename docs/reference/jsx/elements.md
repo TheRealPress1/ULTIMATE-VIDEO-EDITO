@@ -57,6 +57,7 @@ Sub-entity children of the node (or paint) that holds them. See [styles.md](./st
 | `<animation>` | One preset in/out animation of the node holding it. |
 | `<keyframeTrack>` | The keyframes of one prop of the element holding it. |
 | `<keyframe>` | One keyframe of the track holding it. |
+| `<marker>` | A flag on the ruler of the scene holding it, at a time, with a name and a color. No row, nothing drawn in the frame. See [markers.md](./markers.md). |
 
 User-defined components are ordinary Solid components; they compose the elements above and carry no runtime cost. Only the elements above produce entities.
 

@@ -25,7 +25,7 @@ const emit = (spec: Spec): string => {
   return `${spec.tag}(Object.assign(${props}, ${content.length ? `{ get children() { return [${content.join(', ')}]; } }` : '{}'}))`;
 };
 
-export const bundle = (root: Spec): string => `const { Stage, Scene, Sequence, Video, Image, Audio, Rect, Ellipse, Text, Group, Captions, Effect, Animation, KeyframeTrack, Keyframe } = require('@diffusionstudio/jsx');
+export const bundle = (root: Spec): string => `const { Stage, Scene, Sequence, Video, Image, Audio, Rect, Ellipse, Text, Group, Captions, Effect, Animation, KeyframeTrack, Keyframe, Marker } = require('@diffusionstudio/jsx');
 module.exports.default = () => ${emit(root)};`;
 
 /** What a project says, in a form two trees can be compared in: an unset prop is no prop, and the order props were written in is nothing. */

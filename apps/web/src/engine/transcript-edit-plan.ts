@@ -1,5 +1,6 @@
 import type { AuthoredTree } from '@diffusionstudio/reconciler';
 import type { Transcript, TranscriptWord } from '@diffusionstudio/assets';
+import { parseTime } from '@diffusionstudio/jsx';
 import { cloneReframeTree } from './reframe-plan';
 
 export interface TimelineRange { start: number; end: number }
@@ -100,6 +101,8 @@ export interface TranscriptEditLayer {
 	name?: string;
 	clips?: TranscriptEditClip[];
 	caption?: AuthoredTree;
+	/** A flag on the ruler keeps to its content: it moves with the passage it is in, and goes with one that is cut. */
+	marker?: AuthoredTree;
 }
 export interface TranscriptEditPlan {
 	children: AuthoredTree[];
@@ -425,6 +428,17 @@ export function planTranscriptEdit(layers: readonly TranscriptEditLayer[], words
 	const children: AuthoredTree[] = [];
 	for (const layer of layers) {
 		if (layer.fixed) { children.push(cloneReframeTree(layer.fixed)); continue; }
+		if (layer.marker) {
+			const time = layer.marker.props.time;
+			const seconds = typeof time === 'number' || typeof time === 'string' ? parseTime(time) : undefined;
+			const frame = Math.round((seconds ?? 0) * fps);
+			const kept = normalized.find((range) => frame >= range.start && frame < range.end);
+			if (!kept) continue;
+			const marker = cloneReframeTree(layer.marker);
+			marker.props.time = (kept.output + frame - kept.start) / fps;
+			children.push(marker);
+			continue;
+		}
 		if (layer.caption) {
 			const caption = cloneReframeTree(layer.caption);
 			for (const key of ['start', 'end', 'sourceIn', 'sourceOut', 'playbackRate', 'syncTo']) delete caption.props[key];

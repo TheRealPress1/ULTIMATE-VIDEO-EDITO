@@ -39,6 +39,7 @@ import type {
   ImageProps,
   KeyframeProps,
   KeyframeTrackProps,
+  MarkerProps,
   PathProps,
   PolygonProps,
   RectProps,
@@ -113,6 +114,7 @@ export declare namespace JSX {
     animation: AnimationProps & SourceProps;
     keyframeTrack: KeyframeTrackProps & SourceProps;
     keyframe: KeyframeProps & SourceProps;
+    marker: (MarkerProps & SourceProps) | SolidJSX.SVGElementTags["marker"];
     htmlPaint: HtmlPaintProps & SourceProps;
     html: HtmlProps & SourceProps;
     shaderPaint: ShaderPaintProps & SourceProps;

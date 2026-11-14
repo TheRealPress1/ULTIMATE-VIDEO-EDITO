@@ -81,6 +81,7 @@ function collectLayers(world: World, scene: Entity, fps: number, duration: numbe
 		const tree = authoredTree(world, node);
 		if (!tree) throw new Error('The scene contains a generated layer that cannot be written back safely.');
 		if (FIXED.has(tree.tag)) { validateDescendants(tree); return { fixed: cloneReframeTree(tree) }; }
+		if (tree.tag === 'marker') return { marker: cloneReframeTree(tree) };
 		if (tree.tag === 'captions') {
 			if (++captionCount > 1) throw new Error('Reconcile multiple caption layers before editing this scene by transcript.');
 			const p = tree.props;

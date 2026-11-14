@@ -58,6 +58,7 @@ const base = (): Spec => el('Stage', 'stage', {}, [
     el('Audio', 'aud', { src: 'm.mp3', volume: -10, start: 0, end: 30 }),
     el('Group', 'grp', { x: 5, y: 6 }, [el('Ellipse', 'ell', { width: 80, height: 80, fill: '#0000ff' })]),
     el('Captions', 'cap', { src: 'words.json', preset: 'classic', start: 0, end: 10 }),
+    el('Marker', 'mk', { time: 2, name: 'Beat', color: '#ff0000' }),
   ]),
 ]);
 
@@ -380,6 +381,7 @@ const MATRIX: Record<string, Record<string, [unknown, unknown]>> = {
   cap: { preset: ['whisper', 'stark'], colors: [['#ffffff'], ['#000000']], verticalAlign: ['top', 'center'], offsetX: [4, 5], offsetY: [6, 7], start: [1, 2], end: [9, 8], sourceIn: [1, 2], sourceOut: [8, 9], name: ['C', 'D'] },
   fade: { type: ['grow', 'spin'], phase: ['out', 'in'], duration: [1, 2], delay: [0.5, 1], name: ['an', 'am'] },
   fx: { type: ['brightness', 'contrast'], value: [0.5, 0.8], hidden: [true, false], name: ['f1', 'f2'] },
+  mk: { time: [3, 4.5], name: ['A', 'B'], color: ['#00ff00', '#0000ff'] },
 };
 
 /** What an edit to one prop comes to, compared with a fresh mount of the file it produced; undefined when they match. */

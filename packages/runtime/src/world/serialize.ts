@@ -16,7 +16,7 @@ import {
 	Delay, Trim, PlaybackRate, SourceFrameRate,
 	Playback, Sequential, Transition, ClipHeight, Expanded,
 	Volume, Muted,
-	KeyframeTrack, Keyframe, Animation, Stage,
+	KeyframeTrack, Keyframe, Animation, Marker, Stage,
 } from '../traits';
 import { createEntity } from '../actions/entities';
 import { formatPath, parsePath } from '../math/path';
@@ -178,6 +178,9 @@ export interface EntityRecord {
 	};
 	KeyframeTrack?: {
 		property?: string;
+	};
+	Marker?: {
+		time?: number;
 	};
 	Keyframe?: {
 		time?: number;
@@ -434,6 +437,9 @@ export function serializeEntity(entity: Entity): EntityRecord {
 	if (entity.has(KeyframeTrack)) {
 		// `target` is rebuilt from ChildOf when tracks are aggregated after load.
 		record.KeyframeTrack = { property: entity.get(KeyframeTrack)!.property };
+	}
+	if (entity.has(Marker)) {
+		record.Marker = { time: entity.get(Marker)!.time };
 	}
 	if (entity.has(Keyframe)) {
 		const keyframe = entity.get(Keyframe)!;
@@ -722,6 +728,10 @@ export function deserializeEntity(entity: Entity, e: Partial<EntityRecord>): voi
 	if (e.KeyframeTrack !== undefined) {
 		entity.add(KeyframeTrack);
 		entity.set(KeyframeTrack, defined(e.KeyframeTrack));
+	}
+	if (e.Marker !== undefined) {
+		entity.add(Marker);
+		entity.set(Marker, defined(e.Marker));
 	}
 	if (e.Keyframe !== undefined) {
 		const { path, ...keyframe } = e.Keyframe;

@@ -44,6 +44,7 @@ export default function Project() {
 | [media.md](./media.md) | `src` resolution (paths, URLs, asset ids), image sequences, adding an asset to the library |
 | [timing.md](./timing.md) | `start` / `end` / `sourceIn` / `sourceOut` / `playbackRate`, time formats |
 | [keyframes.md](./keyframes.md) | Keyframe animation and easing |
+| [markers.md](./markers.md) | `<marker>`: flags on the scene's ruler to find a moment by |
 | [animations.md](./animations.md) | `<animation>`: preset in/out animations |
 | [transitions.md](./transitions.md) | The `transition` prop on sequence clips |
 | [sequences.md](./sequences.md) | `<sequence>` sequential placement |
