@@ -20,7 +20,10 @@ export function TrackSlot() {
  */
 export function TrackToggle(props: {
   label: string;
-  on: boolean;
+  /** Whether the switch is on; left out for a button that does something rather than being on or off. */
+  on?: boolean;
+  /** The keys it has, for its tooltip. */
+  shortcut?: string;
   /** How the switch looks when it is on: the solo is the one that quietens everything else, so it stands out. */
   tone?: 'solo';
   /** Hidden until the row is hovered, unless it is on: for the rows below the tracks. */
@@ -46,7 +49,7 @@ export function TrackToggle(props: {
         {props.children}
       </TooltipTrigger>
       <TooltipPortal>
-        <TooltipContent>{props.label}</TooltipContent>
+        <TooltipContent shortcut={props.shortcut}>{props.label}</TooltipContent>
       </TooltipPortal>
     </Tooltip>
   );

@@ -31,6 +31,39 @@ export function setEditingMode(world: World, value: boolean): void {
 	else world.add(EditingMode({ value }));
 }
 
+const SNAPPING_KEY = 'blackout:timeline-snapping';
+
+/**
+ * Whether a dragged edge sticks to what is near it (the playhead, the edges of
+ * other clips). A switch of the timeline, as in Premiere, rather than a part
+ * of the project: it is kept between sessions and never written to the file.
+ */
+export const Snapping = trait({ value: true });
+
+/** What the switch was left at: on, until it is turned off. */
+export function storedSnapping(): boolean {
+	try {
+		return globalThis.localStorage?.getItem(SNAPPING_KEY) !== 'off';
+	} catch {
+		return true;
+	}
+}
+
+export const isSnapping = (world: World): boolean => world.get(Snapping)?.value ?? true;
+
+export function setSnapping(world: World, value: boolean): void {
+	if (world.has(Snapping)) world.set(Snapping, { value });
+	else world.add(Snapping({ value }));
+
+	try {
+		globalThis.localStorage?.setItem(SNAPPING_KEY, value ? 'on' : 'off');
+	} catch {
+		// Not kept: the switch still works for this session.
+	}
+}
+
+export const toggleSnapping = (world: World): void => setSnapping(world, !isSnapping(world));
+
 export function setTimelineTool(world: World, value: TimelineToolType): void {
 	if (world.has(TimelineTool)) world.set(TimelineTool, { value });
 	else world.add(TimelineTool({ value }));

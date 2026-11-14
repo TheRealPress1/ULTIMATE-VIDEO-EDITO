@@ -26,6 +26,7 @@ import {
 import { Or } from 'koota';
 
 import { SNAP_DISTANCE } from './config';
+import { isSnapping } from './tool';
 import { framesToPixels, getCurrentFrame } from './view';
 
 import type { Entity, World } from 'koota';
@@ -40,7 +41,7 @@ const NODES = Or(Geometry, Group, AdjustmentLayer);
  */
 export function getSnapFrames(world: World): number[] {
 	const scene = getActiveEntity(world);
-	if (scene === null) return [];
+	if (scene === null || !isSnapping(world)) return [];
 
 	const computed = store(world, Computed);
 

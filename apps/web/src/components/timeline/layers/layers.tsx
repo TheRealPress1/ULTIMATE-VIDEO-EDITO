@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipPortal, TooltipTrigger } from '@/components/ui/tooltip';
 import { CommandContextMenu, TIMELINE_HEADER_MENU } from '@/components/commands';
-import { DEFAULT_CLIP_HEIGHT, RULER_HEIGHT } from '@/engine/timeline';
+import { DEFAULT_CLIP_HEIGHT, RULER_HEIGHT, Snapping, toggleSnapping, zoomTimelineToFit } from '@/engine/timeline';
 import { splitAtPlayhead } from '@/engine/split';
 import { useDerived, useEditor, useTimelineIndex } from '@/engine/hooks';
 import { useTimeline } from '@/context/timeline';
@@ -44,6 +44,7 @@ import { useLayout } from '@/context/layout';
 import { store } from '@/init';
 import { createStoredSignal } from '@/lib/store';
 import { Layer } from './layer';
+import { TrackToggle } from './track-toggle';
 import { LayerContextProvider } from './context';
 import { DropIndicator } from './drop-indicator';
 import { formatFrames, TIME_FORMAT_OPTIONS, type TimeFormat } from '../time-format';
@@ -72,6 +73,7 @@ export function Layers() {
 
   const frameRate = useTrait(world, FrameRate);
   const playback = useTrait(scene, Playback);
+  const snapping = useTrait(world, Snapping);
   const now = useDerived(() => scene()?.get(Computed)?.localTime ?? 0);
 
   const [timeFormat, setTimeFormat] = createStoredSignal(
@@ -153,13 +155,13 @@ export function Layers() {
       >
         <CommandContextMenu
           layout={TIMELINE_HEADER_MENU}
-          class="w-full z-10 flex flex-row gap-1 pl-2 pr-3 items-center text-muted-foreground select-none"
+          class="w-full z-10 flex flex-row gap-0.5 pl-1.5 pr-2 items-center text-muted-foreground select-none"
           onDblClick={handleHeaderDoubleClick}
         >
           <Tooltip placement="top">
             <TooltipTrigger<typeof Button>
               as={(triggerProps) => (
-                <Button {...triggerProps} variant="ghost" size="icon" onClick={handlePlay} aria-label={playback()?.playing ? 'Pause preview' : 'Play preview'}>
+                <Button {...triggerProps} variant="ghost" size="icon" class="size-[22px]" onClick={handlePlay} aria-label={playback()?.playing ? 'Pause preview' : 'Play preview'}>
                   <Show when={playback()?.playing} fallback={<Icon name="play" />}>
                     <Icon name="pause" />
                   </Show>
@@ -175,7 +177,7 @@ export function Layers() {
           <Tooltip placement="top">
             <TooltipTrigger<typeof Button>
               as={(triggerProps) => (
-                <Button {...triggerProps} variant="ghost" size="icon" onClick={toggleLooping} aria-label={playback()?.loop ? 'Disable loop' : 'Enable loop'} aria-pressed={playback()?.loop ?? false}>
+                <Button {...triggerProps} variant="ghost" size="icon" class="size-[22px]" onClick={toggleLooping} aria-label={playback()?.loop ? 'Disable loop' : 'Enable loop'} aria-pressed={playback()?.loop ?? false}>
                   <Show when={playback()?.loop} fallback={<Icon name="controls-no-loop" />}>
                     <Icon name="controls-loop" />
                   </Show>
@@ -192,7 +194,7 @@ export function Layers() {
             <Tooltip placement="top">
               <TooltipTrigger<typeof Button>
                 as={(triggerProps) => (
-                  <Button {...triggerProps} variant="ghost" size="icon" onClick={() => splitAtPlayhead(world)} aria-label="Split at playhead">
+                  <Button {...triggerProps} variant="ghost" size="icon" class="size-[22px]" onClick={() => splitAtPlayhead(world)} aria-label="Split at playhead">
                     <Icon name="split" />
                   </Button>
                 )}
@@ -201,6 +203,12 @@ export function Layers() {
                 <TooltipContent shortcut="⌘B">Split at playhead</TooltipContent>
               </TooltipPortal>
             </Tooltip>
+            <TrackToggle label="Snapping" shortcut="S" on={snapping()?.value ?? true} onClick={() => toggleSnapping(world)}>
+              <Icon name="snap" />
+            </TrackToggle>
+            <TrackToggle label="Zoom to fit" shortcut={'\\'} onClick={() => zoomTimelineToFit(world)}>
+              <Icon name="zoom-fit" />
+            </TrackToggle>
             <DropdownMenu>
               <Tooltip placement="top">
                 <TooltipTrigger<typeof DropdownMenuTrigger>
@@ -208,7 +216,7 @@ export function Layers() {
                     <DropdownMenuTrigger<typeof Button>
                       {...triggerProps}
                       as={(buttonProps) => (
-                        <Button {...buttonProps} variant="ghost" size="icon" aria-label="Timeline options">
+                        <Button {...buttonProps} variant="ghost" size="icon" class="size-[22px]" aria-label="Timeline options">
                           <Icon name="more-three-dots" />
                         </Button>
                       )}

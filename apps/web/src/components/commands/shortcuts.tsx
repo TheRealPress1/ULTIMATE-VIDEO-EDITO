@@ -18,6 +18,7 @@ import {
   togglePlayback,
 } from "@diffusionstudio/runtime";
 import { useCommand } from "@/context/commands";
+import { toggleSnapping, zoomTimelineIn, zoomTimelineOut, zoomTimelineToFit } from "@/engine/timeline";
 import { clipboardHasMedia } from "@/lib/clipboard";
 import {
   applySelectionAsMask,
@@ -294,6 +295,45 @@ const SHORTCUTS: Shortcut[] = [
     keywords: ["jump", "clip", "out point"],
     run: (world) => seekToSelectionEdge(world, "end"),
     available: selectedClips,
+  },
+  {
+    id: "toggle-snapping",
+    title: "Snapping",
+    group: "Timeline",
+    icon: "snap",
+    keys: ["S"],
+    keywords: ["snap", "magnet", "stick", "align"],
+    run: toggleSnapping,
+  },
+  {
+    id: "zoom-timeline-fit",
+    title: "Zoom timeline to fit",
+    group: "Timeline",
+    icon: "zoom-fit",
+    keys: ["\\"],
+    keywords: ["zoom", "fit", "whole", "scene", "sequence"],
+    run: zoomTimelineToFit,
+    available: activeScene,
+  },
+  {
+    id: "zoom-timeline-in",
+    title: "Zoom timeline in",
+    group: "Timeline",
+    icon: "plus-add",
+    keys: ["="],
+    keywords: ["zoom", "closer", "magnify"],
+    run: zoomTimelineIn,
+    available: activeScene,
+  },
+  {
+    id: "zoom-timeline-out",
+    title: "Zoom timeline out",
+    group: "Timeline",
+    icon: "minus",
+    keys: ["-"],
+    keywords: ["zoom", "further", "shrink"],
+    run: zoomTimelineOut,
+    available: activeScene,
   },
   {
     id: "split",

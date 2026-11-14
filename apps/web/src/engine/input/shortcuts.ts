@@ -50,7 +50,8 @@ import { beginPathEdit, deletePickedVertex, endPathEdit, finishPen, isPathEditin
 import { splitAtPlayhead } from '../split';
 import { rippleDeleteSelection } from '../ripple';
 import { clearMarks, markIn, markOut } from '../marks';
-import { isEditing, setTimelineTool } from '../timeline/tool';
+import { isEditing, setTimelineTool, toggleSnapping } from '../timeline/tool';
+import { zoomTimelineIn, zoomTimelineOut, zoomTimelineToFit } from '../timeline/zoom';
 import { Keys, MODIFIER_KEYS, ObjectMaskTool, Pointer } from '../traits';
 import { editTransform } from './interactions';
 
@@ -591,6 +592,12 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['i', '!mod', '!alt'], action: markIn },
 	{ keys: ['o', '!mod', '!alt'], action: markOut, active: isEditing },
 	{ keys: ['x', 'alt', '!mod'], action: clearMarks },
+	// The timeline's own keys, as an editor has them: S snaps (it seeks a second back on the Board) and \ takes in the whole scene (it selects parents there).
+	{ keys: ['s', '!mod', '!alt'], action: toggleSnapping, active: isEditing },
+	{ keys: ['\\', '!mod'], action: zoomTimelineToFit, active: isEditing },
+	{ keys: ['=', '!mod'], action: zoomTimelineIn },
+	{ keys: ['+', '!mod'], action: zoomTimelineIn },
+	{ keys: ['-', '!mod'], action: zoomTimelineOut },
 	{ keys: ['o', '!mod'], action: selectTool(ToolType.ELLIPSE) },
 	{ keys: ['p', '!mod'], action: selectTool(ToolType.PEN), active: (world) => !objectMaskTool(world) },
 	{ keys: ['m', '!mod'], action: selectTool(ToolType.OBJECT_MASK) },
