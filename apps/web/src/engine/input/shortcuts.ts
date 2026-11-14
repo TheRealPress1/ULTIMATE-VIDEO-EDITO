@@ -389,17 +389,26 @@ export function toggleSelectionMuted(world: World): void {
 }
 
 /**
- * Solos the first selected node, or takes the solo off it. Solo is
- * monitoring rather than composition, so it is the trait alone, never an
- * edit, and only one node holds it (as the layer list's solo button has it).
+ * Gives the solo to a node that has not got it, or takes it off one that has.
+ * Solo is monitoring rather than composition (what you want to hear right
+ * now, which the file has nothing to say about), so it is the trait alone,
+ * never an edit. Any number of nodes can hold it, a track with the clips on
+ * it, and they are heard together (see `audibleWhileSoloed`).
  */
-export function toggleSelectionSoloed(world: World): void {
-	const [entity] = world.query(Selected, NODES);
-	if (entity === undefined) return;
+export function toggleSoloed(entity: Entity): void {
+	if (entity.has(Soloed)) entity.remove(Soloed);
+	else entity.add(Soloed);
+}
 
-	const wasSoloed = entity.has(Soloed);
-	for (const other of world.query(Soloed)) other.remove(Soloed);
-	if (!wasSoloed) entity.add(Soloed);
+/** Solos the selection, or takes the solo off it once all of it is soloed, as `toggleSelectionMuted` does for the mute. */
+export function toggleSelectionSoloed(world: World): void {
+	const selected = [...world.query(Selected, NODES)];
+	if (!selected.length) return;
+
+	const solo = selected.some((entity) => !entity.has(Soloed));
+	for (const entity of selected) {
+		if (solo !== entity.has(Soloed)) toggleSoloed(entity);
+	}
 }
 
 /**

@@ -13,13 +13,14 @@ import { store } from '../world/store';
 import { PaintType } from '../constants';
 import {
 	ChildOf, Hidden, Culled, Dragging, AssetId, Mask,
-	Geometry, Group, AdjustmentLayer, Paint, Audio, Caption, Muted, Soloed,
+	Geometry, Group, AdjustmentLayer, Paint, Audio, Caption, Muted,
 	Sequential, Transition, Playback, Workarea,
 	AudioPlayback, Computed,
 	AudioDecoderHandle, AudioBusHandle, CaptionDecoderHandle, Host,
 	Mode, Silent, FrameRate, Time, AudioEngine, FramePromises, Tickers,
 	Root,
 } from '../traits';
+import { audibleWhileSoloed } from '../queries/audible';
 import { getMaskContainers, getParentNode } from '../queries/hierarchy';
 import { getIntrinsicPaint, getSourceWindow } from '../utils/time';
 import { clamp } from '../math/common';
@@ -513,25 +514,12 @@ export function playbackSystem(world: World): void {
 	}
 
 	// Sync audio buses
-	let soloed: Set<Entity> | null = null;
-	for (const entity of world.query(AudioBusHandle)) {
-		entity.get(AudioBusHandle)?.sync();
-		if (!entity.has(Soloed)) continue;
+	for (const entity of world.query(AudioBusHandle)) entity.get(AudioBusHandle)?.sync();
 
-		if (soloed === null) {
-			soloed = new Set();
-		}
-
-		for (const ancestor of collectAncestors(entity)) {
-			soloed.add(ancestor);
-		}
-	}
-
-	if (soloed) {
+	const audible = audibleWhileSoloed(world);
+	if (audible) {
 		for (const entity of world.query(AudioBusHandle)) {
-			if (!soloed.has(entity)) {
-				entity.get(AudioBusHandle)?.mute();
-			}
+			if (!audible.has(entity)) entity.get(AudioBusHandle)?.mute();
 		}
 	}
 
