@@ -156,6 +156,8 @@ npm run lint
 npm run build
 ```
 
+To work on Blackout, start with [CONTRIBUTING.md](CONTRIBUTING.md): it covers running a development copy without touching an installed Blackout's data, and how pull requests work.
+
 ### Standalone macOS build
 
 Build the speech engine once with `npm run setup:speech`, then run `SKIP_SIGN=1 npm run make`. On Apple Silicon this produces `apps/desktop/out/Blackout-darwin-arm64/Blackout.app`, `apps/desktop/out/make/Blackout-arm64.dmg`, and a ZIP under `out/make/zip/darwin/arm64/`. Open the DMG and drag Blackout to Applications. Launch it from Applications, Spotlight, or the Dock; no development server or separate Node installation is needed for editing, captions, or export.

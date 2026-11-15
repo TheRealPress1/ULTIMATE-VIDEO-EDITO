@@ -15,6 +15,7 @@ import { get } from "node:http";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { npm } from "./lib/npm.mjs";
+import { forgeStartArgs, hasOwnProfile } from "./lib/dev-args.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const BIN = join(ROOT, "node_modules", ".bin");
@@ -189,4 +190,10 @@ try {
 console.log("[dev:desktop] building desktop app…");
 npm(["run", "build", "--workspace=@diffusionstudio/desktop"]);
 console.log("[dev:desktop] starting desktop app…");
-run("desktop", "electron-forge", ["start"], join(ROOT, "apps", "desktop"));
+// What follows `npm run dev:desktop --` goes to the app. Without a data folder of its own, this run reads and writes
+// the same chats, settings and saved keys as an installed Blackout.
+const appArgs = process.argv.slice(2);
+if (!hasOwnProfile(appArgs)) {
+  console.log("[dev:desktop] note: this run shares the normal Blackout data folder. For a separate one: npm run dev:desktop -- --user-data-dir=/absolute/path");
+}
+run("desktop", "electron-forge", forgeStartArgs(appArgs), join(ROOT, "apps", "desktop"));
