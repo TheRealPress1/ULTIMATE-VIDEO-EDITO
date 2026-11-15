@@ -9,6 +9,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/auth";
+import { startFeedback } from "@/lib/feedback";
 
 export function HelpMenu() {
   const auth = useAuth();
@@ -39,9 +40,8 @@ export function HelpMenu() {
       <DropdownMenuSeparator />
 
       <DropdownMenuGroup>
-        <DropdownMenuItem as="a" href="https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/issues" target="_blank">
-          Report issue
-        </DropdownMenuItem>
+        {/* The dialog when feedback is set up on this Mac, the public issues page when not; after the menu has closed. */}
+        <DropdownMenuItem onSelect={() => queueMicrotask(() => void startFeedback())}>Report issue</DropdownMenuItem>
         <DropdownMenuItem onSelect={copyUserId}>Copy user id</DropdownMenuItem>
         <DropdownMenuItem as="a" href="https://github.com/diffusionstudio/editor" target="_blank">
           Upstream documentation

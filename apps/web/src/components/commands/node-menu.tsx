@@ -83,10 +83,11 @@ export const TIMELINE_MENU: NodeMenuLayout = {
     CLIPBOARD,
     ["shortcut:split"],
     STRUCTURE,
-    ["shortcut:bring-to-front", "shortcut:send-to-back", "shortcut:toggle-hidden", "toggle-muted", "toggle-soloed"],
+    ["shortcut:bring-to-front", "shortcut:send-to-back", "shortcut:toggle-hidden", "toggle-muted", "toggle-soloed", "toggle-locked"],
+    ["add-video-track", "add-audio-track"],
     MEDIA,
   ],
-  empty: [["shortcut:paste"]],
+  empty: [["shortcut:paste"], ["add-video-track", "add-audio-track"]],
 };
 
 /**

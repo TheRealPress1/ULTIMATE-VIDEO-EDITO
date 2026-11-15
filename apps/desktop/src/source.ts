@@ -31,7 +31,9 @@ const COMPOSITION_COMPONENTS = new Map<string, string>(
 // keeps its composition meaning. `<mask>` and `<clipPath>` are SVG containers
 // too, but as such they only ever sit in an `<svg>`, so they are not counted
 // as one: a composition `<mask>` keeps the shapes under it composition ones.
-const AMBIGUOUS_SVG_TAGS: ReadonlySet<string> = new Set(["rect", "ellipse", "polygon", "path", "text", "image", "mask", "clipPath"]);
+// `<marker>` is both: a flag on the ruler under a `<scene>`, an arrowhead in
+// an `<svg>`, where it is also one of the containers below.
+const AMBIGUOUS_SVG_TAGS: ReadonlySet<string> = new Set(["rect", "ellipse", "polygon", "path", "text", "image", "mask", "clipPath", "marker"]);
 const SVG_CONTAINERS: ReadonlySet<string> = new Set([
   "svg", "g", "defs", "symbol", "marker", "pattern",
   "filter", "linearGradient", "radialGradient", "textPath", "tspan", "switch",

@@ -57,6 +57,7 @@ Sub-entity children of the node (or paint) that holds them. See [styles.md](./st
 | `<animation>` | One preset in/out animation of the node holding it. |
 | `<keyframeTrack>` | The keyframes of one prop of the element holding it. |
 | `<keyframe>` | One keyframe of the track holding it. |
+| `<marker>` | A flag on the ruler of the scene holding it, at a time, with a name and a color. No row, nothing drawn in the frame. See [markers.md](./markers.md). |
 
 User-defined components are ordinary Solid components; they compose the elements above and carry no runtime cost. Only the elements above produce entities.
 
@@ -132,3 +133,5 @@ Three more props are written by the editor and read back on the next mount. They
 | `expanded` | `boolean` | Whether the timeline shows the element's keyframe rows below its clip. Absent means collapsed. |
 
 Write them or delete them freely; the editor rewrites its own.
+
+`locked` is written by the editor's padlock too, and unlike those three it is a request. The editor makes no hand edit to a locked element or to anything under it (on a [`<sequence>`](./sequences.md#tracks), the track's lock) until it is unlocked. Nothing rendered or exported depends on it, and nothing in the file is stopped by it: when a person has locked a track or a clip, leave it as it is unless you are asked to change it.

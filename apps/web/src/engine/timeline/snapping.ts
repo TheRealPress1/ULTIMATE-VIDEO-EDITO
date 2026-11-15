@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * What a dragged edge sticks to: the start of the scene, the playhead, and
- * the edges of every clip that is not moving. Worked out in frames rather
+ * What a dragged edge sticks to: the start of the scene, the playhead, the
+ * markers, and the edges of every clip that is not moving. Worked out in frames rather
  * than pixels — a frame is what the timeline is actually made of, and
  * rounding to pixels and back makes a clip jitter by a frame either side of
  * the snap at fractional zooms.
@@ -25,7 +25,9 @@ import {
 } from '@diffusionstudio/runtime';
 import { Or } from 'koota';
 
+import { getMarkers, markerFrame } from '../markers';
 import { SNAP_DISTANCE } from './config';
+import { isSnapping } from './tool';
 import { framesToPixels, getCurrentFrame } from './view';
 
 import type { Entity, World } from 'koota';
@@ -40,7 +42,7 @@ const NODES = Or(Geometry, Group, AdjustmentLayer);
  */
 export function getSnapFrames(world: World): number[] {
 	const scene = getActiveEntity(world);
-	if (scene === null) return [];
+	if (scene === null || !isSnapping(world)) return [];
 
 	const computed = store(world, Computed);
 
@@ -54,8 +56,9 @@ export function getSnapFrames(world: World): number[] {
 		for (const descendant of descendantsOf(world, entity)) excluded.add(descendant);
 	}
 
-	// The beginning of the scene and the playhead are always worth landing on.
+	// The beginning of the scene and the playhead are always worth landing on, and so is a marker.
 	const frames = new Set<number>([0, getCurrentFrame(world, scene)]);
+	for (const marker of getMarkers(world, scene)) frames.add(markerFrame(marker));
 
 	for (const entity of descendantsOf(world, scene)) {
 		if (excluded.has(entity) || entity.has(Selected)) continue;

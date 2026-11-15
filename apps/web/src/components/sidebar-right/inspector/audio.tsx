@@ -14,6 +14,7 @@ import { useHas, useTrait, useWorld } from "@diffusionstudio/koota-solid";
 import { AudioBusHandle, Computed, Muted, Soloed } from "@diffusionstudio/runtime";
 import { useDerived, useEditor } from "@/engine/hooks";
 import { syncKeyframe } from "@/engine/keyframes";
+import { toggleSoloed as toggleEntitySoloed } from "@/engine/input/shortcuts";
 
 import type { Entity } from "koota";
 
@@ -270,10 +271,7 @@ export function AudioSettings(props: AudioSettingsProps) {
     editor.editProperty(entity(), "muted", !muted());
   };
 
-  const toggleSoloed = () => {
-    if (soloed()) entity().remove(Soloed);
-    else entity().add(Soloed);
-  };
+  const toggleSoloed = () => toggleEntitySoloed(entity());
 
   createEffect(() => {
     const bus = audioBus();

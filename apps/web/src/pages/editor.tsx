@@ -4,8 +4,10 @@
 
 import { Show, createMemo, createSignal, onMount } from "solid-js";
 import { Canvas } from "@/components/canvas";
-import { ChatPanel, sidebarTab, setSidebarTab } from "@/agent-chat";
-import { AppSidebar } from "@/components/app-sidebar";
+import { ChatPanel, projectTab, setSidebarTab } from "@/agent-chat";
+import { TopBar } from "@/components/top-bar/top-bar";
+import { SceneSwitch } from "@/components/top-bar/scene-switch";
+import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
 import { Footage } from "@/components/sidebar-left/footage";
 import { Icon } from "@/components/ui/icon";
@@ -13,9 +15,11 @@ import { useExport } from "@/context/export";
 import { assetSystem, getActiveEntity, transformSystem } from "@diffusionstudio/runtime";
 import { beginEditorLoad } from '@/dapi/session';
 import { Timeline, Layers } from "@/components/timeline";
+import { TimelineTools } from '@/components/timeline/timeline-tools';
 import { Soundboard, Inspector } from "@/components/sidebar-right";
-import { EditorTitleBar, FloatingProjectHeader, ProjectHeader } from "@/components/sidebar-left";
-import { useLayout, MIN_TIMELINE_HEIGHT } from "@/context/layout";
+import { EditorTitleBar, FloatingProjectHeader } from "@/components/sidebar-left";
+import { DraftBadge, ProjectNameInput } from "@/components/sidebar-left/sidebar-left";
+import { useLayout, MIN_PROJECT_PANEL_HEIGHT, MIN_TIMELINE_HEIGHT } from "@/context/layout";
 import { RULER_HEIGHT } from "@/engine/timeline";
 import { createEffect, onCleanup, untrack } from 'solid-js';
 import { toast } from 'somoto';
@@ -49,7 +53,7 @@ const MIN_CANVAS_HEIGHT = 200;
 const INSPECTOR_WIDTH = 264;
 
 export function EditorPage() {
-  const { uiVisible, timelineMinimized, timelineHeight, setTimelineHeight } = useLayout();
+  const { uiVisible, timelineMinimized, timelineHeight, setTimelineHeight, projectPanelHeight, setProjectPanelHeight } = useLayout();
   const [resizing, setResizing] = createSignal(false);
   const project = useProject();
   const world = useWorld();
@@ -60,7 +64,7 @@ export function EditorPage() {
   const [resizingConversation, setResizingConversation] = createSignal(false);
   const [footageOpened, setFootageOpened] = createSignal(false);
   createEffect(() => {
-    if (sidebarTab() === "footage") setFootageOpened(true);
+    if (projectTab() === "footage") setFootageOpened(true);
   });
   onMount(() => setSidebarTab("chat"));
 
@@ -98,6 +102,34 @@ export function EditorPage() {
   };
   onCleanup(() => stopConversationResize?.());
 
+  // The divider under the agent: dragging it up gives the project panel more of the column.
+  const [resizingProject, setResizingProject] = createSignal(false);
+  let stopProjectResize: (() => void) | undefined;
+  const handleProjectResize = (event: PointerEvent) => {
+    event.preventDefault();
+    const column = (event.currentTarget as HTMLElement).parentElement!;
+    const start = event.clientY;
+    const height = projectPanelHeight();
+    stopProjectResize?.();
+    setResizingProject(true);
+    const move = (next: PointerEvent) => {
+      const maximum = Math.max(MIN_PROJECT_PANEL_HEIGHT, column.clientHeight - 220);
+      setProjectPanelHeight(Math.round(Math.max(MIN_PROJECT_PANEL_HEIGHT, Math.min(maximum, height - (next.clientY - start)))));
+    };
+    const stop = () => {
+      setResizingProject(false);
+      document.removeEventListener("pointermove", move);
+      document.removeEventListener("pointerup", stop);
+      document.removeEventListener("pointercancel", stop);
+      stopProjectResize = undefined;
+    };
+    stopProjectResize = stop;
+    document.addEventListener("pointermove", move);
+    document.addEventListener("pointerup", stop);
+    document.addEventListener("pointercancel", stop);
+  };
+  onCleanup(() => stopProjectResize?.());
+
   // Everything below holds the folder's path — the watcher, the library, the
   // writer — and is torn down with the editor.
   createEffect(() => {
@@ -108,6 +140,8 @@ export function EditorPage() {
     let mountedCode: string | undefined;
     let writer: EditWriter | undefined;
     let unlisten: (() => void) | undefined;
+    // A drag asks on every pointer move; each refusal is said once.
+    const lastRefusal = { locked: 0, generated: 0 };
     let disposed = false;
     let generation = 0;
 
@@ -157,7 +191,15 @@ export function EditorPage() {
       // from here on an edit in the editor can find its way back.
       writer = createEditWriter(dir, world);
       const editor = getDocumentEditor(world);
-      unlisten = editor.onWrite((edit) => writer?.push(edit));
+      const stopWriting = editor.onWrite((edit) => writer?.push(edit));
+      const stopRefusing = editor.onRefuse((reason) => {
+        const now = Date.now();
+        if (now - lastRefusal[reason] < 3000) return;
+        lastRefusal[reason] = now;
+        if (reason === 'locked') toast.error('This is locked', { description: 'Unlock it with the padlock beside its name to edit it by hand.' });
+        else toast.error("This can't be edited by hand", { description: "The project's code generates it from a list, so one edit would change every copy. Ask the agent to change it." });
+      });
+      unlisten = () => { stopWriting(); stopRefusing(); };
       // A mount comes from the file: edits recorded against the document it
       // replaced cannot be replayed against this one.
       getEditHistory(world).reset();
@@ -272,7 +314,7 @@ export function EditorPage() {
     if (!uiVisible()) return { 'grid-template-columns': '1fr', 'grid-template-rows': '1fr' };
     const height = timelineMinimized() ? RULER_HEIGHT : timelineHeight();
     return {
-      'grid-template-columns': `184px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
+      'grid-template-columns': `34px 236px 1px minmax(0, 1fr)${inspectorOpen() ? ` ${INSPECTOR_WIDTH}px` : ""}`,
       'grid-template-rows': `minmax(0, 1fr) 1px ${height}px`,
     };
   });
@@ -305,16 +347,45 @@ export function EditorPage() {
   };
 
   return (
-    <div class="cutroom-app flex h-screen w-full min-h-0 overflow-hidden pt-(--titlebar-height)">
+    <div class="cutroom-app flex h-screen w-full min-h-0 flex-col overflow-hidden pt-(--titlebar-height)">
       <EditorTitleBar leftWidth={240} controlsWidth={INSPECTOR_WIDTH + 1} />
       <Show when={uiVisible()}>
-        <AppSidebar projectId={project.id()} />
+        <TopBar
+          projectId={project.id()}
+          center={<WorkspaceTabs />}
+          end={
+            <>
+              <ProjectSafety />
+              <EditorTools />
+              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="cutroom-topnav-item cutroom-topnav-icon" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
+              <button type="button" class="cutroom-editor-export" disabled={exporting()} onClick={handleExport}>Export</button>
+            </>
+          }
+        >
+          <span class="cutroom-topbar-rule" aria-hidden="true" />
+          <ProjectNameInput class="cutroom-topbar-name w-auto field-sizing-content" />
+          <DraftBadge />
+          <SceneSwitch />
+        </TopBar>
+      </Show>
+      <div class="flex min-h-0 flex-1">
+      <Show when={uiVisible()}>
         <section class="cutroom-conversation" aria-label="Project conversation" style={{ width: `${conversationWidth()}px` }}>
-          <div classList={{ contents: sidebarTab() === "assets", hidden: sidebarTab() !== "assets" }}><Assets /></div>
-          <Show when={sidebarTab() === "chat"}><ChatPanel /></Show>
-          <Show when={footageOpened()}>
-            <div classList={{ contents: sidebarTab() === "footage", hidden: sidebarTab() !== "footage" }}><Footage /></div>
-          </Show>
+          <div class="cutroom-panel cutroom-panel-agent"><ChatPanel /></div>
+          <div
+            role="separator"
+            aria-label="Resize project panel"
+            aria-orientation="horizontal"
+            class="cutroom-row-resizer"
+            classList={{ "is-resizing": resizingProject() }}
+            onPointerDown={handleProjectResize}
+          />
+          <div class="cutroom-panel cutroom-panel-project" style={{ height: `${projectPanelHeight()}px` }}>
+            <div classList={{ contents: projectTab() === "assets", hidden: projectTab() !== "assets" }}><Assets /></div>
+            <Show when={footageOpened()}>
+              <div classList={{ contents: projectTab() === "footage", hidden: projectTab() !== "footage" }}><Footage /></div>
+            </Show>
+          </div>
         </section>
         <div
           role="separator"
@@ -335,19 +406,8 @@ export function EditorPage() {
         />
       </Show>
       <main class="cutroom-editor-workspace">
-        <Show when={uiVisible()}>
-          <header class="cutroom-editor-header">
-            <ProjectHeader class="cutroom-editor-project" />
-            <div class="cutroom-editor-actions">
-              <ProjectSafety />
-              <EditorTools />
-              <button type="button" aria-label={inspectorOpen() ? "Hide inspector" : "Show inspector"} title={inspectorOpen() ? "Hide inspector" : "Show inspector"} class="grid size-7 place-items-center text-muted-foreground hover:text-foreground" onClick={() => setInspectorOpen((open) => !open)}><Icon name="settings" /></button>
-              <button type="button" class="cutroom-editor-export" disabled={exporting()} onClick={handleExport}>Export</button>
-            </div>
-          </header>
-        </Show>
         <div class="cutroom-editor-grid" style={timelineStyles()}>
-          <div class="cutroom-editor-canvas" style={{ "grid-column": uiVisible() ? "1 / 4" : "1" }}><Canvas /><div class="absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"><PlaybackProxyStatus paused={exporting()} /></div></div>
+          <div class="cutroom-editor-canvas" style={{ "grid-column": uiVisible() ? "1 / 5" : "1" }}><Canvas /><div class="absolute left-3 top-3 z-20 max-w-[calc(100%-1.5rem)]"><PlaybackProxyStatus paused={exporting()} /></div></div>
           <Show when={uiVisible() && inspectorOpen()}>
             <div class="cutroom-editor-inspector"><Inspector /></div>
           </Show>
@@ -359,6 +419,7 @@ export function EditorPage() {
                 </div>
               </Show>
             </div>
+            <TimelineTools />
             <Layers />
             <div class="bg-border" />
             <Timeline />
@@ -368,6 +429,7 @@ export function EditorPage() {
           </Show>
         </div>
       </main>
+      </div>
       <Show when={!uiVisible() && !isWindowsDesktop()}><FloatingProjectHeader /></Show>
     </div>
   );

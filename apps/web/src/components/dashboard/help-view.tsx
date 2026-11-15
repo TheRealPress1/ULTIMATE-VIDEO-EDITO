@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { Show } from "solid-js";
+import { Show, onMount } from "solid-js";
 import { toast } from "somoto";
 
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { useAuth } from "@/context/auth";
+import { feedbackStatus, refreshFeedbackStatus, startFeedback } from "@/lib/feedback";
 
 import {
   DashboardLabelValue,
@@ -34,6 +35,28 @@ function DashboardHelpExternalRow(props: DashboardHelpExternalRowProps) {
   );
 }
 
+type DashboardHelpActionRowProps = {
+  label: string;
+  /** Whether it leaves the app, which the icon says. */
+  external: boolean;
+  onSelect: () => void;
+};
+
+function DashboardHelpActionRow(props: DashboardHelpActionRowProps) {
+  return (
+    <button
+      type="button"
+      class="flex h-4 w-full items-center gap-4 rounded-md text-xs text-foreground outline-none focus-ring"
+      onClick={props.onSelect}
+    >
+      <span class="min-w-0 flex-1 truncate text-left">
+        {props.label}
+      </span>
+      <Icon name={props.external ? "external-link" : "ask-chat"} class="text-foreground" />
+    </button>
+  );
+}
+
 type DashboardHelpUserIdRowProps = {
   value: string;
   onCopy: () => void;
@@ -57,6 +80,8 @@ function DashboardHelpUserIdRow(props: DashboardHelpUserIdRowProps) {
 export function DashboardHelpView() {
   const auth = useAuth();
   const userId = () => auth.user()?.id ?? "";
+  // "Report issue" opens the feedback dialog once feedback is set up on this Mac, and the public issues page until then.
+  onMount(() => void refreshFeedbackStatus());
 
   const copyUserId = async () => {
     const id = userId();
@@ -90,9 +115,10 @@ export function DashboardHelpView() {
           <Show when={userId()}>
             <DashboardHelpUserIdRow value={userId()} onCopy={copyUserId} />
           </Show>
-          <DashboardHelpExternalRow
+          <DashboardHelpActionRow
             label="Report issue"
-            href="https://github.com/TheRealPress1/ULTIMATE-VIDEO-EDITO/issues"
+            external={feedbackStatus()?.configured !== true}
+            onSelect={() => void startFeedback()}
           />
           <DashboardHelpExternalRow
             label="Upstream documentation"

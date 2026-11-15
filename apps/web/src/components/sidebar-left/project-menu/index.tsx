@@ -17,7 +17,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { useLocation, useNavigate } from "@solidjs/router";
-import { Show, onCleanup, onMount } from "solid-js";
+import { Show, onCleanup, onMount, type JSX } from "solid-js";
 import { isInputTarget } from "@/utils";
 import { useEditorApi } from "@/dapi";
 import { desktopAppPlatformLabel, downloadDesktopApp } from "@/lib/desktop-app";
@@ -30,7 +30,16 @@ import { ToolMenu } from "./tool-menu";
 import { AiCreditsMenu } from "./ai-credits-menu";
 import { HelpMenu } from "./help-menu";
 
-export function ProjectMenu() {
+type ProjectMenuProps = {
+  /** What the button shows: the logo and a chevron when omitted. */
+  children?: JSX.Element;
+  /** The button's own classes, for a trigger that brings its look with it (the sidebar's mark). */
+  class?: string;
+  /** Names a button that has no text, for screen readers and the tooltip. */
+  label?: string;
+};
+
+export function ProjectMenu(props: ProjectMenuProps) {
   const navigate = useNavigate();
   const location = useLocation<ProjectRouteState>();
   const { isDesktop } = useEditorApi();
@@ -82,12 +91,18 @@ export function ProjectMenu() {
         <DropdownMenuTrigger
           as="button"
           type="button"
-          class="flex items-center gap-0 h-7 rounded-md text-muted-foreground outline-none focus-ring hover:text-foreground data-expanded:text-foreground"
+          aria-label={props.label}
+          title={props.label}
+          class={props.class ?? "flex items-center gap-0 h-7 rounded-md text-muted-foreground outline-none focus-ring hover:text-foreground data-expanded:text-foreground"}
         >
-          <Icon name="diffusion-logo" />
-          <div class="flex items-center justify-center overflow-clip h-6 w-4">
-            <Icon name="chevron-down" />
-          </div>
+          {props.children ?? (
+            <>
+              <Icon name="diffusion-logo" />
+              <div class="flex items-center justify-center overflow-clip h-6 w-4">
+                <Icon name="chevron-down" />
+              </div>
+            </>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
           <DropdownMenuContent class="w-[196px]">

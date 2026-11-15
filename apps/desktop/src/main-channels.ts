@@ -23,6 +23,7 @@ import type { ReframeAnalysisRequest, ReframeAnalysisResult, ReframeAnalysisProg
 import type { VisualIndexRequest, VisualIndexJob, VisualIndexResult, VisualProgress } from './visual-types';
 import type { AudioFinishingRequest, AudioFinishingResult } from './audio-finishing-types';
 import type { UpdateStatus } from './update-types';
+import type { FeedbackComment, FeedbackConfigInput, FeedbackConnection, FeedbackListItem, FeedbackReport, FeedbackStatus, FeedbackSubmitResult, FeedbackThread } from './feedback-types';
 import type { DownloaderStatus } from './downloader/types';
 import type { InstagramAuthStatus, InstagramPublishDraft, InstagramPublishQueue } from './instagram-publishing-types';
 import type { InstagramAuthPoll } from './instagram-auth';
@@ -57,6 +58,18 @@ export const MAIN_CHANNELS = {
   UPDATES_STATUS: 'updates:status',
   UPDATES_CHECK: 'updates:check',
   UPDATES_INSTALL: 'updates:install',
+  // Send feedback and Settings → Feedback: reports go to a private GitHub repository; the access key never leaves the main process.
+  FEEDBACK_STATUS: 'feedback:status',
+  FEEDBACK_SAVE: 'feedback:save',
+  FEEDBACK_CLEAR_KEY: 'feedback:clear-key',
+  FEEDBACK_TEST: 'feedback:test',
+  FEEDBACK_CAPTURE: 'feedback:capture',
+  FEEDBACK_SUBMIT: 'feedback:submit',
+  FEEDBACK_LIST: 'feedback:list',
+  FEEDBACK_THREAD: 'feedback:thread',
+  FEEDBACK_REPLY: 'feedback:reply',
+  // Help > Send Feedback… in the native menu: the window opens its feedback form.
+  FEEDBACK_REQUEST: 'feedback:request',
   DOWNLOADER_STATUS: 'downloader:status',
   DOWNLOADER_CHECK: 'downloader:check',
   DOWNLOADER_REINSTALL: 'downloader:reinstall',
@@ -300,6 +313,16 @@ export type MainRequestMap = {
   [MAIN_CHANNELS.UPDATES_STATUS]: {request:void;response:UpdateStatus};
   [MAIN_CHANNELS.UPDATES_CHECK]: {request:void;response:UpdateStatus};
   [MAIN_CHANNELS.UPDATES_INSTALL]: {request:void;response:void};
+  [MAIN_CHANNELS.FEEDBACK_STATUS]: {request:void;response:FeedbackStatus};
+  [MAIN_CHANNELS.FEEDBACK_SAVE]: {request:FeedbackConfigInput;response:FeedbackStatus};
+  [MAIN_CHANNELS.FEEDBACK_CLEAR_KEY]: {request:void;response:FeedbackStatus};
+  [MAIN_CHANNELS.FEEDBACK_TEST]: {request:void;response:FeedbackConnection};
+  /** A JPEG data URL of the window that asked, or null when it cannot be captured. */
+  [MAIN_CHANNELS.FEEDBACK_CAPTURE]: {request:void;response:string|null};
+  [MAIN_CHANNELS.FEEDBACK_SUBMIT]: {request:FeedbackReport;response:FeedbackSubmitResult};
+  [MAIN_CHANNELS.FEEDBACK_LIST]: {request:void;response:FeedbackListItem[]};
+  [MAIN_CHANNELS.FEEDBACK_THREAD]: {request:{number:number};response:FeedbackThread};
+  [MAIN_CHANNELS.FEEDBACK_REPLY]: {request:{number:number;text:string};response:FeedbackComment};
   // Settings → Downloads: the managed yt-dlp's state, "Check for update" and "Reinstall".
   [MAIN_CHANNELS.DOWNLOADER_STATUS]: { request: void; response: DownloaderStatus };
   [MAIN_CHANNELS.DOWNLOADER_CHECK]: { request: void; response: DownloaderStatus };
@@ -584,6 +607,7 @@ export type MainRequestChannel = keyof MainRequestMap;
 
 export type MainEventMap = {
   [MAIN_CHANNELS.EDITOR_HISTORY]: { direction: 'undo' | 'redo' };
+  [MAIN_CHANNELS.FEEDBACK_REQUEST]: void;
   [MAIN_CHANNELS.PROJECTS_FLUSH_REQUEST]: {id: string};
   [MAIN_CHANNELS.SPEECH_PROGRESS]: SpeechProgress;
   [MAIN_CHANNELS.REFRAME_PROGRESS]: ReframeAnalysisProgress;

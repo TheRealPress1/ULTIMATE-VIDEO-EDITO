@@ -37,6 +37,7 @@ import type {
   ImageProps,
   KeyframeProps,
   KeyframeTrackProps,
+  MarkerProps,
   MediaPaintProps,
   PathProps,
   PolygonProps,
@@ -122,6 +123,7 @@ export const Mask = hostElement<MaskProps>("Mask");
 export const Animation = hostElement<AnimationProps>("Animation");
 export const KeyframeTrack = hostElement<KeyframeTrackProps>("KeyframeTrack");
 export const Keyframe = hostElement<KeyframeProps>("Keyframe");
+export const Marker = hostElement<MarkerProps>("Marker");
 export const HtmlPaint = hostElement<HtmlPaintProps>("HtmlPaint");
 export const Html = hostElement<HtmlProps>("Html");
 export const ShaderPaint = hostElement<ShaderPaintProps>("ShaderPaint");

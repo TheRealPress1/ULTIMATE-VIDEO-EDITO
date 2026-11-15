@@ -78,6 +78,17 @@ const profile: ReferenceProfile = {
   limitations: [],
 };
 describe("reference layout planning", () => {
+  it("leaves a marker as it is, with no position of its own to fit", () => {
+    const scene = tree();
+    scene.children.push({ tag: "marker", props: { id: "flag", time: 12, name: "Hook" }, children: [] });
+    const plan = planReferenceStyle(
+      scene,
+      collectReframeVideos(scene, () => asset),
+      profile,
+      30,
+    );
+    expect(plan.tree.children.at(-1)).toEqual({ tag: "marker", props: { time: 12, name: "Hook" }, children: [] });
+  });
   it("creates a new editable layout and preserves source words, clip timing and the original scene", () => {
     const scene = tree(),
       original = JSON.stringify(scene);

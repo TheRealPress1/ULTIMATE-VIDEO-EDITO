@@ -24,7 +24,7 @@ A scene is the **clipped, playable frame** a composition is made in, and the onl
 | `timeline` | `[zoom, x, y]` | absent | Where the scene's timeline is looking: `zoom` in pixels per second of timeline, horizontal scroll in seconds, vertical scroll in pixels. Absent means the default zoom, at the beginning. |
 | `playhead` | [time](./timing.md#time-formats) | absent | Where the playhead stands when the project is opened. Absent means the first frame. |
 
-A scene also takes paints as children, exactly as a `<rect>` does (see [paints.md](./paints.md)); `fill` is the shorthand for a solid one.
+A scene also takes paints as children, exactly as a `<rect>` does (see [paints.md](./paints.md)); `fill` is the shorthand for a solid one. It takes `<marker>` children too, flags on its ruler (see [markers.md](./markers.md)).
 
 What happens to the children when the frame is resized is theirs to say: see [`constrainX`/`constrainY`](./elements.md#constraints).
 

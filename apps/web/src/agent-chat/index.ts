@@ -11,6 +11,7 @@ export { SidebarTabs } from "./sidebar-tabs";
 export { ModelPicker, harnessIcon } from "./model-picker";
 export {
   leftSidebarWidth,
+  projectTab,
   sidebarTab,
   setSidebarTab,
   startChat,

@@ -61,7 +61,7 @@ export function ProjectMedia() {
     setOpen(false); navigate(projectRoute(projectKey(copy)));
   });
   return <>
-    <button class="rounded-md px-2 py-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={() => setOpen(true)}>Media</button>
+    <button class="cutroom-topnav-item" onClick={() => setOpen(true)}>Media</button>
     <Dialog open={open()} onOpenChange={(value) => { if (!busy()) setOpen(value); }}><DialogPortal><DialogContent class="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl" showCloseButton={!busy()}>
       <DialogHeader><DialogTitle>Project media</DialogTitle><DialogDescription>Keep your footage together and reconnect files that have moved.</DialogDescription></DialogHeader>
       <section class="space-y-3 rounded-lg border p-4">

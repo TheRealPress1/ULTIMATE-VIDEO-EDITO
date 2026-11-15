@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ emit: vi.fn(), focusedWindow: vi.fn(), windows: vi.fn(() => []), focusedContents: vi.fn(), setMenu: vi.fn(), buildMenu: vi.fn((template) => template) }));
 vi.mock('electron', () => ({ app: { name: 'UVE' }, BrowserWindow: { getFocusedWindow: mocks.focusedWindow, getAllWindows: mocks.windows, fromId: mocks.focusedWindow }, webContents: { getFocusedWebContents: mocks.focusedContents }, Menu: { setApplicationMenu: mocks.setMenu, buildFromTemplate: mocks.buildMenu } }));
 vi.mock('./main-manager', () => ({ mainBridge: { emit: mocks.emit } }));
-import { historyWindow, routeHistoryMenu, setupAppMenu } from './menu';
+import { historyWindow, routeFeedbackMenu, routeHistoryMenu, setupAppMenu } from './menu';
 import type { BrowserWindow, MenuItemConstructorOptions } from 'electron';
 function fixture(editable = false) {
   const contents = { isDestroyed: vi.fn(() => false), executeJavaScript: vi.fn(async () => editable), undo: vi.fn(), redo: vi.fn(), devToolsWebContents: undefined as unknown };
@@ -46,6 +46,35 @@ describe('native Undo/Redo routes', () => {
     expect(entries[0]).toMatchObject({ label: 'Undo', accelerator: 'CmdOrCtrl+Z', click: expect.any(Function) });
     expect(entries[1]).toMatchObject({ label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', click: expect.any(Function) });
     expect(entries[0]!.role).toBeUndefined(); expect(entries.some((item) => item.role === 'paste')).toBe(true);
+  });
+  it('puts Send Feedback… in a Help menu, which asks the window it was chosen in to open its feedback form', () => {
+    const f = fixture(); setupAppMenu(); const template = mocks.buildMenu.mock.calls[0]![0] as MenuItemConstructorOptions[];
+    const help = template.find((item) => item.role === 'help')!;
+    const entries = help.submenu as MenuItemConstructorOptions[];
+    expect(entries.map((item) => item.label)).toEqual(['Send Feedback…']);
+    // No accelerator: it must not take a key the editor uses.
+    expect(entries[0]!.accelerator).toBeUndefined();
+    entries[0]!.click!({} as never, f.window as never, {} as never);
+    expect(mocks.emit).toHaveBeenCalledWith(f.window, 'feedback:request', undefined);
+  });
+  it('sends the feedback request to the sole visible window when none is focused, and to no window it cannot name', () => {
+    const f = fixture(); mocks.focusedWindow.mockReturnValue(null);
+    mocks.windows.mockReturnValue([f.window] as never);
+    routeFeedbackMenu(); expect(mocks.emit).toHaveBeenCalledWith(f.window, 'feedback:request', undefined);
+    mocks.emit.mockClear();
+    mocks.windows.mockReturnValue([f.window, { isDestroyed: () => false, isVisible: () => true }] as never);
+    routeFeedbackMenu(); expect(mocks.emit).not.toHaveBeenCalled();
+    // A window that has closed is not sent anything, and with none left there is nowhere to send it.
+    mocks.windows.mockReturnValue([]);
+    (f.window.isDestroyed as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    routeFeedbackMenu(f.window); expect(mocks.emit).not.toHaveBeenCalled();
+  });
+  it('sends it to the window the menu was chosen in, even when another one has focus', () => {
+    const f = fixture(); const chosen = { isDestroyed: () => false, isVisible: () => true } as unknown as BrowserWindow;
+    routeFeedbackMenu(chosen);
+    expect(mocks.emit).toHaveBeenCalledOnce();
+    expect(mocks.emit).toHaveBeenCalledWith(chosen, 'feedback:request', undefined);
+    expect(mocks.emit).not.toHaveBeenCalledWith(f.window, 'feedback:request', undefined);
   });
   // `app.name` stays the internal name (the mock above says 'UVE'); the menu must say what people call the app.
   it.runIf(process.platform === 'darwin')('names the macOS app menu after the product, not the internal app name', () => {

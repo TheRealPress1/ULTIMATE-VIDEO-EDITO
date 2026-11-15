@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { app, autoUpdater, BrowserWindow, dialog, nativeImage, safeStorage, session, shell } from "electron";
+import { app, autoUpdater, BrowserWindow, dialog, nativeImage, net, safeStorage, session, shell } from "electron";
 import { basename, dirname, join } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { parseReleaseConfig, ReleaseUpdates } from './updates';
+import { FeedbackService } from './feedback';
+import { captureWindowJpeg } from './feedback-capture';
 import { collectProject, relinkProjectMedia } from './project-portability';
 import { withProjectLock, recoverProjectWrites } from './project-write-transactions';
 import { listProjectVersions, createProjectVersion, restoreProjectVersion, projectVersionFingerprint, recoverProjectVersionRestore, inspectProjectVersion, restoreProjectVersionLayer } from './project-versions';
@@ -162,6 +164,20 @@ function setColorMode(mode: "dark" | "light") {
 let rendererBusy = false;
 const openWrites = new AtomicFileWrites({ noteContent, beforeRename: noteRenamed,
   finalize:(temp,config,signal)=>finalizePcmExport(resolveAudioToolsPath(app.getAppPath()),temp,config,signal) });
+// Feedback reports go to a private GitHub repository chosen in Settings; the access key stays encrypted here (see feedback.ts).
+let feedbackService:FeedbackService|undefined;
+function feedback():FeedbackService{
+  return feedbackService??=new FeedbackService({
+    fetch:((input:string|URL|Request,init?:RequestInit)=>net.fetch(String(input),init)) as typeof fetch,
+    secure:safeStorage,
+    dir:join(app.getPath('userData'),'services'),
+    environment:()=>({
+      version:app.getVersion(),
+      os:`${process.platform==='darwin'?'macOS':process.platform==='win32'?'Windows':process.platform} ${process.getSystemVersion()}`,
+      arch:process.arch==='arm64'?'Apple silicon':process.arch==='x64'?'Intel':process.arch,
+    }),
+  });
+}
 let updatesPromise:Promise<ReleaseUpdates>|undefined;
 function releaseUpdates():Promise<ReleaseUpdates>{
   return updatesPromise??=(async()=>{
@@ -509,6 +525,15 @@ if (squirrelLaunch) {
     const window=windows.current();if(window)await flushRenderer(window);
     if(rendererBusy||openWrites.size)throw new Error('A file write started while saving. Finish it before restarting.');
   }));
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_STATUS, () => feedback().status());
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_SAVE, (input) => feedback().saveConfig(input));
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_CLEAR_KEY, () => feedback().clearKey());
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_TEST, () => feedback().test());
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_CAPTURE, (_none, event) => captureWindowJpeg(BrowserWindow.fromWebContents(event.sender)));
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_SUBMIT, (report) => feedback().submit(report));
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_LIST, () => feedback().list());
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_THREAD, ({ number }) => feedback().thread(number));
+  mainBridge.handle(MAIN_CHANNELS.FEEDBACK_REPLY, ({ number, text }) => feedback().reply(number, text));
   mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_STATUS, () => downloader.details());
   mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_CHECK, async () => { await downloader.checkNow(); return downloader.details(); });
   mainBridge.handle(MAIN_CHANNELS.DOWNLOADER_REINSTALL, async () => { await downloader.reinstall(); return downloader.details(); });

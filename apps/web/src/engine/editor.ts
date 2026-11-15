@@ -16,8 +16,11 @@ import { createRoot } from 'solid-js';
 
 import { authoredElement, authoredTree, getRuntimeDocument, insert, isSceneNode, renderAuthored, withDocument } from '@diffusionstudio/reconciler';
 
+import { isGenerated } from './generated';
 import { findInspectEntry } from './inspect';
+import { isLocked } from './locked';
 import { AssetSelection } from './traits';
+import { VIEW_PROPS } from './view-props';
 
 import type { SceneNode } from '@diffusionstudio/runtime';
 import type { InspectValue, PropValue } from '@diffusionstudio/jsx';
@@ -273,10 +276,18 @@ interface Clipboard {
 	parent?: string;
 }
 
+/**
+ * Why the editor will not make an edit: the element is locked, or sits on a
+ * locked track; or the project renders it more than once (see `isGenerated`),
+ * so one edit would change every copy.
+ */
+export type Refusal = 'locked' | 'generated';
+
 export class DocumentEditor {
 	private readonly world: World;
 	private readonly sinks = new Set<(edit: EntityEdit, external: boolean) => void>();
 	private readonly renames = new Set<(ids: Record<string, string>) => void>();
+	private readonly refusals = new Set<(reason: Refusal) => void>();
 	private clipboard: Clipboard = { trees: [] };
 	private external = false;
 
@@ -343,6 +354,53 @@ export class DocumentEditor {
 		};
 	}
 
+	/**
+	 * Listens for the edits the editor will not make (see `refuses`). Returns an
+	 * unsubscribe.
+	 */
+	public onRefuse(listener: (reason: Refusal) => void): () => void {
+		this.refusals.add(listener);
+		return () => {
+			this.refusals.delete(listener);
+		};
+	}
+
+	/**
+	 * Why an edit to `entity` would not be made, or null when it would. A lock
+	 * comes first, since it is the one the person can lift. `ignoring` leaves
+	 * a reason out: the lock is what unlocking asks past. What the file already
+	 * says is never refused (`applyExternal`).
+	 */
+	public blocked(entity: Entity, ignoring?: Refusal): Refusal | null {
+		if (this.external) return null;
+		if (ignoring !== 'locked' && isLocked(entity)) return 'locked';
+		if (ignoring !== 'generated' && isGenerated(this.world, entity)) return 'generated';
+		return null;
+	}
+
+	/**
+	 * Whether an edit to any of `entities` has to be refused, saying why to
+	 * whoever listens (`onRefuse`) when it does. A locked element is one the
+	 * person asked to keep out of hand edits. An element the project renders
+	 * more than once (see `isGenerated`) is one element in the file, so a write
+	 * to one instance would change every instance, and report itself saved. The
+	 * editor makes no edit to either and the file keeps what it says.
+	 */
+	public refuses(entities: Entity | Entity[], ignoring?: Refusal): boolean {
+		let reason: Refusal | null = null;
+		for (const entity of Array.isArray(entities) ? entities : [entities]) {
+			const why = this.blocked(entity, ignoring);
+			if (why === 'locked') {
+				reason = why;
+				break;
+			}
+			reason ??= why;
+		}
+
+		if (reason) for (const listener of [...this.refusals]) listener(reason);
+		return reason !== null;
+	}
+
 	private emit(edit: EntityEdit): void {
 		for (const sink of [...this.sinks]) sink(edit, this.external);
 	}
@@ -354,6 +412,7 @@ export class DocumentEditor {
 	 * carries `false`, the way every unset prop is spelled to the writer.
 	 */
 	public unsetProperty(entity: Entity, name: string): void {
+		if (!VIEW_PROPS.has(name) && this.refuses(entity, name === 'locked' ? 'locked' : undefined)) return;
 		const node = this.document.node(entity);
 		const previous = node.props[name];
 		this.document.setProperty(node, name, undefined);
@@ -362,6 +421,7 @@ export class DocumentEditor {
 
 	/** Writes a prop to the document and reports it. */
 	public editProperty(entity: Entity, name: string, value: PropValue): void {
+		if (!VIEW_PROPS.has(name) && this.refuses(entity, name === 'locked' ? 'locked' : undefined)) return;
 		const node = this.document.node(entity);
 		let previous = node.props[name];
 		// The stage keeps no authored record (see RuntimeDocument.setProperty),
@@ -398,6 +458,7 @@ export class DocumentEditor {
 	 * something the others do not.
 	 */
 	public editText(entity: Entity, text: string): void {
+		if (this.refuses(entity)) return;
 		const previous = entity.get(Chars)?.value ?? '';
 		this.document.setText(entity, text);
 		this.settle(entity);
@@ -417,6 +478,21 @@ export class DocumentEditor {
 	 * out, and the edit is not undoable.
 	 */
 	public reportEdit(entity: Entity, name: string, value: PropValue, previous?: unknown): void {
+		// What the editor will not change (see `blocked`) is not reported. The
+		// selection of a locked element is the person's own and goes on to the
+		// file; what one instance of a generated element says of its view is
+		// nothing the file can hold. Any other change is put back when the
+		// caller made it already and said what it was.
+		const ignoring = name === 'locked' ? 'locked' : undefined;
+		const reason = this.blocked(entity, ignoring);
+		if (reason !== null && !(reason === 'locked' && VIEW_PROPS.has(name))) {
+			if (reason === 'generated' && VIEW_PROPS.has(name)) return;
+			const restored = previous === false ? undefined : wireValue(previous);
+			if (previous === false || restored !== undefined) this.document.setProperty(this.document.node(entity), name, restored);
+			this.refuses(entity, ignoring);
+			return;
+		}
+
 		this.settle(entity);
 		const source = entity.get(Source)?.value;
 
@@ -610,7 +686,7 @@ export class DocumentEditor {
 	 * written under.
 	 */
 	public insertElement(parent: Entity, element: () => unknown, anchor?: Entity): Entity[] {
-		if (!parent.get(Source)?.value) return [];
+		if (!parent.get(Source)?.value || this.refuses(parent)) return [];
 		// A child of one iteration's element, not of every iteration's.
 		this.settle(parent);
 		if (anchor) this.settle(anchor);
@@ -677,6 +753,7 @@ export class DocumentEditor {
 	 * `active`: one entity holds it). Returns the copies' top-level entities.
 	 */
 	public duplicate(entities: Entity | Entity[]): Entity[] {
+		if (this.refuses(entities)) return [];
 		const copies: Entity[] = [];
 		for (const source of this.subtreeRoots(entities)) {
 			const tree = this.spell(source);
@@ -716,6 +793,7 @@ export class DocumentEditor {
 	 * pairs it made, in the order of the originals.
 	 */
 	public duplicateInPlace(entities: Entity | Entity[]): { original: Entity; copy: Entity }[] {
+		if (this.refuses(entities)) return [];
 		const pairs: { original: Entity; copy: Entity }[] = [];
 
 		for (const original of this.subtreeRoots(entities)) {
@@ -752,6 +830,7 @@ export class DocumentEditor {
 	 * empty element is not worth putting in the file.
 	 */
 	public wrap(entities: Entity | Entity[], element: () => unknown): Entity | null {
+		if (this.refuses(entities)) return null;
 		const roots = new Set(this.subtreeRoots(entities));
 		const first = [...roots][0];
 		if (!first) return null;
@@ -800,6 +879,7 @@ export class DocumentEditor {
 	 * or null when the node has no intrinsic media to remove.
 	 */
 	public removeIntrinsicPaint(node: Entity): Entity | null {
+		if (this.refuses(node)) return null;
 		const intrinsic = getIntrinsicPaint(node);
 		if (intrinsic !== PaintType.VIDEO && intrinsic !== PaintType.IMAGE) return null;
 
@@ -876,7 +956,7 @@ export class DocumentEditor {
 	 */
 	public paste(parent: Entity, anchor?: Entity): Entity[] {
 		const { trees, parent: copiedFrom } = this.clipboard;
-		if (!trees.length) return [];
+		if (!trees.length || this.refuses(parent)) return [];
 
 		if (parent.has(Sequential) && copiedFrom !== undefined && parent.get(Source)?.value === copiedFrom) {
 			const outer = getParentEntity(parent);
@@ -933,7 +1013,7 @@ export class DocumentEditor {
 	 * way would have put it (ordering included).
 	 */
 	public reparent(entity: Entity, parent: Entity, anchor?: Entity): boolean {
-		if (!entity.get(Source)?.value || !parent.get(Source)?.value) return false;
+		if (!entity.get(Source)?.value || !parent.get(Source)?.value || this.refuses([entity, parent])) return false;
 		// Appending where it already is, last, is the one move that changes
 		// nothing. Appending from anywhere else in the same parent is a real
 		// move — it is how a node is sent to the end of its siblings.
@@ -997,6 +1077,7 @@ export class DocumentEditor {
 	 * source), stays. Returns the entities that were removed at the top level.
 	 */
 	public remove(entities: Entity | Entity[]): Entity[] {
+		if (this.refuses(entities)) return [];
 		const doomed = new Set(
 			(Array.isArray(entities) ? entities : [entities]).filter(
 				(entity) => entity.isAlive() && !entity.has(Stage) && !!entity.get(Source)?.value,

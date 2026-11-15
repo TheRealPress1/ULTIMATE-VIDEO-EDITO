@@ -72,7 +72,7 @@ Only `plugins` is honored. `presets` would fight the fixed transform stack and a
 
 Composition elements are **camelCase** intrinsics (`<rect>`, `<keyframeTrack>`, `<linearGradientPaint>`); the compile canonicalizes them to the components the renderer receives. Writing one PascalCase (`<Rect>`) is a compile error naming the tag you meant.
 
-Lowercase DOM tags are the vocabulary for [`<html>`](./html.md) content. Three names belong to both vocabularies — `rect`, `text`, `image` — and resolve lexically: inside an SVG container (`<svg>`, `<g>`, `<defs>`, …) they are SVG content, everywhere else composition elements.
+Lowercase DOM tags are the vocabulary for [`<html>`](./html.md) content. Nine names belong to both vocabularies — `rect`, `ellipse`, `polygon`, `path`, `text`, `image`, `mask`, `clipPath`, `marker` — and resolve lexically: inside an SVG container (`<svg>`, `<g>`, `<defs>`, …) they are SVG content, everywhere else composition elements.
 
 ## Types and tooling
 

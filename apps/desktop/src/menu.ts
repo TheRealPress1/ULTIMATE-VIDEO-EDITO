@@ -39,6 +39,12 @@ export async function routeHistoryMenu(direction: 'undo' | 'redo', preferred?: B
   else mainBridge.emit(window, MAIN_CHANNELS.EDITOR_HISTORY, { direction });
 }
 
+/** Help > Send Feedback…: the window it was chosen in opens its feedback form, by the same rule that picks the window for Undo. */
+export function routeFeedbackMenu(preferred?: BrowserWindow | null): void {
+  const window = historyWindow(preferred);
+  if (window) mainBridge.emit(window, MAIN_CHANNELS.FEEDBACK_REQUEST, undefined);
+}
+
 function historyMenuItem(direction: 'undo' | 'redo'): MenuItemConstructorOptions {
   return {
     label: direction === 'undo' ? 'Undo' : 'Redo',
@@ -85,6 +91,11 @@ export function setupAppMenu() {
     ] },
     { role: "viewMenu" },
     { role: "windowMenu" },
+    // No accelerator: every key the editor uses stays the editor's.
+    { role: "help", submenu: [{
+      label: 'Send Feedback…',
+      click: (_item, window) => routeFeedbackMenu(window ? BrowserWindow.fromId(window.id) : BrowserWindow.getFocusedWindow()),
+    }] },
   );
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

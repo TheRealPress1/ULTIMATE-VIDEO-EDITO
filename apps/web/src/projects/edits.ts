@@ -326,7 +326,10 @@ class EditWriter {
 
 		// An insert still waiting here never reached the file: dropping it is
 		// the whole removal. Anything else the file has, or a write out right
-		// now is naming, and it goes from there by name.
+		// now is naming, and it goes from there by name. Its move goes with the
+		// rest, which can leave it in the file inside an element that is removed
+		// first (a split's tail, inside the sequence round it): the write counts
+		// it as removed with that one (see `removeElement` in the desktop's edit.ts).
 		if (!this.inserts.has(edit.source)) this.removes.add(edit.source);
 		for (const source of doomed) {
 			this.inserts.delete(source);

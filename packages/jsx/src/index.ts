@@ -58,6 +58,7 @@ export type {
   ImageProps,
   KeyframeProps,
   KeyframeTrackProps,
+  MarkerProps,
   MediaPaintProps,
   PathProps,
   PolygonProps,

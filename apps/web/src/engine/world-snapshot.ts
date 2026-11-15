@@ -44,7 +44,8 @@ const traitsOf = (world: World, entity: Entity, entities: Map<number, string>): 
     // The traits that name other entities: the cache of what is under an entity, and what a keyframe track animates.
     traits[name] = plain(entity.get(trait), name === 'Cache' || name === 'KeyframeTrack' ? entities : undefined);
   }
-  return traits;
+  // By name: the order a world's traits come in is the order it first met them, which no edit decides.
+  return Object.fromEntries(Object.entries(traits).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
 };
 
 /** Every entity's traits in tree order; what the runtime derived (no source) is compared as a set, since nothing orders it. */

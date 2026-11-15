@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { transformAsync } from '@babel/core';
 import { transform } from 'esbuild';
 import { authoredTree, mount } from '@diffusionstudio/reconciler';
-import { createRuntimeWorld, Source } from '@diffusionstudio/runtime';
+import { createRuntimeWorld, Marker, Name, Source } from '@diffusionstudio/runtime';
 import { canonicalizeTagsPlugin, inspectPlugin, sourcePlugin } from '@desktop/source';
 import { applyExternalEdit, captureComposition, recordComposition } from './external-edit';
 import { getEditHistory } from './history';
@@ -150,6 +150,38 @@ describe('a project compiled the way the app compiles it', () => {
     const fewer = shots('[2, 3]');
     expect(applyExternalEdit(live.world, live.mounted, await compile(fewer))).toMatchObject({ applied: true });
     expect(tree(live.world)).toBe(tree((await mounted(fewer)).world));
+  });
+
+  it('mounts a marker as a flag at its time, and edits to one are made in place', async () => {
+    const withMarker = (time: string) => project(`${cut}
+        <marker id="m1" time={${time}} name="Drop" color="red" />`);
+    const live = await mounted(withMarker('2'));
+    expect(live.mounted.reactive()).toBe(false);
+    expect(find(live.world, 'm1').get(Marker)?.time).toBe(60);
+    expect(find(live.world, 'm1').get(Name)?.value).toBe('Drop');
+
+    // Moved and renamed.
+    const moved = withMarker('3.5').replace('name="Drop"', 'name="Outro"');
+    expect(applyExternalEdit(live.world, live.mounted, await compile(moved))).toMatchObject({ applied: true });
+    expect(find(live.world, 'm1').get(Marker)?.time).toBe(105);
+    expect(find(live.world, 'm1').get(Name)?.value).toBe('Outro');
+    expect(tree(live.world)).toBe(tree((await mounted(moved)).world));
+
+    // Another one put in, then both taken away.
+    const two = moved.replace('<marker id="m1"', '<marker id="m2" time={1} />\n        <marker id="m1"');
+    expect(applyExternalEdit(live.world, live.mounted, await compile(two))).toMatchObject({ applied: true });
+    expect(live.world.query(Marker)).toHaveLength(2);
+    expect(applyExternalEdit(live.world, live.mounted, await compile(project(cut)))).toMatchObject({ applied: true });
+    expect(live.world.query(Marker)).toHaveLength(0);
+  });
+
+  it('keeps a marker in an <svg> an SVG one, and one in a <scene> a flag', async () => {
+    const drawn = await compile(project(`        <html id="h" width={100} height={100}><svg><defs><marker id="arrow" markerWidth={4} /></defs></svg></html>`));
+    expect(drawn).toContain('"marker"');
+    expect(drawn).not.toMatch(/\.Marker\b/);
+
+    const flag = await compile(project(`        <marker id="m1" time={2} />`));
+    expect(flag).toMatch(/\.Marker\b/);
   });
 
   it('is mounted again, not patched, when it follows the timeline', async () => {

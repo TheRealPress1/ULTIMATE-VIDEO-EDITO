@@ -10,6 +10,7 @@ import {
 	Geometry,
 	Group,
 	Hidden,
+	Locked,
 	Muted,
 	Position,
 	Root,
@@ -47,6 +48,11 @@ import { withEmptiedTracks } from '../keyframes';
 import { cancelObjectMask, getObjectTrack, trackObjectMask, undoMaskStroke } from '../object-mask';
 import { beginPathEdit, deletePickedVertex, endPathEdit, finishPen, isPathEditing, isPenDrawing, selectedPath } from '../path-tool';
 import { splitAtPlayhead } from '../split';
+import { rippleDeleteSelection } from '../ripple';
+import { clearMarks, markIn, markOut } from '../marks';
+import { addMarker, clearMarkers, seekMarker } from '../markers';
+import { isEditing, setTimelineTool, toggleSnapping } from '../timeline/tool';
+import { zoomTimelineIn, zoomTimelineOut, zoomTimelineToFit } from '../timeline/zoom';
 import { Keys, MODIFIER_KEYS, ObjectMaskTool, Pointer } from '../traits';
 import { editTransform } from './interactions';
 
@@ -386,17 +392,40 @@ export function toggleSelectionMuted(world: World): void {
 }
 
 /**
- * Solos the first selected node, or takes the solo off it. Solo is
- * monitoring rather than composition, so it is the trait alone, never an
- * edit, and only one node holds it (as the layer list's solo button has it).
+ * Locks the selection against hand edits, or unlocks it once all of it is
+ * locked: the property the padlock in the layer list writes, one write per
+ * node. A node the project generates from a list is refused (see `isGenerated`).
  */
-export function toggleSelectionSoloed(world: World): void {
-	const [entity] = world.query(Selected, NODES);
-	if (entity === undefined) return;
+export function toggleSelectionLocked(world: World): void {
+	const editor = getDocumentEditor(world);
+	const selected = [...world.query(Selected, NODES)];
+	if (!selected.length) return;
 
-	const wasSoloed = entity.has(Soloed);
-	for (const other of world.query(Soloed)) other.remove(Soloed);
-	if (!wasSoloed) entity.add(Soloed);
+	const lock = selected.some(entity => !entity.has(Locked));
+	for (const entity of selected) editor.editProperty(entity, 'locked', lock);
+}
+
+/**
+ * Gives the solo to a node that has not got it, or takes it off one that has.
+ * Solo is monitoring rather than composition (what you want to hear right
+ * now, which the file has nothing to say about), so it is the trait alone,
+ * never an edit. Any number of nodes can hold it, a track with the clips on
+ * it, and they are heard together (see `audibleWhileSoloed`).
+ */
+export function toggleSoloed(entity: Entity): void {
+	if (entity.has(Soloed)) entity.remove(Soloed);
+	else entity.add(Soloed);
+}
+
+/** Solos the selection, or takes the solo off it once all of it is soloed, as `toggleSelectionMuted` does for the mute. */
+export function toggleSelectionSoloed(world: World): void {
+	const selected = [...world.query(Selected, NODES)];
+	if (!selected.length) return;
+
+	const solo = selected.some((entity) => !entity.has(Soloed));
+	for (const entity of selected) {
+		if (solo !== entity.has(Soloed)) toggleSoloed(entity);
+	}
 }
 
 /**
@@ -531,6 +560,9 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['delete'], action: deletePickedVertex, active: isPathEditing },
 	{ keys: ['z', 'mod', '!shift'], action: undoEdit },
 	{ keys: ['z', 'mod', 'shift'], action: redoEdit },
+	// Shift takes the gap with it, ahead of the plain keys, which answer to either.
+	{ keys: ['backspace', 'shift', '!mod'], action: rippleDeleteSelection },
+	{ keys: ['delete', 'shift', '!mod'], action: rippleDeleteSelection },
 	{ keys: ['backspace'], action: deleteSelection },
 	{ keys: ['delete'], action: deleteSelection },
 	{ keys: ['d', 'mod', '!shift'], action: duplicateSelection },
@@ -551,11 +583,27 @@ const PRESSED_SHORTCUTS: readonly Shortcut[] = [
 	{ keys: ['0', 'mod'], action: zoomActualSize },
 	{ keys: ['1', 'mod'], action: zoomToFit },
 	{ keys: ['2', 'mod'], action: zoomToSelection },
-	{ keys: ['v', '!mod'], action: selectTool(ToolType.MOVE) },
+	{ keys: ['v', '!mod'], action: (world) => { selectTool(ToolType.MOVE)(world); setTimelineTool(world, 'select'); } },
+	{ keys: ['c', '!mod'], action: (world) => setTimelineTool(world, 'razor') },
 	{ keys: ['h', '!mod'], action: selectTool(ToolType.HAND) },
 	{ keys: ['f', '!mod'], action: selectTool(ToolType.SCENE) },
 	{ keys: ['t', '!mod'], action: selectTool(ToolType.TEXT) },
 	{ keys: ['r', '!mod'], action: selectTool(ToolType.RECT) },
+	// In and out marks, as an editor has them. O is the ellipse on the Board, where the drawing tools are.
+	{ keys: ['i', '!mod', '!alt'], action: markIn },
+	{ keys: ['o', '!mod', '!alt'], action: markOut, active: isEditing },
+	{ keys: ['x', 'alt', '!mod'], action: clearMarks },
+	// Markers, as an editor has them: M flags the playhead (on the Board it is the object mask tool), Option+M takes them all off, Shift+M jumps to the next and Shift+Cmd+M to the one before.
+	{ keys: ['m', 'alt', '!mod'], action: clearMarkers, active: isEditing },
+	{ keys: ['m', 'shift', 'mod'], action: (world) => { seekMarker(world, 'previous'); }, active: isEditing },
+	{ keys: ['m', 'shift', '!mod', '!alt'], action: (world) => { seekMarker(world, 'next'); }, active: isEditing },
+	{ keys: ['m', '!mod', '!alt', '!shift'], action: (world) => { addMarker(world); }, active: isEditing },
+	// The timeline's own keys, as an editor has them: S snaps (it seeks a second back on the Board) and \ takes in the whole scene (it selects parents there).
+	{ keys: ['s', '!mod', '!alt'], action: toggleSnapping, active: isEditing },
+	{ keys: ['\\', '!mod'], action: zoomTimelineToFit, active: isEditing },
+	{ keys: ['=', '!mod'], action: zoomTimelineIn },
+	{ keys: ['+', '!mod'], action: zoomTimelineIn },
+	{ keys: ['-', '!mod'], action: zoomTimelineOut },
 	{ keys: ['o', '!mod'], action: selectTool(ToolType.ELLIPSE) },
 	{ keys: ['p', '!mod'], action: selectTool(ToolType.PEN), active: (world) => !objectMaskTool(world) },
 	{ keys: ['m', '!mod'], action: selectTool(ToolType.OBJECT_MASK) },

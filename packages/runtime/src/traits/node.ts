@@ -48,6 +48,10 @@ export const Stroke = trait();
 
 export const Hidden = trait();
 
+// Presence means locked: the editor makes no hand edit to the node or to anything under it. An authoring flag (the project's
+// `locked`), so nothing that is rendered, played or exported depends on it.
+export const Locked = trait();
+
 export const ClipsContent = trait();
 
 export const Generating = trait({ label: '', progress: undefined as number | undefined });

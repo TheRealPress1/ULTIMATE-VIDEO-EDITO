@@ -166,6 +166,20 @@ describe('current timeline transcript transaction', () => {
 		expect(f.original.props.workarea).toBeUndefined();
 	});
 
+	it('carries a marker through the edit: it keeps to its passage, and one in a stretch that is cut goes with it', async () => {
+		const f = fixture(); const history = getEditHistory(f.world);
+		for (const [name, time] of [['Hook', 1], ['In the cut', 2.5], ['Later', 5]] as const) f.create({ tag: 'marker', props: { time, name }, children: [] }, f.original, `project.tsx:${name}`);
+		const marked = () => f.original.children.filter((node) => node.alive && node.tag === 'marker').map((node) => [node.props.name, node.props.time]);
+
+		const snapshot = await prepareTranscriptEdit(f.world, '/project', f.original as never);
+		await applyTranscriptEdit(f.world, '/project', f.original as never, snapshot.revision, ranges);
+		// 0 to 2 s and 3 to 10 s are kept: 1 s stays, 2.5 s was in the second that is cut, and 5 s is now at 4 s.
+		expect(marked()).toEqual([['Hook', 1], ['Later', 4]]);
+
+		history.undo();
+		expect(marked().sort()).toEqual([['Hook', 1], ['In the cut', 2.5], ['Later', 5]]);
+	});
+
 	it('rejects a changed scene and an expired revision before creating checkpoints or layers', async () => {
 		const f = fixture(); const snapshot = await prepareTranscriptEdit(f.world, '/project', f.original as never);
 		await expect(applyTranscriptEdit(f.world, '/project', f.original as never, 'wrong', ranges)).rejects.toThrow('expired');

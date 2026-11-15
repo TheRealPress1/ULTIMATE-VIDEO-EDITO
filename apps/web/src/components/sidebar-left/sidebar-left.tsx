@@ -113,7 +113,7 @@ type ProjectNameInputProps = {
 }
 
 /** The project name, renamed in place: Enter commits, Escape or blur reverts. */
-function ProjectNameInput(props: ProjectNameInputProps) {
+export function ProjectNameInput(props: ProjectNameInputProps) {
   const project = useProject();
   const [projectNameDraft, setProjectNameDraft] = createSignal<string | null>(null);
 
@@ -171,7 +171,7 @@ function ProjectNameInput(props: ProjectNameInputProps) {
  * Marks a project that is still a draft: in the app's drafts folder until it
  * is saved somewhere. Clicking it saves, the same as ⌘S.
  */
-function DraftBadge() {
+export function DraftBadge() {
   const project = useProject();
 
   const handleSave = async () => {
@@ -206,10 +206,14 @@ type ProjectHeaderProps = {
   class?: string;
 }
 
+/**
+ * The project's name and draft badge. The project menu is not here: it opens
+ * from the mark at the top of the app sidebar, from the Windows title bar, or
+ * from the floating header while the interface is hidden.
+ */
 export function ProjectHeader(props: ProjectHeaderProps) {
   return (
     <div class={cx("h-12 shrink-0 flex items-center gap-1 pr-4 pl-2.5", props.class)}>
-      <ProjectMenu />
       <div class="flex items-center w-full min-w-0 gap-1.5">
         <ProjectNameInput class="min-w-0" />
         <DraftBadge />

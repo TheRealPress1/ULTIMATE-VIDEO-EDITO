@@ -24,6 +24,14 @@ export const Root = trait(() => null as Entity | null);
  */
 export const Camera = trait({ a: 0.3, b: 0, c: 0, d: 0.3, e: 85, f: 150 });
 
+/**
+ * The one top-level node shown alone, when there is one: every other is
+ * culled, so it is neither drawn nor hit, and its decoders are freed. The
+ * program monitor's view of a scene (see `setSolo`). View state, on the stage,
+ * never serialized.
+ */
+export const Solo = trait({ node: null as Entity | null });
+
 export type Camera2D = { a: number; b: number; c: number; d: number; e: number; f: number };
 
 export const DEFAULT_BACKGROUND = 0x161616;

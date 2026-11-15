@@ -6,7 +6,7 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack }
 import { useWorld } from "@diffusionstudio/koota-solid";
 import { toast } from "somoto";
 
-import { SidebarTabs, sidebarTab } from "@/agent-chat";
+import { SidebarTabs, projectTab } from "@/agent-chat";
 import { useProject } from "@/context/project";
 import { getFootageService, type FootageItem, type FootageMatch, type FootageSnapshot } from "@/engine/footage";
 import { useLibrary } from "@/engine/library";
@@ -48,6 +48,7 @@ type SourcePreview = { passage: FootageMatch; url: string; video: boolean };
 export function Footage() {
   const [mode, setMode] = createSignal<'speech' | 'visual'>('speech');
   return <div class="flex flex-1 min-h-0 flex-col">
+    <div class="h-9 shrink-0 flex items-center px-4 border-y border-border [[data-platform=win32]_&]:border-t-0"><SidebarTabs group="project" /></div>
     <div class="flex gap-2 p-2" role="group" aria-label="Footage search mode">
       <Button size="small" variant={mode() === 'speech' ? 'default' : 'ghost'} aria-pressed={mode() === 'speech'} onClick={() => setMode('speech')}>Spoken words</Button>
       <Button size="small" variant={mode() === 'visual' ? 'default' : 'ghost'} aria-pressed={mode() === 'visual'} onClick={() => setMode('visual')}>Visual B-roll</Button>
@@ -164,7 +165,7 @@ function SpeechFootage() {
   });
 
   createEffect(() => {
-    if (sidebarTab() !== "footage") mediaElement?.pause();
+    if (projectTab() !== "footage") mediaElement?.pause();
   });
   onCleanup(clearPreview);
 
@@ -276,9 +277,6 @@ function SpeechFootage() {
 
   return (
     <section aria-label="Footage search" class="flex flex-1 min-h-0 flex-col text-foreground text-xs">
-      <div class="h-12 shrink-0 flex items-center px-4 border-y border-border [[data-platform=win32]_&]:border-t-0">
-        <SidebarTabs />
-      </div>
       <div class="flex-1 min-h-0 overflow-y-auto">
         <div class="p-4 space-y-3 border-b border-border">
           <div>

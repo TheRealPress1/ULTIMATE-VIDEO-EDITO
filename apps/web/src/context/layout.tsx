@@ -12,6 +12,15 @@ export const TOOLBAR_SLOTS = ['bottom', 'top', 'top-left', 'top-right', 'bottom-
 
 export type ToolbarSlot = (typeof TOOLBAR_SLOTS)[number];
 
+/**
+ * What the stage is for. Edit is the program monitor: one scene, fitted to
+ * its frame, with the transport under it. Board is the canvas of scenes with
+ * the drawing tools.
+ */
+export const WORKSPACES = ['edit', 'board'] as const;
+
+export type Workspace = (typeof WORKSPACES)[number];
+
 type LayoutContextValue = {
   uiVisible: Accessor<boolean>;
   timelineMinimized: Accessor<boolean>;
@@ -19,11 +28,19 @@ type LayoutContextValue = {
   setTimelineHeight(height: number): void;
   toolbarSlot: Accessor<ToolbarSlot>;
   setToolbarSlot(slot: ToolbarSlot): void;
+  projectPanelHeight: Accessor<number>;
+  setProjectPanelHeight(height: number): void;
+  workspace: Accessor<Workspace>;
+  setWorkspace(workspace: Workspace): void;
   toggleUI(): void;
   toggleTimeline(): void;
 };
 
 const LayoutContext = createContext<LayoutContextValue>();
+
+/** The panel under the agent: its height, clamped to what the column can hold when it is used. */
+export const MIN_PROJECT_PANEL_HEIGHT = 120;
+export const DEFAULT_PROJECT_PANEL_HEIGHT = 300;
 
 export const MIN_TIMELINE_HEIGHT = 120;
 export const DEFAULT_TIMELINE_HEIGHT = 234;
@@ -46,6 +63,16 @@ export function LayoutProvider(props: { children: JSX.Element }) {
     ),
   );
 
+  const [projectPanelHeight, setProjectPanelHeight] = createStoredSignal(
+    store.define<number>('layout.projectPanelHeight', DEFAULT_PROJECT_PANEL_HEIGHT, (value) =>
+      Number.isFinite(value) && value >= MIN_PROJECT_PANEL_HEIGHT ? value : DEFAULT_PROJECT_PANEL_HEIGHT,
+    ),
+  );
+
+  const [workspace, setWorkspace] = createStoredSignal(
+    store.define<Workspace>('layout.workspace', 'edit', (value) => (WORKSPACES.includes(value) ? value : 'edit')),
+  );
+
   const toggleUI = () => setUiVisible(!uiVisible());
   const toggleTimeline = () => setTimelineMinimized(!timelineMinimized());
 
@@ -58,6 +85,10 @@ export function LayoutProvider(props: { children: JSX.Element }) {
         setTimelineHeight,
         toolbarSlot,
         setToolbarSlot,
+        projectPanelHeight,
+        setProjectPanelHeight,
+        workspace,
+        setWorkspace,
         toggleUI,
         toggleTimeline,
       }}>

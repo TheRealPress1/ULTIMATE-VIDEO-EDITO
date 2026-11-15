@@ -9,7 +9,7 @@ import {
 	ChildOf, Geometry, Group, Hidden, Sequential, AdjustmentLayer,
 	Culled, Flip, Computed, Cache, LocalTransform, WorldTransform,
 	WorldBounds, RenderSurface,
-	Root,
+	Root, Solo,
 } from '../traits';
 import { getMaskContainers, getParentNode } from '../queries/hierarchy';
 import { getViewMatrix } from '../queries/camera';
@@ -374,8 +374,11 @@ function holdTransform(world: World, container: Entity, holder: Entity): void {
  * Transform system entry point. Call once per frame before the render system.
  */
 export function transformSystem(world: World): void {
+	const solo = world.get(Root)!.get(Solo)?.node ?? null;
+
 	for (const entity of world.query(Or(Geometry, Group), ChildOf(world.get(Root)!))) {
-		placeSubtree(world, entity, null, null, true);
+		// Shown alone, the others are culled outright (the verdict their subtrees inherit).
+		placeSubtree(world, entity, null, solo !== null && entity !== solo ? true : null, true);
 	}
 
 	for (const adjust of world.query(AdjustmentLayer)) {

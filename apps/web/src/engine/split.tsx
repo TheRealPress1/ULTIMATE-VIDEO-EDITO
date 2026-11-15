@@ -60,13 +60,13 @@ function splitTargets(world: World, scene: Entity): Entity[] {
  * transition is not one the playhead is inside, and cutting it would leave a
  * half of nothing.
  */
-function splitUnits(world: World, targets: Entity[], frame: number): Entity[] {
+function splitUnits(world: World, targets: Entity[], frame: number, overPlayhead = true): Entity[] {
 	const computed = store(world, Computed);
 	const units = new Set<Entity>();
 
 	const walk = (entity: Entity): void => {
-		if (computed.visibility[entity.id()] !== 1) return;
-
+		// The playhead's own cut leans on what playback says is showing; a cut anywhere else has only the clip's bounds to go by.
+		if (overPlayhead && computed.visibility[entity.id()] !== 1) return;
 		if (isSequence(entity)) {
 			for (const child of world.query(NODES, ChildOf(entity))) walk(child);
 			return;
@@ -94,13 +94,35 @@ export function splitAtPlayhead(world: World): Entity[] {
 	if (scene === null) return [];
 
 	const frame = store(world, Computed).localTime[scene.id()] ?? 0;
-	const units = splitUnits(world, splitTargets(world, scene), frame);
+	return cutUnits(world, splitUnits(world, splitTargets(world, scene), frame), frame);
+}
+
+/**
+ * The razor: cuts `clip` in two at `frame`, wherever the pointer is rather
+ * than the playhead. With `everything` it cuts every clip on every row that
+ * `frame` is inside, as a razor held across all the tracks does.
+ */
+export function razorAt(world: World, clip: Entity, frame: number, everything = false): Entity[] {
+	const scene = getActiveEntity(world);
+	if (scene === null) return [];
+
+	const targets = everything ? [...world.query(NODES, ChildOf(scene))] : [clip];
+	return cutUnits(world, splitUnits(world, targets, frame, false), frame);
+}
+
+/** Cuts each of `units` in two at `frame`, and leaves the new tail halves selected. Returns them. */
+function cutUnits(world: World, units: Entity[], frame: number): Entity[] {
 	if (units.length === 0) return [];
 
 	const editor = getDocumentEditor(world);
+	// What cannot be edited (a locked track, a clip the project generates) is left out and said so, and the rest is cut: a razor across every row cuts the rows it may.
+	const free = units.filter((unit) => editor.blocked(unit) === null);
+	if (free.length < units.length) editor.refuses(units.filter((unit) => editor.blocked(unit) !== null));
+	if (free.length === 0) return [];
+
 	// Copied before anything is trimmed, so each copy is spelled from the
 	// whole clip and still runs to the end the whole clip ran to.
-	const pairs = editor.duplicateInPlace(units);
+	const pairs = editor.duplicateInPlace(free);
 
 	for (const { original, copy } of pairs) {
 		trimOut(world, original, frame);

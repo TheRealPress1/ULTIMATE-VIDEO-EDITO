@@ -722,6 +722,8 @@ class SourceWriter {
     const skipped: string[] = [];
     const ids: Record<string, string> = {};
     const unrolled: string[] = [];
+    // The ids of everything the removes so far took out of the tree.
+    const cut = new Set<string>();
 
     try {
       for (const edit of entries) {
@@ -741,7 +743,7 @@ class SourceWriter {
         }
 
         if (edit.kind === "remove") {
-          if (!this.removeElement(file, sourceFile, edit, ids)) skipped.push(edit.source);
+          if (!this.removeElement(file, sourceFile, edit, ids, cut)) skipped.push(edit.source);
           continue;
         }
 
@@ -953,24 +955,37 @@ class SourceWriter {
 
   /**
    * Cuts one element, subtree and all, out of the tree. False when the source
-   * does not name an element of this file — including one already gone: a
-   * remove of what a remove in this same write took along with its parent
-   * finds nothing, and that is not a failure of the file.
+   * does not name an element of this file. An element that an earlier remove
+   * in this same write took along with one above it is not that: it is gone,
+   * which is all the edit asks. The canvas can have taken it out from under
+   * that one before both were removed (the undo of a split removes the
+   * sequence round the halves, and then the tail), while the file, which was
+   * not told of the move, still has it inside. `cut` holds the ids the removes
+   * so far took out, which is what tells such an element from one the file
+   * never had.
    */
   private removeElement(
     file: string,
     sourceFile: SourceFile,
     edit: SourceRemove,
     ids: Record<string, string>,
+    cut: Set<string>,
   ): boolean {
     const address = locate(edit.source, ids);
     const locator = address?.file === file ? address.locator : undefined;
     const tag = locator === undefined ? undefined : findTag(sourceFile, locator);
+    if (!tag) return typeof locator === "string" && cut.has(locator);
     // Cutting a looped element would cut it from every iteration.
-    if (!tag || inLoop(tag)) return false;
+    if (inLoop(tag)) return false;
 
     matchIndentation(sourceFile);
-    cutElement(sourceFile, elementOf(tag));
+    const element = elementOf(tag);
+    // Read before the cut: afterwards there is nothing left to name them from.
+    for (const inner of tagsIn(element)) {
+      const id = idOf(inner);
+      if (id) cut.add(id);
+    }
+    cutElement(sourceFile, element);
     return true;
   }
 

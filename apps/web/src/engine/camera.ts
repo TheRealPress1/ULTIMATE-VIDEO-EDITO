@@ -14,6 +14,7 @@ import {
 	focusEntities,
 	getCameraMatrix,
 	getSelection,
+	getSolo,
 	panCamera,
 	setCameraZoom,
 	zoomCameraBy,
@@ -23,36 +24,48 @@ import { getDocumentEditor } from './editor';
 
 import type { World } from 'koota';
 
+/**
+ * While one scene is shown alone, the camera is the program monitor's: fitted
+ * to that scene and never the project's, so these moves leave it where it is
+ * (and nothing is written to the file).
+ */
+const monitorHoldsCamera = (world: World): boolean => getSolo(world) !== null;
+
 function reportCamera(world: World): void {
 	getDocumentEditor(world).reportEdit(world.get(Root)!, 'camera', getCameraMatrix(world));
 }
 
 /** Scrolls the view by a delta in canvas CSS pixels: the content moves against it. */
 export function panBy(world: World, dx: number, dy: number): void {
+	if (monitorHoldsCamera(world)) return;
 	panCamera(world, dx, dy);
 	reportCamera(world);
 }
 
 /** Zooms around the center of the viewport: above 1 in, below 1 out. */
 export function zoomBy(world: World, factor: number): void {
+	if (monitorHoldsCamera(world)) return;
 	zoomCameraBy(world, factor);
 	reportCamera(world);
 }
 
 /** Zooms to an absolute scale, 1 being 100%. */
 export function zoomTo(world: World, scale: number): void {
+	if (monitorHoldsCamera(world)) return;
 	setCameraZoom(world, scale);
 	reportCamera(world);
 }
 
 /** Frames everything on the stage. */
 export function zoomToFit(world: World): void {
+	if (monitorHoldsCamera(world)) return;
 	focusContent(world);
 	reportCamera(world);
 }
 
 /** Frames the selection, wherever on the stage it sits. */
 export function zoomToSelection(world: World): void {
+	if (monitorHoldsCamera(world)) return;
 	const selected = getSelection(world);
 	if (!selected.length) return;
 

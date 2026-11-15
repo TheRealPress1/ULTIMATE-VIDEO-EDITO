@@ -150,6 +150,7 @@ export function planReferenceStyle(
         "audio",
         "animation",
         "keyframeTrack",
+        "marker",
         "videoPaint",
         "imagePaint",
         "linearGradient",

@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, For, onCleanup, Show, untrack } from 'solid-js';
 import { useWorld } from '@diffusionstudio/koota-solid';
-import { SidebarTabs, sidebarTab } from '@/agent-chat';
+import { projectTab } from '@/agent-chat';
 import { useProject } from '@/context/project';
 import { useLibrary } from '@/engine/library';
 import { getVisualService, type VisualMatch, type VisualSnapshot } from '@/engine/visual-footage';
@@ -67,7 +67,7 @@ export function VisualFootage() {
     void untrack(() => current.load()).catch((cause) => { if (current === service()) setError(message(cause)); })
       .finally(() => { loadingSignature = ''; setLoadFinished((value) => value + 1); });
   });
-  createEffect(() => { if (sidebarTab() !== 'footage') video?.pause(); });
+  createEffect(() => { if (projectTab() !== 'footage') video?.pause(); });
   createEffect(() => {
     const items = state().items;
     const current = untrack(preview);
@@ -130,7 +130,6 @@ export function VisualFootage() {
     } catch (cause) { if (current === service()) setError(message(cause)); }
   };
   return <section aria-label="Visual footage search" class="flex flex-1 min-h-0 flex-col text-xs">
-    <div class="h-12 shrink-0 flex items-center px-4 border-y border-border"><SidebarTabs /></div>
     <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
       <div><h2 class="font-450 text-sm">Find visual B-roll</h2>
         <p class="text-muted-foreground leading-relaxed mt-1">Search objects, activities and visible text in sampled frames. Local to this Mac; your originals stay intact.</p></div>
