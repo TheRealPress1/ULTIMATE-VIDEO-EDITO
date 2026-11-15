@@ -55,6 +55,7 @@ import { configureGemini } from "./gemini";
 import { registerGeminiIpc } from "./gemini/ipc";
 import { configureMediaSearch } from "./media-search";
 import { configureMediaDownloads, findInstagramMedia, mediaTools } from "./media-download";
+import { createMediaBrowser } from "./media-browser";
 import { configureYtDlp, ytDlp } from "./downloader";
 import {
   compileProject,
@@ -282,6 +283,17 @@ const mediaDownloads = configureMediaDownloads({
   instagramMedia: async (url) => findInstagramMedia(await instagramService().snapshot(), url),
   instagramFresh: (url, signal) => instagramService().freshPost(url, signal),
   version: app.getVersion(),
+});
+
+// The Media tab: browses folders anywhere, read-only, and probes with the bundled ffprobe.
+const mediaBrowser = createMediaBrowser({
+  ffprobe: existsSync(mediaFfprobe) ? mediaFfprobe : null,
+  folders: {
+    movies: app.getPath("videos"),
+    desktop: app.getPath("desktop"),
+    downloads: app.getPath("downloads"),
+    documents: app.getPath("documents"),
+  },
 });
 
 // Gemini (optional): the user's own Google AI Studio key, encrypted by the OS
@@ -855,6 +867,16 @@ if (squirrelLaunch) {
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_CONFIG_READ, ({ dir }) => readConfig(dir));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_CONFIG_WRITE, ({ dir, config }) => writeConfig(dir, config));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_FS_LIST, ({ dir, source }) => listEntries(dir, source));
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_BROWSER_PLACES, () => mediaBrowser.places());
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_BROWSER_LIST, ({ path, request }) => mediaBrowser.list(path, request));
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_BROWSER_PROBE, ({ path, request }) => mediaBrowser.probe(path, request));
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_BROWSER_CANCEL, ({ request }) => mediaBrowser.cancel(request));
+  mainBridge.handle(MAIN_CHANNELS.MEDIA_BROWSER_PICK_FOLDER, async () => {
+    // Choosing only: no "New Folder" button, since the browser never writes.
+    const options: Electron.OpenDialogOptions = { title: "Add a folder to Places", buttonLabel: "Add", properties: ["openDirectory"] };
+    const { canceled, filePaths } = mainWindow ? await dialog.showOpenDialog(mainWindow, options) : await dialog.showOpenDialog(options);
+    return canceled ? null : filePaths[0] ?? null;
+  });
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_FS_STAT, ({ dir, source }) => statEntry(dir, source));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_FS_REMOVE, ({ dir, path }) => removeEntry(dir, path));
   mainBridge.handle(MAIN_CHANNELS.PROJECTS_FS_REAL_PATH, ({ dir, source }) => realPathEntry(dir, source));

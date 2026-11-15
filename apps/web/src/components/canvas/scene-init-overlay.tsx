@@ -22,7 +22,8 @@ import {
 } from "@/lib/layout-presets";
 import { useEditor } from "@/engine";
 import { useProjectConfig } from "@/engine/project-config";
-import { droppedFiles, importFiles, pickAndImport } from "@/engine/asset-actions";
+import { droppedFiles, importFiles, importPaths, pickAndImport } from "@/engine/asset-actions";
+import { droppedMediaPaths } from "@/components/sidebar-left/media-browser-data";
 import { createScene, insertAssetsInNewScene } from "@/engine/new-scene";
 import { ASSET_DRAG_TYPE } from "@/components/sidebar-left/folder-item";
 
@@ -154,11 +155,13 @@ export function SceneInitOverlay() {
     // import resolves.
     const assetIds = event.dataTransfer?.getData(ASSET_DRAG_TYPE)?.split(',').filter(Boolean) ?? [];
     const files = droppedFiles(event);
+    const paths = droppedMediaPaths(event.dataTransfer);
 
     setImporting(true);
     try {
       const assets = assetIds.map((id) => library.get(id)).filter((asset) => asset != null);
       if (files.length) assets.push(...await importFiles(library, files, ''));
+      if (paths.length) assets.push(...await importPaths(library, paths, ''));
       if (assets.length) insertAssetsInNewScene(world, assets, sceneOptions());
     } finally {
       setImporting(false);

@@ -41,7 +41,8 @@ import { clearRevealRequest, revealRequest } from "./reveal";
 import { FolderItem, handleFolderDrop, isAssetOrFolderDrag, ASSET_DRAG_TYPE, FOLDER_DRAG_TYPE } from "./folder-item";
 import { useLibrary } from "@/engine/library";
 import { useAssetSelection } from "@/engine/hooks";
-import { droppedFiles, importClipboard, importFiles, insertAssetsAtPlayhead, insertAssetsAtStart, pickAndImport } from "@/engine/asset-actions";
+import { droppedFiles, importClipboard, importFiles, importPaths, insertAssetsAtPlayhead, insertAssetsAtStart, pickAndImport } from "@/engine/asset-actions";
+import { droppedMediaPaths, MEDIA_PATHS_DRAG_TYPE } from "./media-browser-data";
 import { clipboardHasMedia, hasMedia, pastedMedia, readClipboardMedia } from "@/lib/clipboard";
 import { isInputTarget } from "@/utils";
 import { useCommand } from "@/context/commands";
@@ -402,6 +403,9 @@ export function Assets() {
     const lib = library();
     if (!lib) return;
     if (handleFolderDrop(lib, event, currentFolder())) return;
+    // From the Media tab: linked where it is, the same as a drop from Finder.
+    const paths = droppedMediaPaths(event.dataTransfer);
+    if (paths.length) return selectImported(await importPaths(lib, paths, currentFolder()));
     selectImported(await importFiles(lib, droppedFiles(event), currentFolder()));
   };
 
@@ -413,7 +417,7 @@ export function Assets() {
   const isExternalFileDrag = (event: DragEvent) => {
     const types = event.dataTransfer?.types ?? [];
     return (
-      types.includes("Files") &&
+      (types.includes("Files") || types.includes(MEDIA_PATHS_DRAG_TYPE)) &&
       !types.includes(ASSET_DRAG_TYPE) &&
       !types.includes(FOLDER_DRAG_TYPE)
     );

@@ -10,6 +10,7 @@ import { SceneSwitch } from "@/components/top-bar/scene-switch";
 import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
 import { Footage } from "@/components/sidebar-left/footage";
+import { MediaBrowser } from "@/components/sidebar-left/media-browser";
 import { Icon } from "@/components/ui/icon";
 import { useExport } from "@/context/export";
 import { assetSystem, getActiveEntity, transformSystem } from "@diffusionstudio/runtime";
@@ -65,6 +66,10 @@ export function EditorPage() {
   const [footageOpened, setFootageOpened] = createSignal(false);
   createEffect(() => {
     if (projectTab() === "footage") setFootageOpened(true);
+  });
+  const [mediaOpened, setMediaOpened] = createSignal(false);
+  createEffect(() => {
+    if (projectTab() === "media") setMediaOpened(true);
   });
   onMount(() => setSidebarTab("chat"));
 
@@ -382,6 +387,9 @@ export function EditorPage() {
           />
           <div class="cutroom-panel cutroom-panel-project" style={{ height: `${projectPanelHeight()}px` }}>
             <div classList={{ contents: projectTab() === "assets", hidden: projectTab() !== "assets" }}><Assets /></div>
+            <Show when={mediaOpened()}>
+              <div classList={{ contents: projectTab() === "media", hidden: projectTab() !== "media" }}><MediaBrowser /></div>
+            </Show>
             <Show when={footageOpened()}>
               <div classList={{ contents: projectTab() === "footage", hidden: projectTab() !== "footage" }}><Footage /></div>
             </Show>

@@ -10,7 +10,8 @@ import { useActiveScene } from "@/engine/hooks";
 import { setEditingMode } from "@/engine/timeline/tool";
 import { useLayout } from "@/context/layout";
 import { insertAsset } from "@/engine/insert-asset";
-import { droppedFiles, importFiles } from "@/engine/asset-actions";
+import { droppedFiles, importFiles, importPaths } from "@/engine/asset-actions";
+import { droppedMediaPaths } from "@/components/sidebar-left/media-browser-data";
 import { Toolbar } from "./toolbar";
 import { CanvasCommands, NodeContextMenu } from "@/components/commands";
 import { DesktopAppBanner } from "./desktop-app-banner";
@@ -152,8 +153,12 @@ export function Canvas() {
     }
 
     const files = droppedFiles(event);
+    const paths = droppedMediaPaths(event.dataTransfer);
     if (files.length) {
       for (const asset of await importFiles(library, files, '')) place(asset);
+    }
+    if (paths.length) {
+      for (const asset of await importPaths(library, paths, '')) place(asset);
     }
   }
 

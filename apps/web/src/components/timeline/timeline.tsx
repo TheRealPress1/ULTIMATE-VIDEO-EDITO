@@ -5,7 +5,8 @@
 import { onCleanup, onMount } from 'solid-js';
 import { useWorld } from '@diffusionstudio/koota-solid';
 import { FrameRate, framesToSeconds } from '@diffusionstudio/runtime';
-import { droppedFiles, importFiles, insertAssetsInTimeline } from '@/engine/asset-actions';
+import { droppedFiles, importFiles, importPaths, insertAssetsInTimeline } from '@/engine/asset-actions';
+import { droppedMediaPaths } from '@/components/sidebar-left/media-browser-data';
 import { useLibrary } from '@/engine/library';
 import { useTimeline } from '@/context/timeline';
 import { ASSET_DRAG_TYPE } from '@/components/sidebar-left/folder-item';
@@ -46,9 +47,11 @@ export function Timeline() {
     // import resolves.
     const ids = event.dataTransfer?.getData(ASSET_DRAG_TYPE)?.split(',').filter(Boolean) ?? [];
     const files = droppedFiles(event);
+    const paths = droppedMediaPaths(event.dataTransfer);
 
     const assets = ids.map((id) => lib.get(id)).filter((asset) => asset != null);
     if (files.length) assets.push(...await importFiles(lib, files, ''));
+    if (paths.length) assets.push(...await importPaths(lib, paths, ''));
     if (!assets.length) return;
 
     insertAssetsInTimeline(world, assets, start);
