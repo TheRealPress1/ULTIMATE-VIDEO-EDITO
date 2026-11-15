@@ -25,6 +25,14 @@ Blackout is a macOS-first Electron desktop video editor. A project is a folder h
 - Don't bump versions, create tags, publish releases or touch signing and release workflows: those belong to the owner. `main` is protected, so work on a branch and open a pull request.
 - Don't merge a pull request unless the person you're working with asks you to. Open it, and say what it needs from them.
 
+## Working alongside others
+
+- Start every session with `git fetch` and `gh pr list`, so you know what has merged and what is open. Don't start an issue that is assigned to someone else.
+- Open a draft pull request after your first commit: its file list shows others what you are changing.
+- Before you open or merge a pull request, merge `origin/main` into your branch and rerun the checks.
+- Put new code in new files where you can. Keep edits to files everyone touches (`apps/web/src/app.tsx`, `apps/desktop/src/main.ts`, `apps/desktop/src/main-channels.ts`) small, and say so in the pull request.
+- GitHub runs the type-check, the lint and the tests on every pull request. A pull request merges only when they pass and the branch is up to date with `main`.
+
 ## Checking visible changes
 
-Run the web app on a free port and drive it in a headless browser, with a stand-in for any main-process call it needs. Attach screenshots to the pull request.
+The repo has no browser-automation dependency, and a change shouldn't add one just to take screenshots. Check visible changes in the running development app (with its own data folder) and attach screenshots to the pull request.
