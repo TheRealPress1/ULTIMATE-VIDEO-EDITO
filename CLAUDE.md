@@ -23,6 +23,7 @@ Blackout is a macOS-first Electron desktop video editor. A project is a folder h
 - The user's footage and projects are theirs. Assets are linked where they are. Never write caches, sidecars or edits into the folders footage lives in, never delete a user's file, and in tests use temporary folders and synthetic media.
 - Don't commit personal paths, names or project names.
 - Don't bump versions, create tags, publish releases or touch signing and release workflows: those belong to the owner. `main` is protected, so work on a branch and open a pull request.
+- Don't merge a pull request unless the person you're working with asks you to. Open it, and say what it needs from them.
 
 ## Checking visible changes
 

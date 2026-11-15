@@ -5,7 +5,7 @@ Blackout is an open-source desktop video editor for people who already edit well
 ## How work flows
 
 - We work in this repository, on branches, rather than in forks.
-- `main` is protected: no direct pushes and no force-pushes. Every change goes in through a pull request that the owner approves. New commits on a pull request clear its approval.
+- `main` is protected: no direct pushes and no force-pushes. Every change goes in through a pull request. The owner is asked to review each one; if the owner asks you to hold a pull request, wait until it is settled before merging it.
 - Branch from `main` and name the branch `<your-name>/<topic>`, for example `yourname/media-browser`.
 - Keep pull requests small: one idea that works end to end.
 - Releases are the owner's. Don't bump the version, create tags, or touch the signing and release workflows.
