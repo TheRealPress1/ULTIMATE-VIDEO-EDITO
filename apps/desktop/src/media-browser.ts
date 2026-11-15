@@ -8,7 +8,7 @@
 // footage lives in these folders, so nothing here writes, caches or deletes.
 
 import { execFile } from "node:child_process";
-import { readdir, stat } from "node:fs/promises";
+import { readdir, readlink, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 import type { MediaDetails, MediaEntry, MediaListing, MediaPlace, MediaProbe } from "./main-channels";
@@ -20,6 +20,7 @@ type RunResult = { stdout: string; stderr: string; failed: boolean };
 export type MediaBrowserDeps = {
   readdir: (path: string) => Promise<DirEntry[]>;
   stat: (path: string) => Promise<StatInfo>;
+  readlink: (path: string) => Promise<string>;
   /** Runs a program; rejects with an AbortError when `signal` aborts. */
   run: (file: string, args: string[], signal: AbortSignal) => Promise<RunResult>;
   ffprobe: string | null;
@@ -142,9 +143,13 @@ export class MediaBrowser {
     for (const volume of volumes) {
       if (isHidden(volume.name)) continue;
       const path = join(volumesDir, volume.name);
-      // The startup disk is a link to `/`; it is a place like any other.
-      if (volume.isDirectory() || (volume.isSymbolicLink() && await this.isDirectory(path))) {
+      if (volume.isDirectory()) {
         places.push({ label: volume.name, path, group: "volumes" });
+      } else if (volume.isSymbolicLink() && await this.isDirectory(path)) {
+        // The startup disk is a link to `/`. It opens at `/`, so what is linked
+        // from it has the path everything else uses, not one through /Volumes.
+        const startup = await this.deps.readlink(path).then((target) => target === "/", () => false);
+        places.push(startup ? { label: volume.name, path: "/", group: "volumes", startup: true } : { label: volume.name, path, group: "volumes" });
       }
     }
     return places;
@@ -268,6 +273,7 @@ export function createMediaBrowser(options: Pick<MediaBrowserDeps, "ffprobe" | "
   return new MediaBrowser({
     readdir: (path) => readdir(path, { withFileTypes: true }),
     stat: (path) => stat(path),
+    readlink: (path) => readlink(path),
     run: runProgram,
     ...options,
   });

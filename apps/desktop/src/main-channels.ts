@@ -631,7 +631,13 @@ export type FsEntry = {
 };
 export type FsStat = { size: number; mtime: number };
 /** A folder the Media tab offers in its sidebar. */
-export type MediaPlace = { label: string; path: string; group: "favorites" | "volumes" };
+export type MediaPlace = {
+  label: string;
+  path: string;
+  group: "favorites" | "volumes";
+  /** The volume the Mac started from, which macOS does not ask permission to read. */
+  startup?: boolean;
+};
 export type MediaEntry = {
   name: string;
   path: string;

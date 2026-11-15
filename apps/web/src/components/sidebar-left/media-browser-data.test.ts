@@ -89,6 +89,13 @@ describe("media browser data", () => {
     expect(permissionNoteFor("/Volumes/Shoot Drive/Day 1", places, [])).toBe("/Volumes/Shoot Drive");
     expect(permissionNoteFor("/Volumes/Shoot Drive/Day 1", places, ["/Volumes/Shoot Drive"])).toBeNull();
     expect(permissionNoteFor("/Users/editor/Movies/x", places, [])).toBeNull();
+    // The startup disk is not one macOS asks about.
+    const startup: MediaPlace = { label: "Macintosh HD", path: "/", group: "volumes", startup: true };
+    expect(permissionNoteFor("/Users/editor/Work", [...places, startup], [])).toBeNull();
+    expect(permissionNoteFor("/Volumes/Macintosh HD/Users", [...places, startup], [])).toBeNull();
+    // Another drive reached from the root still gets its note.
+    expect(permissionNoteFor("/Volumes/Card B/DCIM", [...places, startup], [])).toBe("/Volumes/Card B");
+    expect(pathSegments("/Users/editor/Work", [...places, startup]).map((segment) => segment.label)).toEqual(["Macintosh HD", "Users", "editor", "Work"]);
     expect(permissionNoteFor("/Users/editor/Library/Mobile Documents/com~apple~CloudDocs", places, [])).not.toBeNull();
   });
 

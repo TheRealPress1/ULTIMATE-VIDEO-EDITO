@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readlink, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -66,6 +66,7 @@ describe("media browser", () => {
   const real = (overrides: Partial<MediaBrowserDeps> = {}): MediaBrowser => new MediaBrowser({
     readdir: (path) => readdir(path, { withFileTypes: true }),
     stat: (path) => stat(path),
+    readlink: (path) => readlink(path),
     run: noRun,
     ffprobe: null,
     folders: { movies: join(root, "Movies"), desktop: join(root, "Desktop"), downloads: join(root, "Downloads"), documents: join(root, "Documents") },
@@ -88,6 +89,16 @@ describe("media browser", () => {
       { label: "Shoot Drive", path: join(root, "Volumes", "Shoot Drive"), group: "volumes" },
       { label: "Startup", path: join(root, "Volumes", "Startup"), group: "volumes" },
     ]);
+  });
+
+  it("opens the startup disk, a link to the root, at the root", async () => {
+    await mkdir(join(root, "Volumes"));
+    const browser = real({
+      readdir: async () => [{ name: "Startup", isFile: () => false, isDirectory: () => false, isSymbolicLink: () => true }],
+      stat: async () => ({ isFile: () => false, isDirectory: () => true, size: 0, mtimeMs: 0, blocks: 0 }),
+      readlink: async () => "/",
+    });
+    expect((await browser.places()).at(-1)).toEqual({ label: "Startup", path: "/", group: "volumes", startup: true });
   });
 
   it("lists one folder shallowly, skipping hidden files", async () => {

@@ -135,7 +135,9 @@ export function columnPaths(path: string, places: readonly BrowserPlace[]): stri
  */
 export function mayAskPermission(path: string, places: readonly BrowserPlace[]): boolean {
   if (/\/Library\/Mobile Documents(\/|$)/.test(path)) return true;
-  if (/^\/Volumes\/[^/]+/.test(path)) return true;
+  const volume = path.match(/^\/Volumes\/[^/]+/)?.[0];
+  // Every drive but the one the Mac started from, which also appears in /Volumes.
+  if (volume) return !places.some((place) => "startup" in place && place.startup && volume === `/Volumes/${place.label}`);
   return places.some((place) => place.group === "favorites" && ["Desktop", "Documents", "Downloads"].includes(place.label) && isInside(path, place.path));
 }
 
@@ -145,7 +147,9 @@ export function mayAskPermission(path: string, places: readonly BrowserPlace[]):
  */
 export function permissionNoteFor(path: string, places: readonly BrowserPlace[], seen: readonly string[]): string | null {
   if (!mayAskPermission(path, places)) return null;
-  const key = placeFor(path, places)?.path ?? path.match(/^\/Volumes\/[^/]+/)?.[0] ?? path;
+  // The deeper of the place and the drive: a drive reached from the startup disk's `/` is its own.
+  const candidates = [placeFor(path, places)?.path, path.match(/^\/Volumes\/[^/]+/)?.[0]].filter((item): item is string => !!item);
+  const key = candidates.sort((left, right) => right.length - left.length)[0] ?? path;
   return seen.includes(key) ? null : key;
 }
 
