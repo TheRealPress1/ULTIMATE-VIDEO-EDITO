@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { For } from "solid-js";
+import { For, onCleanup } from "solid-js";
+
+import { MEDIA_PATHS_DRAG_TYPE } from "@/components/sidebar-left/media-browser-data";
 
 import { projectTab, setSidebarTab, type SidebarTab } from "./store";
 
@@ -13,6 +15,7 @@ const GROUPS: Record<Group, { id: SidebarTab; label: string }[]> = {
   agent: [{ id: "chat", label: "Agent" }],
   project: [
     { id: "assets", label: "Project" },
+    { id: "media", label: "Media" },
     { id: "footage", label: "Footage" },
   ],
 };
@@ -25,6 +28,17 @@ export function SidebarTabs(props: { group: Group }) {
   const tabs = () => GROUPS[props.group];
   // The agent and the project panel are on screen together; only the project panel's tabs take turns.
   const isOpen = (id: SidebarTab) => props.group === "agent" || projectTab() === id;
+
+  // A clip dragged from the Media tab over another tab opens it after a
+  // moment, as Finder's folders spring open, so it can be dropped on Project.
+  let springTimer: ReturnType<typeof setTimeout> | undefined;
+  const cancelSpring = () => clearTimeout(springTimer);
+  onCleanup(cancelSpring);
+  const handleDragEnter = (id: SidebarTab, event: DragEvent) => {
+    if (isOpen(id) || !event.dataTransfer?.types.includes(MEDIA_PATHS_DRAG_TYPE)) return;
+    cancelSpring();
+    springTimer = setTimeout(() => setSidebarTab(id), 500);
+  };
 
   return (
     <div class="relative z-30 flex h-full items-stretch gap-4" style="-webkit-app-region: no-drag;" role="tablist">
@@ -40,6 +54,9 @@ export function SidebarTabs(props: { group: Group }) {
               "text-muted-foreground hover:text-foreground after:bg-transparent": !isOpen(tab.id),
             }}
             onClick={() => setSidebarTab(tab.id)}
+            onDragEnter={(event) => handleDragEnter(tab.id, event)}
+            onDragLeave={cancelSpring}
+            onDrop={cancelSpring}
           >
             {tab.label}
           </button>

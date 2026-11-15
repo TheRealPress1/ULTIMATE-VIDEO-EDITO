@@ -38,7 +38,7 @@ import { flushProjectEdits } from "@/projects/edits";
 import { attachmentFromPath, attachmentPaths, mergeAttachments, type Attachment } from "./attachments";
 import { client, hasHost } from "./connection";
 
-export type SidebarTab = "assets" | "chat" | "footage";
+export type SidebarTab = "assets" | "chat" | "media" | "footage";
 /** The tabs of the panel below the agent, which stays on screen beside it. */
 export type ProjectTab = Exclude<SidebarTab, "chat">;
 
@@ -87,7 +87,7 @@ export { state as chatState };
 
 const root = createRoot(() => {
   const [tab, setTab] = createStoredSignal(settings.define<SidebarTab>("leftSidebar.tab", "assets"));
-  const [projectTab, setProjectTab] = createStoredSignal(settings.define<ProjectTab>("leftSidebar.projectTab", "assets", (value) => (value === "footage" ? "footage" : "assets")));
+  const [projectTab, setProjectTab] = createStoredSignal(settings.define<ProjectTab>("leftSidebar.projectTab", "assets", (value) => (value === "footage" || value === "media" ? value : "assets")));
   const [model, setModel] = createStoredSignal(settings.define<ModelRef | null>("agentChat.model", null));
   const [active, setActive] = createStoredSignal(settings.define<Record<string, string>>("agentChat.active", {}));
   return { tab, setTab, projectTab, setProjectTab, model, setModel, active, setActive };
@@ -95,7 +95,7 @@ const root = createRoot(() => {
 
 /** Which tab the left sidebar was last set to; persists across sessions. */
 export const sidebarTab = root.tab;
-/** Which of Project and Footage the panel below the agent shows. Choosing Chat leaves it alone. */
+/** Which of Project, Media and Footage the panel below the agent shows. Choosing Chat leaves it alone. */
 export const projectTab = root.projectTab;
 export function setSidebarTab(value: SidebarTab): void {
 	root.setTab(value);
@@ -596,7 +596,7 @@ export const ASSETS_SIDEBAR_WIDTH = 264;
 export const CHAT_SIDEBAR_WIDTH = 340;
 export const FOOTAGE_SIDEBAR_WIDTH = 380;
 
-export const leftSidebarWidth = (): number => sidebarTab() === "footage"
+export const leftSidebarWidth = (): number => sidebarTab() === "footage" || sidebarTab() === "media"
   ? FOOTAGE_SIDEBAR_WIDTH
   : sidebarTab() === "chat" ? CHAT_SIDEBAR_WIDTH : ASSETS_SIDEBAR_WIDTH;
 

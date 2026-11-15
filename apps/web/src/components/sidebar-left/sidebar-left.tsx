@@ -4,6 +4,7 @@
 
 import { Assets } from "./assets";
 import { Footage } from "./footage";
+import { MediaBrowser } from "./media-browser";
 import { ChatPanel, sidebarTab } from "@/agent-chat";
 import { useLayout } from "@/context/layout";
 import { useEditorApi } from "@/dapi";
@@ -24,6 +25,11 @@ export function SidebarLeft() {
   createEffect(() => {
     if (sidebarTab() === "footage") setFootageOpened(true);
   });
+  // Mounted on first visit and kept, so the folder and selection survive a tab switch.
+  const [mediaOpened, setMediaOpened] = createSignal(sidebarTab() === "media");
+  createEffect(() => {
+    if (sidebarTab() === "media") setMediaOpened(true);
+  });
 
   return (
     <div class="flex flex-col h-full overflow-hidden">
@@ -37,6 +43,11 @@ export function SidebarLeft() {
       </div>
       <Show when={sidebarTab() === "chat"}>
         <ChatPanel />
+      </Show>
+      <Show when={mediaOpened()}>
+        <div classList={{ contents: sidebarTab() === "media", hidden: sidebarTab() !== "media" }}>
+          <MediaBrowser />
+        </div>
       </Show>
       <Show when={footageOpened()}>
         <div classList={{ contents: sidebarTab() === "footage", hidden: sidebarTab() !== "footage" }}>

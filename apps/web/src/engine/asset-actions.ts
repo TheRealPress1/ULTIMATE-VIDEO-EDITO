@@ -40,6 +40,15 @@ export async function importFiles(library: AssetLibrary, files: ReadonlyArray<Fi
   return reported(report);
 }
 
+/**
+ * Links files and folders by absolute path into the library at `folder`, as
+ * a drop from the Media tab does: nothing is copied, and a folder comes in
+ * with everything in it.
+ */
+export async function importPaths(library: AssetLibrary, paths: readonly string[], folder: string): Promise<Asset[]> {
+  return paths.length ? reported(await library.import(paths, { folder })) : [];
+}
+
 /** What an import brought in, with whatever it refused reported. */
 function reported(result: ImportResult): Asset[] {
   for (const { source, error } of result.failed) {
