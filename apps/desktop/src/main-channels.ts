@@ -192,6 +192,11 @@ export const MAIN_CHANNELS = {
   PROJECTS_CONFIG_READ: "projects:config-read",
   PROJECTS_CONFIG_WRITE: "projects:config-write",
   PROJECTS_FS_LIST: "projects:fs-list",
+  MEDIA_BROWSER_PLACES: "media-browser:places",
+  MEDIA_BROWSER_LIST: "media-browser:list",
+  MEDIA_BROWSER_PROBE: "media-browser:probe",
+  MEDIA_BROWSER_CANCEL: "media-browser:cancel",
+  MEDIA_BROWSER_PICK_FOLDER: "media-browser:pick-folder",
   PROJECTS_FS_STAT: "projects:fs-stat",
   PROJECTS_FS_REMOVE: "projects:fs-remove",
   PROJECTS_FS_REAL_PATH: "projects:fs-real-path",
@@ -566,6 +571,28 @@ export type MainRequestMap = {
     request: { dir: string; source: string };
     response: FsEntry[];
   };
+  // The Media tab: a read-only view of folders anywhere on the computer.
+  // `request` names a read so MEDIA_BROWSER_CANCEL can stop it.
+  [MAIN_CHANNELS.MEDIA_BROWSER_PLACES]: {
+    request: void;
+    response: MediaPlace[];
+  };
+  [MAIN_CHANNELS.MEDIA_BROWSER_LIST]: {
+    request: { path: string; request: string };
+    response: MediaListing;
+  };
+  [MAIN_CHANNELS.MEDIA_BROWSER_PROBE]: {
+    request: { path: string; request: string };
+    response: MediaProbe;
+  };
+  [MAIN_CHANNELS.MEDIA_BROWSER_CANCEL]: {
+    request: { request: string };
+    response: void;
+  };
+  [MAIN_CHANNELS.MEDIA_BROWSER_PICK_FOLDER]: {
+    request: void;
+    response: string | null;
+  };
   [MAIN_CHANNELS.PROJECTS_FS_STAT]: {
     request: { dir: string; source: string };
     response: FsStat | null;
@@ -603,6 +630,35 @@ export type FsEntry = {
   link?: boolean;
 };
 export type FsStat = { size: number; mtime: number };
+/** A folder the Media tab offers in its sidebar. */
+export type MediaPlace = { label: string; path: string; group: "favorites" | "volumes" };
+export type MediaEntry = {
+  name: string;
+  path: string;
+  kind: "file" | "directory";
+  size: number;
+  mtime: number;
+  /** A file whose bytes are still in iCloud or OneDrive: reading it would download it. */
+  cloud?: boolean;
+};
+export type MediaListing =
+  | { status: "ok"; path: string; entries: MediaEntry[] }
+  | { status: "denied" | "missing" | "cancelled"; path: string; entries: [] };
+export type MediaDetails = {
+  duration?: number;
+  container?: string;
+  videoCodec?: string;
+  width?: number;
+  height?: number;
+  frameRate?: number;
+  audioCodec?: string;
+  sampleRate?: number;
+  channels?: number;
+};
+export type MediaProbe =
+  | { status: "ok"; details: MediaDetails }
+  | { status: "cloud" | "cancelled" | "unavailable" }
+  | { status: "failed"; error: string };
 export type MainRequestChannel = keyof MainRequestMap;
 
 export type MainEventMap = {
