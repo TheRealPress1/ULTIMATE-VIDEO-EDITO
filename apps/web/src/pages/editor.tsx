@@ -11,6 +11,7 @@ import { WorkspaceTabs } from '@/components/workspace-tabs';
 import { Assets } from "@/components/sidebar-left/assets";
 import { Footage } from "@/components/sidebar-left/footage";
 import { MediaBrowser } from "@/components/sidebar-left/media-browser";
+import { CaptionsTab } from "@/components/sidebar-left/captions-tab";
 import { Icon } from "@/components/ui/icon";
 import { useExport } from "@/context/export";
 import { assetSystem, getActiveEntity, transformSystem } from "@diffusionstudio/runtime";
@@ -68,6 +69,10 @@ export function EditorPage() {
     if (projectTab() === "footage") setFootageOpened(true);
   });
   const [mediaOpened, setMediaOpened] = createSignal(false);
+  const [captionsOpened, setCaptionsOpened] = createSignal(false);
+  createEffect(() => {
+    if (projectTab() === "captions") setCaptionsOpened(true);
+  });
   createEffect(() => {
     if (projectTab() === "media") setMediaOpened(true);
   });
@@ -387,6 +392,9 @@ export function EditorPage() {
           />
           <div class="cutroom-panel cutroom-panel-project" style={{ height: `${projectPanelHeight()}px` }}>
             <div classList={{ contents: projectTab() === "assets", hidden: projectTab() !== "assets" }}><Assets /></div>
+            <Show when={captionsOpened()}>
+              <div classList={{ contents: projectTab() === "captions", hidden: projectTab() !== "captions" }}><CaptionsTab /></div>
+            </Show>
             <Show when={mediaOpened()}>
               <div classList={{ contents: projectTab() === "media", hidden: projectTab() !== "media" }}><MediaBrowser /></div>
             </Show>

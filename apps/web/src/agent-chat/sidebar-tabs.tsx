@@ -16,6 +16,7 @@ const GROUPS: Record<Group, { id: SidebarTab; label: string }[]> = {
   project: [
     { id: "assets", label: "Project" },
     { id: "media", label: "Media" },
+    { id: "captions", label: "Captions" },
     { id: "footage", label: "Footage" },
   ],
 };
