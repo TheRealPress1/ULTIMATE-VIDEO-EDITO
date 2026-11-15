@@ -10,6 +10,14 @@ Blackout is an open-source desktop video editor for people who already edit well
 - Keep pull requests small: one idea that works end to end.
 - Releases are the owner's. Don't bump the version, create tags, or touch the signing and release workflows.
 
+## Working together
+
+- Pick up an issue by assigning yourself to it. Don't start one that someone else has.
+- Open a draft pull request after your first commit. Its file list shows the other person what you are changing, before it becomes a conflict.
+- Start each session with `git fetch` and `gh pr list`. Before you open or merge a pull request, merge `origin/main` into your branch and rerun the checks.
+- Put new code in new files where you can, and tell the other person before you edit a file everyone touches (`apps/web/src/app.tsx`, `apps/desktop/src/main.ts`, `apps/desktop/src/main-channels.ts`).
+- Click Watch, then All activity, on the repository, so every issue and pull request reaches you.
+
 ## Set up
 
 You need a Mac (Apple silicon is the main target), Node.js 22.12 or newer, and npm.
@@ -32,6 +40,8 @@ npm run check   # type-check every workspace
 npm run test    # every test suite
 npm run lint    # eslint (the web app)
 ```
+
+GitHub runs these three on every pull request, and `main` accepts a pull request only when they pass and the branch is up to date with `main`.
 
 Add or update tests for the behavior you change. A test is only worth keeping if it fails when the code is wrong, so break the code on purpose once and watch the test fail. For a visible change, put a screenshot or a short recording in the pull request.
 
