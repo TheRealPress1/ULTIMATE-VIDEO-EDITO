@@ -7,7 +7,7 @@
 // transcription and the caption layer are the engine's (generate/captions).
 
 import { batch, createEffect, createMemo, createSignal, For, Index, Match, on, onCleanup, Show, Switch, type JSX } from "solid-js";
-import { useWorld } from "@diffusionstudio/koota-solid";
+import { useQuery, useWorld } from "@diffusionstudio/koota-solid";
 import { authoredElement } from "@diffusionstudio/reconciler";
 import { Caption, Computed, FrameRate, Name, Scene, setPlayhead, stopPlayback } from "@diffusionstudio/runtime";
 import { toast } from "somoto";
@@ -77,6 +77,8 @@ function Captions() {
   const library = useLibrary();
   const active = useActiveScene();
   const { nodes } = useSelection();
+  // Caption layers coming and going, so "Make" turns into "Update" and back.
+  const captionLayers = useQuery(Caption);
 
   // The selected scene, or the active one: the same scene Generate captions uses.
   const scene = createMemo<Entity | null>(() => nodes().find((node) => node.has(Scene)) ?? active());
@@ -137,6 +139,7 @@ function Captions() {
 
   // The scene's existing captions, made before this tab, as a starting transcript.
   const captionSource = createMemo(() => {
+    captionLayers();
     const target = scene();
     const lib = library();
     const layer = target ? sceneCaption(world, target) : undefined;
@@ -218,6 +221,7 @@ function Captions() {
   };
 
   const hasLayer = createMemo(() => {
+    captionLayers();
     const target = scene();
     return !!target && !!sceneCaption(world, target);
   });
