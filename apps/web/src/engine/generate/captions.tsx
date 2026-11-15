@@ -8,7 +8,7 @@
  * toast reports preparation, the first model download, and transcription.
  */
 
-import { authoredElement, authoredTree, Captions } from '@diffusionstudio/reconciler';
+import { authoredElement, authoredTree, Captions, renderAuthored } from '@diffusionstudio/reconciler';
 import { Caption, Computed, FrameRate, getEntityChildren, getEntityTree, Library, Shimmering } from '@diffusionstudio/runtime';
 import { DapiError } from '@diffusionstudio/dapi';
 import { assetName } from '@diffusionstudio/assets';
@@ -21,7 +21,9 @@ import { getDocumentEditor } from '../editor';
 import { encodeSceneAudio, hasAudio } from '../scene-audio';
 import { shimmer } from './shimmer';
 
-import type { AssetLibrary } from '@diffusionstudio/assets';
+import type { AssetLibrary, Transcript } from '@diffusionstudio/assets';
+import type { SpeechQuality } from '@desktop/speech-types';
+import type { CaptionPreset } from '@diffusionstudio/jsx';
 import type { AuthoredTree } from '@diffusionstudio/reconciler';
 import type { Entity, World } from 'koota';
 
@@ -51,7 +53,7 @@ function compositionSnapshot(world: World, scene: Entity): string | undefined {
 }
 
 /** A scene-wide transcript must not inherit a nested or trimmed clip's clock. */
-function sceneCaption(world: World, scene: Entity): Entity | undefined {
+export function sceneCaption(world: World, scene: Entity): Entity | undefined {
 	return getEntityChildren(world, scene).find((entity) => {
 		if (!entity.has(Caption)) return false;
 		const props = authoredElement(entity)?.props;
@@ -69,6 +71,105 @@ function captionsName(library: AssetLibrary): string {
 	return `Captions ${max + 1}.json`;
 }
 
+export type SceneTranscriptionOptions = {
+	signal?: AbortSignal;
+	/** Guards navigation between awaits, in addition to the world/scene checks. */
+	assertCurrent?: () => void;
+	/** Whisper model; the fast one by default. */
+	quality?: SpeechQuality;
+	/** Spoken language code; detected when omitted. */
+	language?: string;
+	onProgress?: (message: string, fraction: number | null) => void;
+};
+
+/** Why `scene` can't be transcribed now, or undefined when it can. */
+export function sceneTranscriptionProblem(world: World, scene: Entity): { message: string; code: 'invalid-input' | 'busy' } | undefined {
+	if (!world.get(Library)) return { message: 'No asset library is available. Open the project and try again.', code: 'invalid-input' };
+	if (scene.has(Shimmering) || running.has(scene)) return { message: 'This scene is already processing. Wait for it to finish.', code: 'busy' };
+	if (!hasAudio(world, scene)) return { message: 'No audio found. Add an audio or video clip to the scene first.', code: 'invalid-input' };
+	const duration = sceneSeconds(world, scene);
+	if (!Number.isFinite(duration) || duration <= 0) return { message: 'The scene has no finite audio duration to transcribe.', code: 'invalid-input' };
+	if (duration > MAX_TRANSCRIPTION_SECONDS) return { message: 'Local transcription supports scenes up to two hours.', code: 'invalid-input' };
+	return undefined;
+}
+
+const sceneSeconds = (world: World, scene: Entity): number => (scene.get(Computed)?.duration ?? 0) / (world.get(FrameRate)?.value || 30);
+
+/**
+ * Transcribes the scene's audible mix on this Mac and hands the transcript,
+ * clamped to the scene, to `finish` while the scene is still guarded: the
+ * scene shimmers, and `checkCurrent` throws once it was edited, removed or
+ * the project changed. A scene already being transcribed is refused.
+ */
+export async function transcribeScene<T>(
+	world: World,
+	scene: Entity,
+	dir: string | undefined,
+	options: SceneTranscriptionOptions,
+	finish: (transcript: Transcript, checkCurrent: () => void) => Promise<T>,
+): Promise<T> {
+	options.signal?.throwIfAborted();
+	options.assertCurrent?.();
+	const problem = sceneTranscriptionProblem(world, scene);
+	if (problem) throw new DapiError(problem.code, problem.message);
+	const library = world.get(Library)!;
+	const duration = sceneSeconds(world, scene);
+	const editor = getDocumentEditor(world);
+	running.add(scene);
+	const sourceSnapshot = compositionSnapshot(world, scene);
+	let edited = false;
+	const stopEdits = editor.onEdit((edit) => {
+		if (edit.kind !== 'prop' || !EDITOR_PROPS.has(edit.name)) edited = true;
+	});
+	const release = shimmer(world, scene);
+	const signal = options.signal ?? new AbortController().signal;
+	const progress = options.onProgress ?? (() => {});
+	const checkCurrent = () => {
+		signal.throwIfAborted();
+		options.assertCurrent?.();
+		if (world.get(Library) !== library || !scene.isAlive()) {
+			throw new Error('The project or scene changed. Open the scene and transcribe again.');
+		}
+		if (edited || compositionSnapshot(world, scene) !== sourceSnapshot) {
+			throw new Error('The scene was edited during transcription. Transcribe again to match the current edit.');
+		}
+	};
+	try {
+		progress('Checking local transcription', null);
+		await assertLocalTranscriptionAvailable();
+		checkCurrent();
+		progress('Preparing the scene audio', null);
+		const { quality, language } = options;
+		const result = duration > 180 ? await (await import('../scene-speech')).transcribeSceneSections(world, scene, dir, {
+			duration, snapshot: sourceSnapshot ?? '', signal, assertCurrent: checkCurrent, onProgress: (message, fraction) => progress(message, fraction ?? null), quality, language,
+		}) : await transcribeLocally(await encodeSceneAudio(world, scene, dir, {
+			signal,
+			onProgress: (fraction) => progress('Mixing the scene audio', fraction),
+		}), {
+			signal, assertCurrent: checkCurrent, quality, language,
+			onProgress: ({ message, progress: fraction }) => progress(message, fraction),
+		});
+		checkCurrent();
+		// Audio containers can add a few padding samples. Captions must end
+		// within the original scene, or regenerating them can grow the edit.
+		const transcript = result.flatMap((segment) => {
+			const words = segment.words
+				.filter((word) => word.start < duration)
+				.map((word) => ({ ...word, end: Math.min(word.end, duration) }))
+				.filter((word) => word.end > word.start);
+			return words.length ? [{ ...segment, text: words.map((word) => word.text).join(' '), words }] : [];
+		});
+		if (!transcript.some((segment) => segment.words.length > 0)) {
+			throw new Error('No speech detected. The audio does not appear to contain recognizable speech.');
+		}
+		return await finish(transcript, checkCurrent);
+	} finally {
+		running.delete(scene);
+		stopEdits();
+		release?.();
+	}
+}
+
 /**
  * Transcribes `scene` and mounts the transcript as its captions: the scene's
  * `<captions>` is pointed at the new transcript, or one is added. A scene
@@ -82,31 +183,15 @@ export async function generateCaptions(world: World, scene: Entity, dir?: string
 		toast.error(TITLE, { description: message });
 		return undefined;
 	};
-	const library = world.get(Library);
-	if (!library) return fail('No asset library is available. Open the project and try again.');
-	if (scene.has(Shimmering) || running.has(scene)) return fail('This scene is already processing. Wait for it to finish before generating captions.', 'busy');
-	if (!hasAudio(world, scene)) {
-		return fail('No audio found. Add an audio or video clip to the scene to generate captions.');
-	}
-	const duration = (scene.get(Computed)?.duration ?? 0) / (world.get(FrameRate)?.value || 30);
-	if (!Number.isFinite(duration) || duration <= 0) return fail('The scene has no finite audio duration to caption.');
-	if (duration > MAX_TRANSCRIPTION_SECONDS) {
-		return fail('Local captions support scenes up to two hours.');
-	}
-
+	const problem = sceneTranscriptionProblem(world, scene);
+	if (problem) return fail(problem.message, problem.code);
+	const library = world.get(Library)!;
 	const editor = getDocumentEditor(world);
 	const existing = sceneCaption(world, scene);
 	if (getEntityTree(world, scene).some((node) => node.has(Caption) && node !== existing)) {
 		return fail('This scene contains timed, nested, or additional captions. Reconcile those caption layers before generating scene-wide captions to avoid duplicates.');
 	}
 	editor.deselect(scene);
-	running.add(scene);
-	const sourceSnapshot = compositionSnapshot(world, scene);
-	let edited = false;
-	const stopEdits = editor.onEdit((edit) => {
-		if (edit.kind !== 'prop' || !EDITOR_PROPS.has(edit.name)) edited = true;
-	});
-	const release = shimmer(world, scene);
 	const controller = new AbortController();
 	const cancel = () => controller.abort(options.signal?.reason);
 	options.signal?.addEventListener('abort', cancel, { once: true });
@@ -126,59 +211,24 @@ export async function generateCaptions(world: World, scene: Entity, dir?: string
 			action: { label: 'Cancel', onClick: () => controller.abort() },
 		});
 	};
-	const checkCurrent = () => {
-		controller.signal.throwIfAborted();
-		options.assertCurrent?.();
-		if (world.get(Library) !== library || !scene.isAlive()) {
-			throw new Error('The project or scene changed. Open the scene and generate captions again.');
-		}
-		if (edited || compositionSnapshot(world, scene) !== sourceSnapshot) {
-			throw new Error('The scene was edited during transcription. Generate captions again to match the current edit.');
-		}
-	};
 
 	try {
-		progress('Checking local transcription');
-		await assertLocalTranscriptionAvailable();
-		checkCurrent();
-		progress('Preparing the scene audio');
-		const result = duration > 180 ? await (await import('../scene-speech')).transcribeSceneSections(world, scene, dir, {
-			duration, snapshot: sourceSnapshot ?? '', signal: controller.signal, assertCurrent: checkCurrent, onProgress: progress,
-		}) : await transcribeLocally(await encodeSceneAudio(world, scene, dir, {
-			signal: controller.signal,
-			onProgress: (fraction) => progress('Mixing the scene audio', fraction),
-		}), {
-			signal: controller.signal, assertCurrent: checkCurrent,
-			onProgress: ({ message, progress: fraction }) => progress(message, fraction),
-		});
-		checkCurrent();
-		// Audio containers can add a few padding samples. Captions must end
-		// within the original scene, or regenerating them can grow the edit.
-		const transcript = result.flatMap((segment) => {
-			const words = segment.words
-				.filter((word) => word.start < duration)
-				.map((word) => ({ ...word, end: Math.min(word.end, duration) }))
-				.filter((word) => word.end > word.start);
-			return words.length ? [{ ...segment, text: words.map((word) => word.text).join(' '), words }] : [];
-		});
-		if (!transcript.some((segment) => segment.words.length > 0)) {
-			throw new Error('No speech detected. The audio does not appear to contain recognizable speech.');
-		}
+		return await transcribeScene(world, scene, dir, { signal: controller.signal, assertCurrent: options.assertCurrent, onProgress: progress }, async (transcript, checkCurrent) => {
+			const blob = new Blob([JSON.stringify(transcript)], { type: 'application/json' });
+			const asset = await library.store(blob, { name: captionsName(library) });
+			await library.flush();
+			checkCurrent();
 
-		const blob = new Blob([JSON.stringify(transcript)], { type: 'application/json' });
-		const asset = await library.store(blob, { name: captionsName(library) });
-		await library.flush();
-		checkCurrent();
-
-		if (existing) {
-			editor.editProperty(existing, 'src', asset.path);
-			editor.select(existing);
-		} else {
-			const [captions] = editor.insertElement(scene, () => <Captions src={asset.path} />);
-			if (captions) editor.select(captions);
-		}
-		toast.success('Captions added', { description: 'Select the captions to edit the words and choose a style.' });
-		return { path: asset.path, segments: transcript.length, words: transcript.reduce((sum, segment) => sum + segment.words.length, 0), replacedExisting: !!existing };
+			if (existing) {
+				editor.editProperty(existing, 'src', asset.path);
+				editor.select(existing);
+			} else {
+				const [captions] = editor.insertElement(scene, () => <Captions src={asset.path} />);
+				if (captions) editor.select(captions);
+			}
+			toast.success('Captions added', { description: 'Select the captions to edit the words and choose a style.' });
+			return { path: asset.path, segments: transcript.length, words: transcript.reduce((sum, segment) => sum + segment.words.length, 0), replacedExisting: !!existing };
+		});
 	} catch (error) {
 		if (controller.signal.aborted || isTranscriptionCanceled(error)) {
 			toast('Caption generation canceled');
@@ -189,9 +239,40 @@ export async function generateCaptions(world: World, scene: Entity, dir?: string
 		if (options.throwErrors) throw error;
 	} finally {
 		options.signal?.removeEventListener('abort', cancel);
-		running.delete(scene);
 		toast.dismiss(progressId);
-		stopEdits();
-		release?.();
 	}
+}
+
+export type CaptionLayerStyle = {
+	preset: CaptionPreset;
+	/** Overrides the preset's case; false keeps the preset's own. */
+	textCase: 'original' | 'lower' | 'upper' | false;
+};
+
+/**
+ * Stores `transcript` as a new captions file and points the scene's caption
+ * layer at it with `style`, adding the layer when there is none. Older
+ * caption files stay, so undo can return to them. Refuses a scene whose
+ * captions are timed, nested or more than one, as generating captions does.
+ */
+export async function mountSceneCaptions(world: World, scene: Entity, transcript: Transcript, style: CaptionLayerStyle, name: string): Promise<{ path: string; added: boolean }> {
+	const library = world.get(Library);
+	if (!library) throw new Error('No asset library is available. Open the project and try again.');
+	const existing = sceneCaption(world, scene);
+	if (getEntityTree(world, scene).some((node) => node.has(Caption) && node !== existing)) {
+		throw new Error('This scene has timed, nested, or more than one caption layer. Keep one scene-wide caption layer, then try again.');
+	}
+	const asset = await library.store(new Blob([JSON.stringify(transcript)], { type: 'application/json' }), { name });
+	await library.flush();
+	if (world.get(Library) !== library || !scene.isAlive()) throw new Error('The project or scene changed. Open the scene and try again.');
+	const editor = getDocumentEditor(world);
+	const layer = sceneCaption(world, scene) ?? editor.insertElement(scene, () => renderAuthored({ tag: 'captions', props: { src: asset.path, preset: style.preset }, children: [] }))[0];
+	if (!layer) throw new Error('The caption layer could not be added to this scene.');
+	if (layer === existing) {
+		editor.editProperty(layer, 'src', asset.path);
+		editor.editProperty(layer, 'preset', style.preset);
+	}
+	// A preset rewrites the caption's text style, so the case goes on after it.
+	editor.editProperty(layer, 'textCase', style.textCase);
+	return { path: asset.path, added: layer !== existing };
 }

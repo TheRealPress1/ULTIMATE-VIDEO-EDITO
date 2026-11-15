@@ -1493,7 +1493,9 @@ export class RuntimeDocument implements ProjectDocument<SceneNode> {
 			}
 			case 'textCase': {
 				entity.add(TextStyle);
-				entity.set(TextStyle, { textCase: typeof value === 'string' ? TEXT_CASES[value] : undefined });
+				// Unset on a caption, the case is its preset's again, not none.
+				const fallback = entity.has(Caption) ? CAPTION_PRESET_STYLES[entity.get(Caption)!.type].textCase : undefined;
+				entity.set(TextStyle, { textCase: typeof value === 'string' ? TEXT_CASES[value] : fallback });
 				return;
 			}
 			case 'letterSpacing': {

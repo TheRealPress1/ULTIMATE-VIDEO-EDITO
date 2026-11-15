@@ -1,12 +1,13 @@
 import { AssetId, getAsset, getEntityTree, getLibrary, FrameRate } from '@diffusionstudio/runtime';
 import type { Entity, World } from 'koota';
-import type { SpeechSegment } from '@desktop/speech-types';
+import type { SpeechQuality, SpeechSegment } from '@desktop/speech-types';
 import type { AnalysisCacheRequest } from '@desktop/analysis-cache-types';
 import { MAIN_CHANNELS } from '@desktop/main-channels';
 import { speechChunks, mergeSpeechChunks, type SpeechChunk } from '@desktop/speech-chunks';
 import { mainBridge } from '@/lib/ipc';
 import { transcribeLocally } from '@/lib/local-transcription';
 import { encodeSceneAudio } from './scene-audio';
+import { speechSectionVariant } from './speech-variant';
 const ENGINE = 'scene-whisper-base-overlap-v2';
 const SECTION_SECONDS = 120;
 function cachedSpeech(value: unknown, window: SpeechChunk): SpeechSegment[] | undefined {
@@ -37,6 +38,8 @@ async function cacheCall(request: AnalysisCacheRequest, signal: AbortSignal, put
 /** Long-scene caption analysis; authored caption assets are only replaced after all sections succeed. */
 export async function transcribeSceneSections(world: World, scene: Entity, dir: string | undefined, options: {
   duration: number; snapshot: string; signal: AbortSignal; assertCurrent: () => void; onProgress: (message: string, fraction?: number | null) => void;
+  /** Whisper model and spoken language; omitted, the fast model detects the language. */
+  quality?: SpeechQuality; language?: string;
 }): Promise<SpeechSegment[]> {
   const { signal, assertCurrent, onProgress, duration } = options, library = getLibrary(world);
   signal.throwIfAborted(); assertCurrent();
@@ -58,7 +61,8 @@ export async function transcribeSceneSections(world: World, scene: Entity, dir: 
   };
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(options.snapshot)));
   const hash = [...digest].map(byte => byte.toString(16).padStart(2, '0')).join('');
-  const request = dir ? { dir, key: JSON.stringify([ENGINE, hash, world.get(FrameRate)?.value ?? 30, duration, SECTION_SECONDS]), sources: [...sources.keys()] } : undefined;
+  // Sections saved by another model or language are not this run's.
+  const request = dir ? { dir, key: JSON.stringify([ENGINE, hash, world.get(FrameRate)?.value ?? 30, duration, SECTION_SECONDS, ...speechSectionVariant(options.quality, options.language)]), sources: [...sources.keys()] } : undefined;
   onProgress('Checking saved caption sections');
   const saved = request ? await cacheCall(request, signal) : undefined; await current();
   const windows = speechChunks(duration, 0, duration, SECTION_SECONDS), results: { window: SpeechChunk; segments: SpeechSegment[] }[] = [];
@@ -70,7 +74,7 @@ export async function transcribeSceneSections(world: World, scene: Entity, dir: 
     else {
       const audio = await encodeSceneAudio(world, scene, dir, { signal, window: { start: window.start, end: window.end }, onProgress: fraction => onProgress(`Mixing caption section ${window.index + 1} of ${windows.length}`, (window.index + fraction * .1) / windows.length) });
       await current();
-      const result = await transcribeLocally(audio, { signal, assertCurrent, onProgress: progress => onProgress(`Transcribing caption section ${window.index + 1} of ${windows.length}`, progress.progress === null ? null : (window.index + .1 + progress.progress * .9) / windows.length) });
+      const result = await transcribeLocally(audio, { signal, assertCurrent, quality: options.quality, language: options.language, onProgress: progress => onProgress(`Transcribing caption section ${window.index + 1} of ${windows.length}`, progress.progress === null ? null : (window.index + .1 + progress.progress * .9) / windows.length) });
       await current();
       segments = result.map(segment => ({ text: segment.text, words: segment.words.map(word => ({ text: word.text, start: word.start + window.start, end: Math.min(window.end, word.end + window.start) })).filter(word => word.end > word.start) })).filter(segment => segment.words.length);
       if (request && saved) { await cacheCall(request, signal, { fingerprint: saved.fingerprint, chunk: key, value: segments }); await current(); }
