@@ -68,6 +68,8 @@ export const MAIN_CHANNELS = {
   FEEDBACK_LIST: 'feedback:list',
   FEEDBACK_THREAD: 'feedback:thread',
   FEEDBACK_REPLY: 'feedback:reply',
+  // Help > Send Feedback… in the native menu: the window opens its feedback form.
+  FEEDBACK_REQUEST: 'feedback:request',
   DOWNLOADER_STATUS: 'downloader:status',
   DOWNLOADER_CHECK: 'downloader:check',
   DOWNLOADER_REINSTALL: 'downloader:reinstall',
@@ -605,6 +607,7 @@ export type MainRequestChannel = keyof MainRequestMap;
 
 export type MainEventMap = {
   [MAIN_CHANNELS.EDITOR_HISTORY]: { direction: 'undo' | 'redo' };
+  [MAIN_CHANNELS.FEEDBACK_REQUEST]: void;
   [MAIN_CHANNELS.PROJECTS_FLUSH_REQUEST]: {id: string};
   [MAIN_CHANNELS.SPEECH_PROGRESS]: SpeechProgress;
   [MAIN_CHANNELS.REFRAME_PROGRESS]: ReframeAnalysisProgress;

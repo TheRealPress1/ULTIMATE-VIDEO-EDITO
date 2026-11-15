@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { For, Show, createEffect, createMemo, createSignal, on } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal, on, onCleanup, onMount } from "solid-js";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TextField, TextFieldInput, TextFieldLabel, TextFieldTextArea } from "@/components/ui/text-field";
-import { closeFeedbackDialog, dropFeedbackScreenshot, feedbackDialog, feedbackStatus } from "@/lib/feedback";
+import { closeFeedbackDialog, dropFeedbackScreenshot, feedbackDialog, feedbackStatus, startFeedback } from "@/lib/feedback";
 import {
   AREA_CHOICES,
   DIALOG_TITLE,
@@ -97,6 +97,9 @@ export function FeedbackDialog() {
   const [busy, setBusy] = createSignal(false);
   const [error, setError] = createSignal("");
   const [sent, setSent] = createSignal<FeedbackSubmitResult>();
+
+  // The native Help > Send Feedback… asks this window for the form.
+  onMount(() => onCleanup(mainBridge.handle(MAIN_CHANNELS.FEEDBACK_REQUEST, () => void startFeedback("feedback"))));
 
   // Each time it comes up: a picture to keep, no old message, and the kind that was asked for unless a draft is kept.
   createEffect(
