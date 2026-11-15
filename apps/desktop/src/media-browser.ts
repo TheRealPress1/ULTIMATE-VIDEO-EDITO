@@ -9,7 +9,7 @@
 
 import { execFile } from "node:child_process";
 import { readdir, readlink, stat } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 import type { MediaDetails, MediaEntry, MediaListing, MediaPlace, MediaProbe } from "./main-channels";
 
@@ -39,6 +39,15 @@ export type MediaBrowserDeps = {
  */
 export function isCloudOnly(info: Pick<StatInfo, "isFile" | "size" | "blocks">): boolean {
   return info.isFile() && info.size > 0 && info.blocks === 0;
+}
+
+/**
+ * Throws unless `path` is an absolute path without a NUL, as the playback
+ * proxy checks what the renderer sends: a relative path would resolve
+ * against the app's working folder, and a NUL cuts a path short in C.
+ */
+export function assertBrowsablePath(path: unknown): asserts path is string {
+  if (typeof path !== "string" || !isAbsolute(path) || path.includes("\0")) throw new Error("Choose a folder or file by its full path.");
 }
 
 /** Finder hides these, and so does the browser. */
@@ -160,6 +169,7 @@ export class MediaBrowser {
    * thousands on a slow drive doesn't flood it, and stop when `request` is cancelled.
    */
   async list(path: string, request: string): Promise<MediaListing> {
+    assertBrowsablePath(path);
     const signal = this.begin(request);
     try {
       let names: DirEntry[];
@@ -187,6 +197,7 @@ export class MediaBrowser {
 
   /** What a clip is. Never touches a cloud-only file, which reading would download. */
   async probe(path: string, request: string): Promise<MediaProbe> {
+    assertBrowsablePath(path);
     const signal = this.begin(request);
     try {
       const ffprobe = this.deps.ffprobe;

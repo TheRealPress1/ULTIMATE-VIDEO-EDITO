@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { isCloudOnly, MediaBrowser, parseProbe, runProgram, type MediaBrowserDeps } from "./media-browser";
+import { assertBrowsablePath, isCloudOnly, MediaBrowser, parseProbe, runProgram, type MediaBrowserDeps } from "./media-browser";
 
 /** A one-second silent 8 kHz mono WAV: synthetic media, made here. */
 function silentWav(seconds = 1, rate = 8000): Buffer {
@@ -111,6 +111,22 @@ describe("media browser", () => {
     expect(listing.status).toBe("ok");
     expect(listing.entries.map((entry) => [entry.name, entry.kind]).sort()).toEqual([["A001", "directory"], ["clip.wav", "file"]]);
     expect(listing.entries.find((entry) => entry.name === "clip.wav")?.path).toBe(join(root, "Day 1", "clip.wav"));
+  });
+
+  it("refuses a relative path or one with a NUL, before touching the disk", async () => {
+    const readdirSpy = vi.fn(() => Promise.resolve([]));
+    const statSpy = vi.fn(() => Promise.resolve(fileStat(10, 1)));
+    const run = vi.fn(noRun);
+    const browser = real({ readdir: readdirSpy, stat: statSpy, run, ffprobe: "/bin/ffprobe" });
+    for (const path of ["Footage", "./Footage", "../Footage", "", "/Volumes/Card\0/etc", "/Volumes/Card/clip.mov\0.txt"]) {
+      await expect(browser.list(path, "r")).rejects.toThrow("full path");
+      await expect(browser.probe(path, "p")).rejects.toThrow("full path");
+    }
+    for (const value of [undefined, null, 42, ["/Volumes"]]) expect(() => assertBrowsablePath(value)).toThrow("full path");
+    expect(readdirSpy).not.toHaveBeenCalled();
+    expect(statSpy).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(() => assertBrowsablePath("/Volumes/Card/clip.mov")).not.toThrow();
   });
 
   it("says a folder macOS refused is denied, not empty", async () => {
