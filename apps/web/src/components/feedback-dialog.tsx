@@ -162,12 +162,12 @@ export function FeedbackDialog() {
     >
       <DialogPortal>
         <DialogContent
-          class="max-h-[88vh] overflow-y-auto sm:max-w-xl"
+          class="flex max-h-[88vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
           onInteractOutside={(event) => {
             if (busy() || hasUnsentText(draft())) event.preventDefault();
           }}
         >
-          <DialogHeader>
+          <DialogHeader class="px-6 pt-6 pb-4">
             <DialogTitle>{DIALOG_TITLE}</DialogTitle>
             <DialogDescription>{dialogDescription({ repo: feedbackStatus()?.repo ?? null })}</DialogDescription>
           </DialogHeader>
@@ -176,124 +176,130 @@ export function FeedbackDialog() {
             when={sent()}
             fallback={
               <>
-                <div class="flex gap-2" role="group" aria-label="What kind of report">
-                  <For each={KINDS}>
-                    {(choice) => (
-                      <Button
-                        variant={kind() === choice.id ? "on" : "secondary"}
-                        aria-pressed={kind() === choice.id}
-                        disabled={busy()}
-                        onClick={() => update({ kind: choice.id })}
-                      >
-                        {choice.label}
-                      </Button>
+                <div class="grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-6 pb-4">
+                  <div class="flex gap-2" role="group" aria-label="What kind of report">
+                    <For each={KINDS}>
+                      {(choice) => (
+                        <Button
+                          variant={kind() === choice.id ? "on" : "secondary"}
+                          aria-pressed={kind() === choice.id}
+                          disabled={busy()}
+                          onClick={() => update({ kind: choice.id })}
+                        >
+                          {choice.label}
+                        </Button>
+                      )}
+                    </For>
+                  </div>
+
+                  <TextField>
+                    <TextFieldLabel uiSize="compact">A short title</TextFieldLabel>
+                    <TextFieldInput
+                      uiSize="compact"
+                      spellcheck
+                      maxLength={TITLE_MAX}
+                      placeholder={kind() === "idea" ? "Slip and slide tools" : "The razor cuts one frame late"}
+                      value={draft().title}
+                      onInput={(event) => update({ title: event.currentTarget.value })}
+                      onKeyDown={fieldKeys}
+                      onKeyUp={keepKeys}
+                    />
+                  </TextField>
+
+                  <ChoiceSelect label="Where in Blackout?" value={draft().area} options={AREA_CHOICES} onChange={(area) => update({ area })} />
+
+                  <For each={fields()}>
+                    {(field) => (
+                      <TextField>
+                        <TextFieldLabel uiSize="compact">
+                          {field.label}
+                          {field.required ? "" : " (optional)"}
+                        </TextFieldLabel>
+                        <Show when={field.hint}>
+                          <p class="text-xxs text-muted-foreground">{field.hint}</p>
+                        </Show>
+                        <TextFieldTextArea
+                          class="text-xs"
+                          rows={field.rows}
+                          maxLength={TEXT_MAX}
+                          spellcheck
+                          value={draft()[field.key]}
+                          onInput={(event) => update({ [field.key]: event.currentTarget.value })}
+                          onKeyDown={fieldKeys}
+                          onKeyUp={keepKeys}
+                        />
+                      </TextField>
                     )}
                   </For>
+
+                  <Show
+                    when={kind() === "idea"}
+                    fallback={
+                      <ChoiceSelect
+                        label="How much does it get in your way?"
+                        value={draft().impact}
+                        options={IMPACT_CHOICES}
+                        onChange={(impact) => update({ impact })}
+                      />
+                    }
+                  >
+                    <ChoiceSelect
+                      label="How much does it matter to you?"
+                      value={draft().importance}
+                      options={IMPORTANCE_CHOICES}
+                      onChange={(importance) => update({ importance })}
+                    />
+                  </Show>
+
+                  <p class="text-xxs text-muted-foreground">
+                    {sentWithReport(feedbackStatus()?.reporter ?? null, APP_VERSION, !!screenshot() && keepShot())}
+                  </p>
+
+                  <Show when={screenshot()}>
+                    {(picture) => (
+                      <Show
+                        when={keepShot()}
+                        fallback={
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs text-muted-foreground">No screenshot will be sent.</span>
+                            <Button variant="outline" disabled={busy()} onClick={() => setKeepShot(true)}>
+                              Add it back
+                            </Button>
+                          </div>
+                        }
+                      >
+                        <div class="grid gap-2">
+                          <img
+                            src={picture()}
+                            alt="The Blackout window as it was when you asked to send feedback"
+                            class="max-h-44 w-full rounded-md border bg-black/40 object-contain"
+                          />
+                          <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs text-muted-foreground">The app window, taken just before this opened.</span>
+                            <Button variant="outline" disabled={busy()} onClick={() => setKeepShot(false)}>
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      </Show>
+                    )}
+                  </Show>
+
                 </div>
 
-                <TextField>
-                  <TextFieldLabel uiSize="compact">A short title</TextFieldLabel>
-                  <TextFieldInput
-                    uiSize="compact"
-                    spellcheck
-                    maxLength={TITLE_MAX}
-                    placeholder={kind() === "idea" ? "Slip and slide tools" : "The razor cuts one frame late"}
-                    value={draft().title}
-                    onInput={(event) => update({ title: event.currentTarget.value })}
-                    onKeyDown={fieldKeys}
-                    onKeyUp={keepKeys}
-                  />
-                </TextField>
-
-                <ChoiceSelect label="Where in Blackout?" value={draft().area} options={AREA_CHOICES} onChange={(area) => update({ area })} />
-
-                <For each={fields()}>
-                  {(field) => (
-                    <TextField>
-                      <TextFieldLabel uiSize="compact">
-                        {field.label}
-                        {field.required ? "" : " (optional)"}
-                      </TextFieldLabel>
-                      <Show when={field.hint}>
-                        <p class="text-xxs text-muted-foreground">{field.hint}</p>
+                {/* Fixed under the scrolling form, so Send, and what went wrong with it, are in view however long the form is. */}
+                <DialogFooter class="items-center gap-3 border-t px-6 py-4">
+                  <Show
+                    when={error()}
+                    fallback={
+                      <Show when={!busy() && problem()}>
+                        <span class="mr-auto text-xs text-muted-foreground">{problem()}</span>
                       </Show>
-                      <TextFieldTextArea
-                        class="text-xs"
-                        rows={field.rows}
-                        maxLength={TEXT_MAX}
-                        spellcheck
-                        value={draft()[field.key]}
-                        onInput={(event) => update({ [field.key]: event.currentTarget.value })}
-                        onKeyDown={fieldKeys}
-                        onKeyUp={keepKeys}
-                      />
-                    </TextField>
-                  )}
-                </For>
-
-                <Show
-                  when={kind() === "idea"}
-                  fallback={
-                    <ChoiceSelect
-                      label="How much does it get in your way?"
-                      value={draft().impact}
-                      options={IMPACT_CHOICES}
-                      onChange={(impact) => update({ impact })}
-                    />
-                  }
-                >
-                  <ChoiceSelect
-                    label="How much does it matter to you?"
-                    value={draft().importance}
-                    options={IMPORTANCE_CHOICES}
-                    onChange={(importance) => update({ importance })}
-                  />
-                </Show>
-
-                <p class="text-xxs text-muted-foreground">
-                  {sentWithReport(feedbackStatus()?.reporter ?? null, APP_VERSION, !!screenshot() && keepShot())}
-                </p>
-
-                <Show when={screenshot()}>
-                  {(picture) => (
-                    <Show
-                      when={keepShot()}
-                      fallback={
-                        <div class="flex items-center justify-between gap-2">
-                          <span class="text-xs text-muted-foreground">No screenshot will be sent.</span>
-                          <Button variant="outline" disabled={busy()} onClick={() => setKeepShot(true)}>
-                            Add it back
-                          </Button>
-                        </div>
-                      }
-                    >
-                      <div class="grid gap-2">
-                        <img
-                          src={picture()}
-                          alt="The Blackout window as it was when you asked to send feedback"
-                          class="max-h-44 w-full rounded-md border bg-black/40 object-contain"
-                        />
-                        <div class="flex items-center justify-between gap-2">
-                          <span class="text-xs text-muted-foreground">The app window, taken just before this opened.</span>
-                          <Button variant="outline" disabled={busy()} onClick={() => setKeepShot(false)}>
-                            Remove
-                          </Button>
-                        </div>
-                      </div>
-                    </Show>
-                  )}
-                </Show>
-
-                <Show when={error()}>
-                  <p role="alert" class="text-sm text-destructive">
-                    {error()}
-                  </p>
-                </Show>
-
-                {/* Stays at the bottom of the scrolled form, so Send is in view however long the form is. */}
-                <DialogFooter class="sticky bottom-0 -mx-6 -mb-6 items-center border-t bg-background px-6 py-4">
-                  <Show when={!busy() && problem()}>
-                    <span class="mr-auto text-xs text-muted-foreground">{problem()}</span>
+                    }
+                  >
+                    <p role="alert" class="mr-auto text-xs text-destructive">
+                      {error()}
+                    </p>
                   </Show>
                   <Button variant="outline" disabled={busy()} onClick={closeFeedbackDialog}>
                     Cancel
@@ -306,7 +312,7 @@ export function FeedbackDialog() {
             }
           >
             {(result) => (
-              <div class="grid gap-4">
+              <div class="grid gap-4 px-6 pb-6">
                 <p role="status" class="text-sm">
                   {submittedMessage(result())}
                 </p>
