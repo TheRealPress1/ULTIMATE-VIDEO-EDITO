@@ -29,6 +29,7 @@ export { CommandBar } from "./command-bar";
 export { CommandPalette } from "./palette";
 export { CANVAS_MENU, CommandContextMenu, NodeContextMenu, TIMELINE_HEADER_MENU, TIMELINE_MENU } from "./node-menu";
 export { ReloadWindowCommand } from "./reload-window";
+export { SendFeedbackCommand } from "./send-feedback";
 
 /**
  * The canvas's commands: what to generate, what the selected media can be

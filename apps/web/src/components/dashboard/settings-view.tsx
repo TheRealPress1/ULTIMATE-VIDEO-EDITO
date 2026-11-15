@@ -10,6 +10,7 @@ import { InstagramConnection } from "./instagram-connection";
 import { EditingSkillsSettings } from "./editing-skills";
 import { AgentMemorySettings } from "./agent-memory-settings";
 import { UpdateSettings } from './update-settings';
+import { FeedbackSettings } from "./feedback-settings";
 import { DownloaderSettings } from "./downloader-settings";
 import { AudioIntelligenceSettings } from "./audio-intelligence-settings";
 import { GeminiSettings } from "./gemini-settings";
@@ -178,6 +179,7 @@ export function DashboardSettingsView() {
       <AgentMemorySettings />
       <InstagramConnection />
       <UpdateSettings />
+      <FeedbackSettings />
       <DownloaderSettings />
       <AudioIntelligenceSettings />
       <GeminiSettings />

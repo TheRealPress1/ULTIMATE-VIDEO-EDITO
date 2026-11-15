@@ -9,13 +9,14 @@ import { Toaster } from "@/components/ui/sonner";
 
 import { AuthProvider, useAuth } from '@/context/auth';
 import { CommandsProvider } from '@/context/commands';
-import { CommandPalette, ReloadWindowCommand } from '@/components/commands';
+import { CommandPalette, ReloadWindowCommand, SendFeedbackCommand } from '@/components/commands';
 import { PersistRoute } from '@/lib/persist-route';
 import { useColorMode } from "@kobalte/core";
 import { mainBridge } from "@/lib/ipc";
 import { MAIN_CHANNELS } from "@desktop/main-channels";
 import { EditorApi } from '@/dapi';
 import { renderOverlay } from '@/context/render';
+import { FeedbackDialog } from '@/components/feedback-dialog';
 import { UpgradeDialog } from '@/components/upgrade-dialog';
 import { PurchaseSuccess } from '@/components/purchase-success';
 import { ScreenTooSmall } from '@/components/screen-too-small';
@@ -102,6 +103,8 @@ function App() {
               {props.children}
               <CommandPalette />
               <ReloadWindowCommand />
+              <SendFeedbackCommand />
+              <FeedbackDialog />
               <BootSplash />
               <Show when={!LOCAL_MODE}>
                 <UpgradeDialog />
