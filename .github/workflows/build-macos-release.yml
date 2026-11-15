@@ -31,7 +31,6 @@ jobs:
     env:
       CUTROOM_RELEASE: '1'
       CUTROOM_SIGN_IDENTITY: ${{ secrets.CUTROOM_SIGN_IDENTITY }}
-      CUTROOM_SIGN_KEYCHAIN: ${{ runner.temp }}/uve-signing.keychain-db
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
@@ -45,6 +44,9 @@ jobs:
         with:
           node-version: '24'
           cache: npm
+      # The runner context is not available in a job's env block, so the path is set here, before any step reads it.
+      - name: Name the temporary signing keychain
+        run: echo "CUTROOM_SIGN_KEYCHAIN=$RUNNER_TEMP/uve-signing.keychain-db" >> "$GITHUB_ENV"
       - name: Validate release settings and runner architecture
         run: |
           set -euo pipefail
