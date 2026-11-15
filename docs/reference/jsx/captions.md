@@ -15,6 +15,8 @@
 
 To caption a scene's audible mix, select the scene in Blackout and run **Generate captions** from the command palette. With nothing selected, the command uses the active scene. It prepares the audio, transcribes it locally, saves a transcript asset, and adds or updates the scene's caption layer. Progress and cancellation appear in a notification. Select the caption layer to edit words and times in **Caption text**, apply changes, or choose a preset.
 
+The **Captions** tab (beside Project, Media and Footage) does the same with a choice of model and language: **Accurate** uses Whisper large-v3-turbo, downloaded once on first use. Its words can be fixed one by one or found and replaced, and **Make captions** saves the fixed transcript under `Transcripts/` and points the scene's caption layer at a caption copy of it: at most 1, 2 or 3 words on screen, or whole phrases, with or without punctuation, and the preset's case or another (`textCase`). An unset `textCase` on captions falls back to the preset's own case.
+
 Recognition uses multilingual Whisper base on this Mac. The first use downloads about 148 MB of model weights, then keeps them cached for offline use; no audio or video is uploaded for transcription. Scenes can be up to two hours long, analyzed in resumable two-minute sections. See [local transcription setup](../../../README.md#local-transcription-and-captions) for development requirements.
 
 The scene's audible mix is rendered from its start to its end (the workarea is ignored), so a newly mounted caption layer uses scene-relative transcript times without `start` or `sourceIn`. Generate captions again after a cut, moved clip, or muted track changes what is heard or when: the transcript is a snapshot of the mix.

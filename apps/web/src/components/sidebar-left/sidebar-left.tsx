@@ -5,6 +5,7 @@
 import { Assets } from "./assets";
 import { Footage } from "./footage";
 import { MediaBrowser } from "./media-browser";
+import { CaptionsTab } from "./captions-tab";
 import { ChatPanel, sidebarTab } from "@/agent-chat";
 import { useLayout } from "@/context/layout";
 import { useEditorApi } from "@/dapi";
@@ -27,6 +28,10 @@ export function SidebarLeft() {
   });
   // Mounted on first visit and kept, so the folder and selection survive a tab switch.
   const [mediaOpened, setMediaOpened] = createSignal(sidebarTab() === "media");
+  const [captionsOpened, setCaptionsOpened] = createSignal(sidebarTab() === "captions");
+  createEffect(() => {
+    if (sidebarTab() === "captions") setCaptionsOpened(true);
+  });
   createEffect(() => {
     if (sidebarTab() === "media") setMediaOpened(true);
   });
@@ -43,6 +48,11 @@ export function SidebarLeft() {
       </div>
       <Show when={sidebarTab() === "chat"}>
         <ChatPanel />
+      </Show>
+      <Show when={captionsOpened()}>
+        <div classList={{ contents: sidebarTab() === "captions", hidden: sidebarTab() !== "captions" }}>
+          <CaptionsTab />
+        </div>
       </Show>
       <Show when={mediaOpened()}>
         <div classList={{ contents: sidebarTab() === "media", hidden: sidebarTab() !== "media" }}>
